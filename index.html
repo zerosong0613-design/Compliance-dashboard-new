@@ -1,2824 +1,1003 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>컴플라이언스 리스크 관리 시스템 v3.0</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Compliance RiskOps</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
-
-:root {
-  /* ── Light Theme Colors ── */
-  --bg-base:        #f0f2f5;
-  --bg-surface:     #ffffff;
-  --bg-card:        #ffffff;
-  --bg-card-hover:  #f8f9fb;
-  --bg-input:       #ffffff;
-  --bg-sidebar:     #1e2d40;
-  --bg-sidebar-hover: #263648;
-  --bg-sidebar-active: #2e4160;
-  --bg-header:      #1e2d40;
-
-  --border:         #e2e7ed;
-  --border-light:   #edf0f4;
-  --border-focus:   #2563eb;
-
-  --text-primary:   #1a2332;
-  --text-secondary: #4a5568;
-  --text-muted:     #94a3b8;
-  --text-placeholder: #b0bec5;
-  --text-sidebar:   #c8d6e5;
-  --text-sidebar-active: #ffffff;
-
-  --accent:         #2563eb;
-  --accent-dim:     rgba(37,99,235,.09);
-  --accent-hover:   #1d4ed8;
-
-  --blue:           #2563eb;
-  --blue-dim:       rgba(37,99,235,.1);
-  --blue-light:     #eff6ff;
-  --green:          #16a34a;
-  --green-dim:      rgba(22,163,74,.1);
-  --green-light:    #f0fdf4;
-  --red:            #dc2626;
-  --red-dim:        rgba(220,38,38,.1);
-  --red-light:      #fef2f2;
-  --orange:         #ea580c;
-  --orange-dim:     rgba(234,88,12,.1);
-  --orange-light:   #fff7ed;
-  --purple:         #7c3aed;
-  --purple-dim:     rgba(124,58,237,.1);
-  --purple-light:   #f5f3ff;
-  --amber:          #d97706;
-  --amber-dim:      rgba(217,119,6,.1);
-  --amber-light:    #fffbeb;
-  --teal:           #0891b2;
-  --teal-dim:       rgba(8,145,178,.1);
-  --teal-light:     #f0f9ff;
-
-  --r-sm: 6px;
-  --r:    10px;
-  --r-lg: 14px;
-
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
-  --shadow:    0 4px 16px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06);
-  --shadow-lg: 0 10px 40px rgba(0,0,0,.15);
-
-  --font:  'Noto Sans KR', 'Pretendard', sans-serif;
-  --mono:  'IBM Plex Mono', monospace;
-
-  --sidebar: 230px;
-  --header:  58px;
+:root{
+  --accent:#3B82F6;--accent-l:#EFF6FF;--navy:#0D1B2A;--navy2:#1A2E44;
+  --surface:#fff;--bg:#F4F7FB;--border:#E5EBF2;
+  --text:#0F172A;--muted:#64748B;--light:#F8FAFC;
+  --green:#10B981;--amber:#F59E0B;--red:#EF4444;--purple:#8B5CF6;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-serif}
+::-webkit-scrollbar{display:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body {
-  height: 100%;
-  font-family: var(--font);
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font-size: 15px;
-  line-height: 1.65;
-  -webkit-font-smoothing: antialiased;
+/* ══ LOGIN ══ */
+#login-screen{
+  position:fixed;inset:0;z-index:999;
+  background:linear-gradient(160deg,#0D1B2A 0%,#1E3A5F 55%,#0D1B2A 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;padding-top:calc(24px + var(--safe-top));
 }
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #f1f5f9; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-/* ═══════════════════ LOGIN ═══════════════════ */
-#login-screen {
-  position: fixed; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px 16px;
-  background: linear-gradient(135deg, #1e2d40 0%, #2e4160 50%, #1a3a5c 100%);
-  overflow-y: auto;
-  z-index: 9999;
-  /* iOS 스크롤 활성화 */
-  -webkit-overflow-scrolling: touch;
+#login-screen.hidden{display:none}
+.login-card{
+  background:#fff;border-radius:24px;padding:32px 28px;width:100%;max-width:400px;
+  box-shadow:0 32px 80px rgba(0,0,0,.4);animation:fadeUp .5s ease;
 }
-.login-box {
-  background: #fff;
-  border-radius: var(--r-lg);
-  padding: 44px 40px;
-  width: 440px; max-width: 100%;
-  box-shadow: var(--shadow-lg);
+.login-brand{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.login-brand-icon{width:48px;height:48px;background:var(--accent);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.login-brand-name{font-size:19px;font-weight:800;color:var(--text);line-height:1.2}
+.login-brand-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.login-section{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+.role-card{padding:16px 10px;border:2px solid var(--border);border-radius:14px;background:#fff;cursor:pointer;text-align:center;transition:all .2s;-webkit-user-select:none}
+.role-card:active{transform:scale(.97)}
+.role-card.on{border-color:var(--accent);background:var(--accent-l)}
+.role-card-icon{font-size:28px;margin-bottom:6px}
+.role-card-label{font-size:13px;font-weight:700;color:var(--text)}
+.role-card-desc{font-size:11px;color:var(--muted);margin-top:2px}
+#team-section{display:none;margin-bottom:22px}
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.team-btn{padding:10px 6px;border:1.5px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;text-align:center;font-size:12px;font-weight:600;color:var(--muted);transition:all .2s;font-family:inherit;-webkit-user-select:none}
+.team-btn:active{transform:scale(.95)}
+.team-btn.on{border-color:var(--accent);background:var(--accent-l);color:var(--accent);font-weight:700}
+.login-btn{width:100%;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px #3B82F655;transition:all .2s}
+.login-btn:active{transform:scale(.98)}
+.login-btn:disabled{background:#CBD5E1;box-shadow:none;cursor:not-allowed}
+.login-footer{margin-top:16px;text-align:center;font-size:11px;color:rgba(255,255,255,.4)}
+
+/* ══ APP SHELL ══ */
+#app{position:fixed;inset:0;display:none;flex-direction:column}
+#app.on{display:flex}
+
+/* ══ TOP HEADER ══ */
+#top-bar{
+  background:var(--navy);color:#fff;flex-shrink:0;
+  padding:0 16px;padding-top:var(--safe-top);
+  height:calc(54px + var(--safe-top));
+  display:flex;align-items:flex-end;padding-bottom:10px;
+  position:relative;z-index:100;
 }
-.login-logo { text-align: center; margin-bottom: 32px; }
-.login-logo .logo-icon { font-size: 40px; display: block; margin-bottom: 12px; }
-.login-logo h1 { font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1.35; }
-.login-logo p  { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
-.login-divider { height: 1px; background: var(--border); margin: 24px 0; }
-.login-lbl { display: block; font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
-.login-input {
-  width: 100%; background: #fff; border: 1.5px solid var(--border);
-  color: var(--text-primary); padding: 12px 14px; border-radius: var(--r-sm);
-  font-family: var(--font); font-size: 15px; transition: border-color .15s, box-shadow .15s;
-  margin-bottom: 16px;
+.top-bar-brand{display:flex;align-items:center;gap:8px;flex:1}
+.top-bar-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.top-bar-name{font-size:15px;font-weight:800}
+.top-bar-name span{color:#5EEAD4;font-size:11px;font-weight:600;margin-left:4px}
+.top-bar-right{display:flex;align-items:center;gap:10px}
+.top-bar-user{font-size:11px;color:#8BA3BC;background:var(--navy2);padding:4px 10px;border-radius:99px}
+.icon-btn{width:34px;height:34px;border:none;background:transparent;color:#8BA3BC;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:8px}
+.icon-btn:active{background:var(--navy2)}
+
+/* ══ YEAR/MONTH BAR ══ */
+#filter-bar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:10px 16px;display:none;gap:8px;align-items:center;flex-shrink:0;overflow-x:auto;
 }
-.login-input::placeholder { color: var(--text-placeholder); }
-.login-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-.login-input option { background: #fff; color: var(--text-primary); }
-.role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-.role-card {
-  border: 2px solid var(--border); border-radius: var(--r);
-  padding: 18px 12px; cursor: pointer; transition: all .18s;
-  text-align: center; background: #fafbfc;
+#filter-bar.on{display:flex}
+.fy-btn{padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
+.fy-btn.on{border-color:var(--accent);background:var(--accent-l);color:var(--accent);font-weight:700}
+.fm-sel{padding:5px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);background:var(--surface);cursor:pointer;font-family:inherit;outline:none;flex-shrink:0}
+
+/* ══ CONTENT ══ */
+#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.page{display:none;padding:16px;padding-bottom:calc(80px + var(--safe-bottom))}
+.page.on{display:block;animation:fadeIn .2s ease}
+
+/* ══ SECTION TITLE ══ */
+.page-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px}
+.page-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+
+/* ══ KPI GRID ══ */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.kpi-card{background:var(--surface);border-radius:16px;padding:16px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);animation:fadeUp .4s ease both}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.kpi-icon{font-size:22px}
+.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px}
+.badge-up{background:#ECFDF5;color:var(--green)}
+.badge-warn{background:#FFFBEB;color:var(--amber)}
+.kpi-num{font-size:32px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-1px}
+.kpi-label{font-size:12px;font-weight:700;color:var(--text);margin-top:5px}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* ══ CARD ══ */
+.card{background:var(--surface);border-radius:16px;padding:18px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);margin-bottom:14px}
+.card-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+.card-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
+
+/* ══ TEAM BARS ══ */
+.team-bar{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.team-name{width:72px;font-size:12px;font-weight:600;color:var(--text);flex-shrink:0}
+.bar-track{flex:1;height:8px;background:#EEF2F7;border-radius:99px;overflow:hidden}
+.bar-fill{height:100%;border-radius:99px;width:0%;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.team-pct{width:34px;font-size:12px;font-weight:800;color:var(--text);text-align:right;flex-shrink:0}
+.stag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:99px;white-space:nowrap;flex-shrink:0}
+
+/* ══ HEATMAP ══ */
+.hm-row{display:flex;gap:3px;margin-bottom:3px}
+.hm-lbl{width:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted)}
+.hm-cell{flex:1;aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:rgba(255,255,255,.9);transition:transform .15s}
+.hm-cell:active{transform:scale(1.15)}
+
+/* ══ ALERT CARD ══ */
+.alert-item-card{background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:14px;margin-bottom:10px}
+.alert-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.alert-team{font-size:13px;font-weight:800;color:var(--red)}
+.alert-badge{font-size:10px;background:var(--red);color:#fff;padding:2px 6px;border-radius:99px;font-weight:700}
+.alert-days{margin-left:auto;font-size:11px;color:var(--red);font-weight:700}
+.alert-risk{font-size:12px;color:#7F1D1D;padding:3px 0;display:flex;gap:6px;align-items:center}
+.alert-send-btn{margin-top:10px;width:100%;padding:8px;background:var(--red);color:#fff;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.alert-send-btn:active{opacity:.8}
+
+/* ══ RISK LIST CARDS ══ */
+.risk-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;-webkit-user-select:none;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.risk-card:active{transform:scale(.98);background:var(--accent-l)}
+.risk-card-left{flex:1;min-width:0}
+.risk-card-id{font-size:10px;font-weight:700;color:var(--accent);margin-bottom:3px;font-family:monospace}
+.risk-card-title{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
+.risk-card-meta{display:flex;gap:6px;align-items:center}
+.cat-tag{font-size:9px;font-weight:700;background:var(--accent-l);color:var(--accent);padding:2px 7px;border-radius:99px}
+.score-badge{font-size:10px;font-weight:800}
+.risk-card-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.risk-arr{font-size:16px;color:#CBD5E1}
+.status-chip{font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap}
+.s-sub{background:#EFF6FF;color:#2563EB}
+.s-eval{background:#ECFDF5;color:#059669}
+.s-none{background:#FEF2F2;color:var(--red)}
+.s-draft{background:#FFFBEB;color:var(--amber)}
+
+/* ══ FILTER BAR ══ */
+.filter-scroll{display:flex;gap:7px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px}
+.f-btn{padding:6px 14px;border:1px solid var(--border);border-radius:99px;background:#fff;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.f-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* ══ BOTTOM SHEET ══ */
+#sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;backdrop-filter:blur(2px)}
+#sheet-overlay.on{display:block;animation:fadeIn .2s}
+#bottom-sheet{
+  position:fixed;bottom:0;left:0;right:0;z-index:501;
+  background:var(--surface);border-radius:24px 24px 0 0;
+  max-height:90vh;display:flex;flex-direction:column;
+  padding-bottom:calc(16px + var(--safe-bottom));
+  display:none;
 }
-.role-card:hover { border-color: var(--accent); background: var(--blue-light); transform: translateY(-1px); }
-.role-card.selected { border-color: var(--accent); background: var(--blue-light); box-shadow: 0 0 0 3px var(--accent-dim); }
-.role-card .rc-icon  { font-size: 26px; display: block; margin-bottom: 8px; }
-.role-card .rc-label { font-size: 14px; font-weight: 700; color: var(--text-primary); line-height: 1.3; }
-.role-card .rc-desc  { font-size: 11px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; }
-.role-card.selected .rc-label { color: var(--accent); }
-.login-btn {
-  width: 100%; padding: 14px; background: var(--accent); color: #fff;
-  border: none; border-radius: var(--r-sm); font-size: 15px; font-weight: 700;
-  cursor: pointer; font-family: var(--font); transition: all .15s; margin-top: 2px;
+#bottom-sheet.on{display:flex;animation:slideUp .3s cubic-bezier(.4,0,.2,1)}
+.sheet-handle{width:36px;height:4px;background:#CBD5E1;border-radius:99px;margin:12px auto 0}
+.sheet-header{padding:12px 20px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+.sheet-title{font-size:16px;font-weight:800;color:var(--text)}
+.sheet-id{font-size:11px;color:var(--accent);font-weight:700;font-family:monospace}
+.sheet-close{width:28px;height:28px;border:none;background:var(--bg);border-radius:99px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.sheet-body{padding:20px;overflow-y:auto;flex:1}
+.sheet-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:10px;flex-shrink:0}
+
+/* ══ FORM ELEMENTS ══ */
+.form-label{font-size:13px;font-weight:700;color:var(--text);display:block;margin-bottom:8px}
+.form-group{margin-bottom:20px}
+.radio-row{display:flex;gap:8px;flex-wrap:wrap}
+.radio-chip{padding:9px 16px;border:1.5px solid var(--border);border-radius:10px;background:#fff;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s;-webkit-user-select:none}
+.radio-chip:active{transform:scale(.96)}
+.radio-chip.on{border-color:var(--accent);background:var(--accent-l);color:var(--accent);font-weight:700}
+.form-textarea{width:100%;height:110px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font-size:13px;color:var(--text);resize:none;outline:none;font-family:inherit;line-height:1.6;-webkit-appearance:none}
+.form-textarea:focus{border-color:var(--accent)}
+.dropzone{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;background:var(--light);cursor:pointer}
+.dropzone:active{border-color:var(--accent);background:var(--accent-l)}
+.drop-icon{font-size:28px;margin-bottom:6px}
+.drop-text{font-size:13px;color:var(--muted)}
+.drop-sub{font-size:11px;color:#94A3B8;margin-top:3px}
+.file-chip{display:inline-flex;align-items:center;gap:6px;background:var(--accent-l);border:1px solid #BFDBFE;border-radius:8px;padding:5px 10px;font-size:11px;color:#2563EB;font-weight:600;margin-top:8px}
+
+/* ══ BUTTONS ══ */
+.btn{padding:13px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:none;transition:all .15s;-webkit-user-select:none}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 12px #3B82F655;flex:1}
+.btn-ghost{background:var(--bg);color:var(--muted);border:1px solid var(--border);flex:1}
+.btn-danger{background:#FEF2F2;color:var(--red);border:1px solid #FECACA;flex:1}
+.btn-success{background:var(--green);color:#fff;box-shadow:0 2px 12px #10B98155;flex:1}
+
+/* ══ EVAL SLIDER ══ */
+.score-display{font-size:42px;font-weight:800;text-align:center;padding:16px 0;border-radius:14px;background:var(--light);margin-bottom:14px}
+.eval-slider{width:100%;height:8px;border-radius:99px;outline:none;cursor:pointer;margin-bottom:8px;-webkit-appearance:none;background:var(--border)}
+.eval-slider::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer}
+.quick-scores{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+.qs-btn{padding:10px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid;transition:all .15s;-webkit-user-select:none}
+.qs-btn:active{transform:scale(.95)}
+.submitted-box{background:var(--light);border-radius:12px;padding:14px;margin-bottom:18px;border:1px solid var(--border)}
+.submitted-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px}
+.submitted-txt{font-size:13px;color:var(--text);line-height:1.7}
+
+/* ══ MASTER VIEW ══ */
+.search-wrap{position:relative;margin-bottom:12px}
+.search-input{width:100%;padding:12px 14px 12px 40px;border:1px solid var(--border);border-radius:12px;font-size:13px;outline:none;font-family:inherit;background:var(--surface);-webkit-appearance:none}
+.search-input:focus{border-color:var(--accent)}
+.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--muted)}
+.add-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:6px}
+
+/* ══ MY TEAM ══ */
+.my-risk-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
+.my-risk-id{font-family:monospace;font-size:10px;font-weight:700;color:var(--accent);width:36px;flex-shrink:0}
+.my-risk-name{flex:1;font-size:12px;font-weight:600;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.progress-wrap{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.progress-track{width:42px;height:5px;background:var(--border);border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;border-radius:99px}
+
+/* ══ TEAM CARD ══ */
+.team-big-card{background:var(--surface);border-radius:16px;padding:18px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);margin-bottom:12px;display:flex;align-items:center;gap:16px}
+.team-big-avg{font-size:36px;font-weight:800;flex-shrink:0;width:80px}
+.team-big-info{flex:1}
+.team-big-name{font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px}
+.team-big-bar{height:8px;background:#EEF2F7;border-radius:99px;overflow:hidden;margin-bottom:6px}
+.team-big-months{display:flex;gap:12px;font-size:11px;color:var(--muted)}
+
+/* ══ BOTTOM NAV ══ */
+#bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;padding-bottom:var(--safe-bottom);
+  box-shadow:0 -4px 20px rgba(0,0,0,.08);
 }
-.login-btn:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(37,99,235,.35); }
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;background:none;border:none;cursor:pointer;font-family:inherit;position:relative;-webkit-user-select:none;min-height:56px}
+.bnav-btn:active{background:var(--bg)}
+.bnav-icon{font-size:20px;margin-bottom:3px;line-height:1}
+.bnav-label{font-size:10px;font-weight:600;color:var(--muted)}
+.bnav-btn.on .bnav-label{color:var(--accent);font-weight:700}
+.bnav-dot{position:absolute;top:6px;right:calc(50% - 16px);width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid var(--surface)}
 
-/* ═══════════════════ APP LAYOUT ═══════════════════ */
-#app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-
-.app-header {
-  display: flex; align-items: center; justify-content: space-between;
-  height: var(--header); padding: 0 24px;
-  background: var(--bg-header); border-bottom: 1px solid rgba(255,255,255,.08);
-  flex-shrink: 0; gap: 14px; z-index: 100;
+/* ══ DRAWER (desktop sidebar) ══ */
+#drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;display:none;backdrop-filter:blur(2px)}
+#drawer-overlay.on{display:block;animation:fadeIn .2s}
+#drawer{
+  position:fixed;top:0;left:0;bottom:0;z-index:301;width:280px;
+  background:var(--navy);display:flex;flex-direction:column;
+  padding-top:var(--safe-top);display:none;
 }
-.header-brand {
-  display: flex; align-items: center; gap: 10px;
-  font-weight: 700; font-size: 16px; color: #fff; white-space: nowrap;
-}
-.header-brand .pulse-dot {
-  width: 8px; height: 8px; background: #34d399;
-  border-radius: 50%; animation: pulse 2.5s infinite; flex-shrink: 0;
-}
-@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.25)} }
-.header-ctrl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.header-ctrl label { color: rgba(255,255,255,.6); font-size: 12px; white-space: nowrap; }
-.h-select {
-  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
-  color: #fff; padding: 5px 9px; border-radius: var(--r-sm);
-  font-size: 13px; font-family: var(--font);
-}
-.h-select:focus { outline: none; border-color: rgba(255,255,255,.5); }
-.h-select option { background: #1e2d40; }
-.header-user-chip {
-  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
-  color: #fff; font-size: 12px; padding: 4px 12px; border-radius: 20px; white-space: nowrap;
-}
-
-.main-wrap { display: flex; flex: 1; overflow: hidden; }
-
-/* ═══════════════════ SIDEBAR ═══════════════════ */
-.sidebar {
-  width: var(--sidebar); background: var(--bg-sidebar);
-  display: flex; flex-direction: column; flex-shrink: 0; padding: 12px 0; overflow-y: auto;
-}
-.sb-label {
-  font-size: 10px; font-weight: 600; letter-spacing: .12em;
-  color: rgba(200,214,229,.5); text-transform: uppercase; padding: 14px 18px 6px;
-}
-.sb-section { padding: 0 10px 4px; }
-.nav-item {
-  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
-  border-radius: var(--r-sm); cursor: pointer; color: var(--text-sidebar);
-  font-size: 13px; font-weight: 500; transition: all .15s;
-  border: none; background: transparent; width: 100%; text-align: left;
-  border-left: 3px solid transparent; margin: 1px 0;
-}
-.nav-item:hover { background: var(--bg-sidebar-hover); color: #fff; }
-.nav-item.active { background: var(--bg-sidebar-active); color: #fff; border-left-color: #60a5fa; }
-.nav-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
-.nav-badge {
-  margin-left: auto; background: #ef4444; color: #fff;
-  font-size: 10px; font-weight: 700; padding: 1px 6px;
-  border-radius: 10px; font-family: var(--mono); min-width: 18px; text-align: center;
-}
-.sb-info { font-size: 12px; color: rgba(200,214,229,.6); padding: 8px 18px 12px; line-height: 1.7; }
-.sb-team-chip {
-  display: inline-block; background: rgba(96,165,250,.2); color: #93c5fd;
-  border: 1px solid rgba(96,165,250,.3); font-size: 11px; font-weight: 600;
-  padding: 2px 9px; border-radius: 10px; margin-bottom: 4px;
-}
-
-/* ═══════════════════ CONTENT ═══════════════════ */
-.content { flex: 1; overflow-y: auto; padding: 28px; background: var(--bg-base); }
-
-/* ═══════════════════ SECTION HEADER ═══════════════════ */
-.sec-hd { margin-bottom: 22px; }
-.sec-title { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; letter-spacing: -.02em; }
-.sec-sub   { font-size: 13px; color: var(--text-secondary); }
-
-/* ═══════════════════ KPI CARDS ═══════════════════ */
-.kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 28px; }
-.kpi-card {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r);
-  padding: 20px 18px; position: relative; overflow: hidden;
-  transition: box-shadow .15s, transform .15s; cursor: default;
-  box-shadow: var(--shadow-sm);
-}
-.kpi-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
-.kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; border-radius: var(--r) var(--r) 0 0; }
-.kpi-card.c-blue::before   { background: var(--blue); }
-.kpi-card.c-green::before  { background: var(--green); }
-.kpi-card.c-red::before    { background: var(--red); }
-.kpi-card.c-amber::before  { background: var(--amber); }
-.kpi-card.c-purple::before { background: var(--purple); }
-.kpi-card.c-teal::before   { background: var(--teal); }
-.kpi-card.c-orange::before { background: var(--orange); }
-.kpi-icon  { font-size: 22px; margin-bottom: 10px; display: block; }
-.kpi-label { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em; }
-.kpi-value { font-size: 30px; font-weight: 700; color: var(--text-primary); font-family: var(--mono); line-height: 1; }
-.kpi-sub   { font-size: 11px; color: var(--text-secondary); margin-top: 8px; }
-.kpi-trend { font-size: 11px; font-weight: 600; margin-top: 6px; }
-.kpi-trend.up   { color: var(--green); }
-.kpi-trend.down { color: var(--red); }
-
-/* ═══════════════════ CARD ═══════════════════ */
-.card {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r);
-  padding: 22px; margin-bottom: 18px; box-shadow: var(--shadow-sm);
-}
-.card-title {
-  font-size: 13px; font-weight: 700; color: var(--text-secondary);
-  text-transform: uppercase; letter-spacing: .06em; margin-bottom: 16px;
-  display: flex; align-items: center; gap: 8px;
-  padding-bottom: 12px; border-bottom: 1px solid var(--border);
-}
-
-/* ═══════════════════ BADGES ═══════════════════ */
-.badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap;
-}
-.b-draft       { background: #f1f5f9;          color: #64748b; border: 1px solid #e2e8f0; }
-.b-submitted   { background: var(--blue-light); color: var(--blue); border: 1px solid rgba(37,99,235,.2); }
-.b-evaluated   { background: var(--green-light);color: var(--green); border: 1px solid rgba(22,163,74,.2); }
-.b-revision    { background: var(--orange-light);color: var(--orange); border: 1px solid rgba(234,88,12,.2); }
-.b-resubmitted { background: var(--purple-light);color: var(--purple); border: 1px solid rgba(124,58,237,.2); }
-.b-blocked     { background: var(--red-light);  color: var(--red); border: 1px solid rgba(220,38,38,.2); }
-.b-inprogress  { background: var(--teal-light);  color: var(--teal); border: 1px solid rgba(8,145,178,.2); }
-.b-completed   { background: var(--green-light); color: var(--green); border: 1px solid rgba(22,163,74,.2); }
-.b-notstarted  { background: #f1f5f9;            color: #64748b; border: 1px solid #e2e8f0; }
-.b-selected    { background: var(--amber-light); color: var(--amber); border: 1px solid rgba(217,119,6,.2); }
-.b-warn        { background: var(--red-light);   color: var(--red); border: 1px solid rgba(220,38,38,.2); }
-.b-admin       { background: #1e2d40;            color: #93c5fd; border: 1px solid rgba(96,165,250,.3); }
-
-/* ═══════════════════ BUTTONS ═══════════════════ */
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 18px; border-radius: var(--r-sm); font-size: 14px; font-weight: 600;
-  cursor: pointer; transition: all .15s; border: none; font-family: var(--font); white-space: nowrap;
-}
-.btn-primary   { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,.3); }
-.btn-secondary { background: #fff; color: var(--text-secondary); border: 1.5px solid var(--border); }
-.btn-secondary:hover { background: var(--bg-card-hover); color: var(--text-primary); border-color: #94a3b8; }
-.btn-success   { background: var(--green); color: #fff; }
-.btn-success:hover { background: #15803d; transform: translateY(-1px); }
-.btn-danger    { background: #fff; color: var(--red); border: 1.5px solid #fca5a5; }
-.btn-danger:hover { background: var(--red-light); }
-.btn-blue      { background: var(--blue); color: #fff; }
-.btn-blue:hover { background: var(--accent-hover); }
-.btn-orange    { background: var(--orange); color: #fff; }
-.btn-orange:hover { filter: brightness(1.05); }
-.btn-sm        { padding: 6px 12px; font-size: 12px; }
-.btn:disabled  { opacity: .4; cursor: not-allowed; transform: none !important; }
-
-/* ═══════════════════ FORM CONTROLS ═══════════════════ */
-.fg     { margin-bottom: 18px; }
-.flabel { display: block; font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; }
-.flabel .req { color: var(--red); margin-left: 2px; }
-.fc {
-  width: 100%; background: var(--bg-input); border: 1.5px solid var(--border);
-  color: var(--text-primary); padding: 11px 14px; border-radius: var(--r-sm);
-  font-family: var(--font); font-size: 14px; transition: border-color .15s, box-shadow .15s;
-}
-.fc::placeholder { color: var(--text-placeholder); }
-.fc:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-textarea.fc { resize: vertical; min-height: 96px; }
-select.fc option { background: #fff; color: var(--text-primary); }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
-
-/* ═══════════════════ FILTER BAR ═══════════════════ */
-.fbar {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 14px 18px; background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--r); margin-bottom: 18px; box-shadow: var(--shadow-sm);
-}
-.fbar label { font-size: 12px; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
-.fbar select, .fbar input[type=text] {
-  background: var(--bg-input); border: 1.5px solid var(--border);
-  color: var(--text-primary); padding: 7px 10px;
-  border-radius: var(--r-sm); font-size: 13px; font-family: var(--font);
-}
-.fbar select:focus, .fbar input:focus { outline: none; border-color: var(--accent); }
-.fbar-sep   { height: 20px; width: 1px; background: var(--border); }
-.fbar-count { margin-left: auto; font-size: 12px; color: var(--text-muted); font-family: var(--mono); white-space: nowrap; font-weight: 600; }
-
-/* ═══════════════════ TABLE ═══════════════════ */
-.tbl-wrap { overflow-x: auto; border-radius: var(--r); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th {
-  background: #f8fafc; color: var(--text-secondary); font-size: 12px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .05em; padding: 12px 14px;
-  text-align: left; white-space: nowrap; border-bottom: 1.5px solid var(--border);
-}
-td { padding: 12px 14px; border-bottom: 1px solid var(--border-light); color: var(--text-primary); vertical-align: middle; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: #f8fafc; }
-
-/* ═══════════════════ RISK CARD ═══════════════════ */
-.risk-card {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r);
-  margin-bottom: 14px; overflow: hidden; transition: box-shadow .15s;
-  box-shadow: var(--shadow-sm);
-}
-.risk-card:hover { box-shadow: var(--shadow); }
-.risk-card.rc-evaluated { border-left: 4px solid var(--green); }
-.risk-card.rc-submitted { border-left: 4px solid var(--blue); }
-.risk-card.rc-revision  { border-left: 4px solid var(--orange); }
-.risk-card.rc-blocked   { border-left: 4px solid var(--red); }
-.rch { display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 20px; cursor: pointer; gap: 14px; user-select: none; }
-.rch:hover { background: #f8fafc; }
-.rch-info { flex: 1; min-width: 0; }
-.risk-id-tag { font-size: 11px; font-family: var(--mono); color: var(--text-muted); margin-bottom: 4px; letter-spacing: .04em; }
-.risk-title { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
-.risk-desc  { font-size: 13px; color: var(--text-secondary); line-height: 1.55; }
-.risk-task  { font-size: 12px; color: var(--blue); margin-top: 6px; padding: 4px 10px; background: var(--blue-light); border-radius: var(--r-sm); display: inline-block; font-weight: 500; }
-.risk-owner { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
-.risk-meta  { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
-.score-pill { font-family: var(--mono); font-size: 11px; background: var(--amber-light); color: var(--amber); padding: 2px 9px; border-radius: 20px; font-weight: 700; border: 1px solid rgba(217,119,6,.2); }
-.rcb { border-top: 1px solid var(--border); padding: 22px; display: none; animation: slideDown .2s ease; background: #fafbfc; }
-.rcb.open { display: block; }
-@keyframes slideDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
-.rch-toggle { color: var(--text-muted); font-size: 17px; transition: transform .2s; flex-shrink: 0; margin-top: 2px; }
-.risk-card.expanded .rch-toggle { transform: rotate(180deg); }
-
-/* ═══════════════════ ACCORDION ═══════════════════ */
-.acc-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 10px; overflow: hidden; box-shadow: var(--shadow-sm); }
-.acc-hd { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer; user-select: none; transition: background .15s; }
-.acc-hd:hover { background: #f8fafc; }
-.acc-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
-.acc-meta  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.acc-arrow { color: var(--text-muted); font-size: 13px; transition: transform .2s; }
-.acc-item.open .acc-arrow { transform: rotate(180deg); }
-.acc-body  { border-top: 1px solid var(--border); padding: 18px; display: none; background: #fafbfc; }
-.acc-item.open .acc-body { display: block; }
-
-/* ═══════════════════ EVAL CARD ═══════════════════ */
-.eval-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
-.eval-risk-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; color: var(--text-primary); }
-.eval-risk-sub   { font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5; }
-.progress-box {
-  background: #f8fafc; border: 1px solid var(--border); border-radius: var(--r-sm);
-  padding: 13px 15px; font-size: 14px; color: var(--text-secondary); margin-bottom: 14px;
-  white-space: pre-wrap; line-height: 1.65; max-height: 120px; overflow-y: auto;
-}
-.score-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.score-row input[type=range] { flex: 1; accent-color: var(--accent); height: 6px; }
-.score-disp { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent); width: 52px; text-align: right; flex-shrink: 0; }
-
-/* ═══════════════════ MISC COMPONENTS ═══════════════════ */
-.chip { display: inline-block; font-size: 12px; background: #f1f5f9; color: var(--text-secondary); padding: 2px 9px; border-radius: 10px; border: 1px solid var(--border); font-weight: 500; }
-.warn-box {
-  background: var(--red-light); border: 1px solid rgba(220,38,38,.25);
-  border-radius: var(--r); padding: 15px 20px;
-  display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px;
-}
-.warn-icon  { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-.warn-title { font-size: 14px; font-weight: 700; color: var(--red); }
-.warn-sub   { font-size: 13px; color: var(--text-secondary); margin-top: 3px; }
-.warn-tags  { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.warn-tag   { display: inline-block; background: #fff; color: var(--red); border: 1.5px solid rgba(220,38,38,.3); font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: var(--r-sm); }
-.ok-box { background: var(--green-light); border: 1px solid rgba(22,163,74,.25); border-radius: var(--r); padding: 13px 18px; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
-.pbar-wrap { background: #f1f5f9; border-radius: 100px; height: 10px; overflow: hidden; flex: 1; }
-.pbar-fill  { height: 100%; border-radius: 100px; transition: width .7s ease; }
-.upload-area {
-  border: 2px dashed var(--border); border-radius: var(--r);
-  padding: 24px; text-align: center; cursor: pointer; transition: all .15s; background: #fafbfc;
-}
-.upload-area:hover { border-color: var(--accent); background: var(--blue-light); }
-.upload-area.drag-over { border-color: var(--accent); background: var(--blue-light); }
-.upload-area .up-icon { font-size: 28px; }
-.upload-area p { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
-.upload-file-item {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 9px 14px; background: #fff; border: 1px solid var(--border);
-  border-radius: var(--r-sm); margin-top: 6px; font-size: 13px;
-}
-.upload-file-item .fn { color: var(--text-primary); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.upload-file-item .fs { color: var(--text-muted); font-family: var(--mono); font-size: 11px; margin: 0 10px; flex-shrink: 0; }
-.upload-file-item .fr { color: var(--red); cursor: pointer; font-size: 18px; line-height: 1; flex-shrink: 0; }
-.obj-box { background: var(--orange-light); border: 1px solid rgba(234,88,12,.25); border-radius: var(--r); padding: 13px 16px; margin-top: 12px; font-size: 13px; }
-.obj-title { font-weight: 700; color: var(--orange); margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-.hist-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-.hist-row:last-child { border-bottom: none; }
-.hist-yr  { font-family: var(--mono); font-size: 11px; color: var(--text-muted); width: 44px; flex-shrink: 0; }
-.hist-sc  { font-family: var(--mono); font-size: 16px; font-weight: 700; width: 48px; flex-shrink: 0; }
-.hist-delta { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
-.hist-up { color: var(--green); background: var(--green-light); } .hist-dn { color: var(--red); background: var(--red-light); } .hist-eq { color: var(--text-muted); background: #f1f5f9; }
-.team-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; border-radius: var(--r-sm); }
-.team-row:last-child { border-bottom: none; }
-.team-row:hover { background: #f8fafc; padding: 12px 10px; margin: 0 -10px; }
-.t-name { font-size: 14px; font-weight: 600; width: 80px; flex-shrink: 0; }
-.t-pct  { font-family: var(--mono); font-size: 13px; font-weight: 700; width: 42px; text-align: right; flex-shrink: 0; }
-.divider { height: 1px; background: var(--border); margin: 16px 0; }
-.flex-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.flex-btw { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.mt-4{margin-top:4px}.mt-8{margin-top:8px}.mt-12{margin-top:12px}.mt-16{margin-top:16px}.mt-20{margin-top:20px}
-.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}.mb-20{margin-bottom:20px}
-.tx-mono{font-family:var(--mono)}.tx-muted{color:var(--text-muted)}.tx-sec{color:var(--text-secondary)}.tx-sm{font-size:13px}.tx-xs{font-size:12px}
-
-/* ═══════════════════ TOAST ═══════════════════ */
-#toast-ct { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
-.toast { display: flex; align-items: center; gap: 10px; padding: 13px 18px; border-radius: var(--r); font-size: 14px; font-weight: 500; box-shadow: var(--shadow); animation: toastIn .25s ease; min-width: 260px; max-width: 380px; }
-@keyframes toastIn { from{opacity:0;transform:translateX(18px)} to{opacity:1;transform:translateX(0)} }
-.t-ok   { background: #fff; border: 1px solid rgba(22,163,74,.4);   color: var(--green);  border-left: 4px solid var(--green); }
-.t-err  { background: #fff; border: 1px solid rgba(220,38,38,.4);   color: var(--red);    border-left: 4px solid var(--red); }
-.t-inf  { background: #fff; border: 1px solid rgba(37,99,235,.4);   color: var(--blue);   border-left: 4px solid var(--blue); }
-.t-warn { background: #fff; border: 1px solid rgba(217,119,6,.4);   color: var(--amber);  border-left: 4px solid var(--amber); }
-
-/* ═══════════════════ MODAL ═══════════════════ */
-#modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn .2s ease; }
-@keyframes fadeIn { from{opacity:0} to{opacity:1} }
-.modal-box { background: #fff; border-radius: var(--r-lg); padding: 30px; width: 560px; max-width: 95vw; max-height: 86vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: slideUp .25s ease; }
-@keyframes slideUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
-.modal-title { font-size: 17px; font-weight: 700; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1.5px solid var(--border); color: var(--text-primary); }
-.modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; padding-top: 16px; border-top: 1.5px solid var(--border); }
-
-@media (max-width: 768px) {
-  #modal-overlay { align-items: flex-end; padding: 0; }
-  .modal-box { 
-    width: 100%; max-width: 100%; border-radius: var(--r-lg) var(--r-lg) 0 0;
-    max-height: 88vh; padding: 22px 16px 32px;
-    animation: slideUpMob .28s ease;
-  }
-  @keyframes slideUpMob { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
-  .modal-footer { justify-content: stretch; }
-  .modal-footer .btn { flex: 1; justify-content: center; }
-}
-
-/* ═══════════════════ HEATMAP ═══════════════════ */
-.hm-wrap { overflow-x: auto; }
-.hm-grid { display: grid; grid-template-columns: 36px repeat(5, 1fr); gap: 5px; min-width: 340px; }
-.hm-cell { border-radius: var(--r-sm); padding: 6px 4px; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform .15s, box-shadow .15s; cursor: default; border: 1px solid transparent; }
-.hm-cell:hover { transform: scale(1.06); z-index: 2; box-shadow: var(--shadow); }
-.hm-cnt { font-family: var(--mono); font-size: 17px; font-weight: 800; }
-.hm-lbl { font-size: 10px; margin-top: 2px; text-align: center; line-height: 1.3; }
-.hm-axis { display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text-muted); font-weight: 700; }
-
-/* ═══════════════════ EVAL RESULT PANEL ═══════════════════ */
-.eval-result-panel { border-radius: var(--r); padding: 16px 18px; margin-bottom: 14px; }
-.eval-result-panel.ok { background: var(--green-light); border: 1.5px solid rgba(22,163,74,.25); }
-.eval-result-panel.warn { background: var(--orange-light); border: 1.5px solid rgba(234,88,12,.25); }
-
-/* ═══════════════════ DASHBOARD STAT ROW ═══════════════════ */
-.stat-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
-.stat-row:last-child { border-bottom: none; }
-.stat-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); min-width: 80px; flex-shrink: 0; }
-.stat-val   { font-family: var(--mono); font-size: 15px; font-weight: 800; }
-
-/* ═══════════════════ RESPONSIVE ═══════════════════ */
-/* ═══════════════════ MOBILE NAV OVERLAY ═══════════════════ */
-.mob-overlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.45); z-index: 299;
-  animation: fadeIn .2s ease;
-}
-.mob-overlay.visible { display: block; }
-
-.hamburger {
-  display: none; align-items: center; justify-content: center;
-  width: 38px; height: 38px; background: rgba(255,255,255,.12);
-  border: 1px solid rgba(255,255,255,.2); border-radius: var(--r-sm);
-  cursor: pointer; font-size: 17px; color: #fff; flex-shrink: 0;
-  margin-right: 4px;
-}
-
-/* ═══════════════════ MOBILE BOTTOM NAV ═══════════════════ */
-.mob-bottom-nav {
-  display: none;
-  position: fixed; bottom: 0; left: 0; right: 0;
-  background: var(--bg-sidebar);
-  border-top: 1px solid rgba(255,255,255,.12);
-  z-index: 200;
-  /* iOS Safari 홈 인디케이터 영역 확보 */
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-.mob-bottom-nav-inner {
-  display: flex; justify-content: space-around; align-items: center;
-  height: 56px;
-}
-.mob-nav-btn {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 6px 8px; border-radius: var(--r-sm);
-  background: none; border: none; cursor: pointer;
-  color: rgba(200,214,229,.55); font-family: var(--font);
-  font-size: 10px; font-weight: 600; transition: color .15s;
-  min-width: 48px; flex: 1; position: relative;
-}
-.mob-nav-btn .mob-icon { font-size: 20px; line-height: 1; }
-.mob-nav-btn.active { color: #60a5fa; }
-.mob-nav-btn .mob-badge {
-  position: absolute; top: 4px; right: calc(50% - 18px);
-  background: #ef4444; color: #fff;
-  font-size: 9px; font-weight: 800; padding: 1px 5px;
-  border-radius: 8px; min-width: 16px; text-align: center;
-}
-
-/* ═══════════════════ RESPONSIVE BREAKPOINTS ═══════════════════ */
-@media (max-width: 768px) {
-  /* Layout */
-  .sidebar { 
-    position: fixed; top: 0; left: -var(--sidebar); bottom: 0;
-    width: 260px; z-index: 300;
-    transform: translateX(-100%);
-    transition: transform .25s ease;
-    padding-top: calc(var(--header) + 8px);
-  }
-  .sidebar.mob-open { transform: translateX(0); }
-  .hamburger { display: flex; }
-  /* 하단 탭바(56px) + safe-area + 여유 16px */
-  .content { padding: 16px 14px calc(56px + env(safe-area-inset-bottom, 0px) + 16px); }
-
-  /* Header */
-  .app-header { padding: 0 12px; gap: 8px; }
-  .header-brand { font-size: 13px; }
-  .header-brand::after { content: ''; }
-  .header-ctrl { gap: 6px; }
-  .header-ctrl > label { display: none; }
-  .h-select { padding: 4px 6px; font-size: 12px; }
-  .header-user-chip { display: none; }
-  .btn.logout-btn { padding: 5px 9px; font-size: 11px; }
-
-  /* Bottom nav */
-  .mob-bottom-nav { display: block; }
-
-  /* Grid collapse */
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-
-  /* Section header */
-  .sec-title { font-size: 17px; }
-  .flex-btw { flex-wrap: wrap; gap: 8px; }
-
-  /* Cards */
-  .card { padding: 16px; }
-  .kpi-card { padding: 16px 14px; }
-  .kpi-value { font-size: 24px; }
-
-  /* Filter bar */
-  .fbar { padding: 10px 12px; gap: 7px; }
-  .fbar select, .fbar input[type=text] { font-size: 12px; padding: 6px 8px; }
-  .fbar-sep { display: none; }
-  .fbar-count { margin-left: 0; width: 100%; text-align: right; }
-
-  /* Table — scroll container */
-  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .tbl-wrap table { min-width: 700px; }
-  .tbl-wrap th, .tbl-wrap td { padding: 9px 10px; font-size: 12px; }
-
-  /* Accordion + eval cards */
-  .eval-card { padding: 14px; }
-  .score-row { flex-wrap: wrap; gap: 8px; }
-  .score-disp { width: auto; }
-  .modal-box { padding: 20px 16px; }
-
-  /* Risk cards */
-  .rch { padding: 14px 16px; }
-  .rcb { padding: 16px; }
-
-  /* Heatmap scroll */
-  .hm-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .hm-grid { min-width: 280px; }
-
-  /* Warn box */
-  .warn-box { flex-direction: column; gap: 8px; }
-  .warn-tags { flex-wrap: wrap; }
-
-  /* Login */
-  #login-screen { align-items: flex-start; padding: 20px 14px 40px; }
-  .login-box { padding: 28px 18px; border-radius: var(--r); width: 100%; }
-  .login-logo .logo-icon { font-size: 32px; }
-  .login-logo h1 { font-size: 18px; }
-  .login-divider { margin: 16px 0; }
-  .role-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .role-card { padding: 14px 8px; }
-  .role-card .rc-icon { font-size: 22px; }
-  .role-card .rc-label { font-size: 12px; }
-  .role-card .rc-desc { font-size: 10px; }
-  .login-input { padding: 11px 12px; font-size: 14px; }
-  .login-btn { padding: 13px; font-size: 15px; }
-
-  /* Toast */
-  #toast-ct { bottom: 90px; right: 12px; left: 12px; }
-  .toast { min-width: auto; }
-}
-
-@media (max-width: 430px) {
-  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .kpi-card { padding: 12px 10px; }
-  .kpi-icon { font-size: 18px; margin-bottom: 6px; }
-  .kpi-value { font-size: 20px; }
-  .kpi-label { font-size: 10px; }
-  .btn { padding: 8px 12px; font-size: 13px; }
-  .btn-sm { padding: 5px 9px; font-size: 11px; }
-  .sec-title { font-size: 16px; }
-  .content { padding: 12px 10px calc(56px + env(safe-area-inset-bottom, 0px) + 16px); }
-}
-
-/* ── Mobile card list (RiskMaster table 대체) ── */
-.mob-card-list { display: none; flex-direction: column; gap: 10px; }
-.tbl-wrap.mob-hidden { display: none; }
-@media (max-width: 768px) {
-  .mob-card-list { display: flex; }
-  .tbl-wrap.mob-hidden { display: none !important; }
-  .mob-risk-item {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: var(--r); padding: 14px 16px; box-shadow: var(--shadow-sm);
-  }
-  .mob-risk-item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
-  .mob-risk-item-title { font-size: 14px; font-weight: 700; color: var(--text-primary); flex: 1; line-height: 1.4; }
-  .mob-risk-item-meta  { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
-  .mob-risk-item-desc  { font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 4px 0; }
-  .mob-risk-item-acts  { display: flex; gap: 7px; margin-top: 10px; }
-  .mob-risk-score-row  { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
-}
+#drawer.on{display:flex;animation:slideIn .25s cubic-bezier(.4,0,.2,1)}
+.drawer-head{padding:20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--navy2)}
+.drawer-brand-icon{width:36px;height:36px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.drawer-brand-name{font-size:14px;font-weight:800;color:#fff;line-height:1.3}
+.drawer-brand-name span{color:#5EEAD4;font-size:11px;display:block}
+.drawer-close{margin-left:auto;width:30px;height:30px;border:none;background:var(--navy2);border-radius:8px;color:#8BA3BC;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.drawer-user{padding:12px 18px;border-bottom:1px solid var(--navy2)}
+.drawer-avatar-row{display:flex;align-items:center;gap:10px}
+.drawer-avatar{width:38px;height:38px;background:var(--navy2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.drawer-uname{font-size:13px;font-weight:700;color:#fff}
+.drawer-urole{font-size:11px;color:#8BA3BC}
+.drawer-nav{flex:1;padding:10px 10px;overflow-y:auto}
+.drawer-section{font-size:10px;font-weight:700;color:#4A6280;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px 4px}
+.drawer-nav-btn{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;background:transparent;border:1px solid transparent;border-radius:10px;cursor:pointer;margin-bottom:2px;font-family:inherit;transition:all .15s;-webkit-user-select:none}
+.drawer-nav-btn:active{background:var(--navy2)}
+.drawer-nav-btn.on{background:#1E3A5F;border-color:#2E5C9A}
+.drawer-nav-icon{font-size:16px;color:#8BA3BC;width:20px;text-align:center;flex-shrink:0}
+.drawer-nav-btn.on .drawer-nav-icon,.drawer-nav-btn.on .drawer-nav-lbl{color:#fff}
+.drawer-nav-lbl{font-size:13px;font-weight:500;color:#8BA3BC;flex:1;text-align:left}
+.drawer-nav-btn.on .drawer-nav-lbl{font-weight:700}
+.drawer-nav-badge{background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:99px}
+.drawer-footer{padding:14px 18px;border-top:1px solid var(--navy2)}
+.drawer-logout{width:100%;padding:10px;background:var(--navy2);color:#8BA3BC;border:none;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.drawer-logout:active{opacity:.7}
 </style>
 </head>
 <body>
 
-
-<!-- ═══════════════════ LOGIN ═══════════════════ -->
+<!-- ════ LOGIN ════ -->
 <div id="login-screen">
-  <div class="login-box">
-    <div class="login-logo">
-      <span class="logo-icon">🛡️</span>
-      <h1>컴플라이언스 리스크<br>관리 시스템</h1>
-      <p>Compliance Risk Management System · v3.0</p>
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-brand-icon">⚖</div>
+      <div>
+        <div class="login-brand-name">Compliance RiskOps</div>
+        <div class="login-brand-sub">컴플라이언스 리스크 관리 시스템</div>
+      </div>
     </div>
-    <div class="login-divider"></div>
-    <div style="margin-bottom:20px">
-      <label class="login-lbl">역할 선택</label>
-      <div class="role-grid" id="roleGrid">
-        <div class="role-card selected" data-role="TeamUser" onclick="selectRole(this)">
-          <span class="rc-icon">👤</span>
-          <div class="rc-label">팀 담당자</div>
-          <div class="rc-desc">월간 현황 입력<br>평가 확인 · 수정 요청</div>
+    <div class="login-section">역할 선택</div>
+    <div class="role-grid">
+      <div class="role-card" id="r-admin" onclick="pickRole('admin')">
+        <div class="role-card-icon">🛡</div>
+        <div class="role-card-label">컴플라이언스<br>관리자</div>
+        <div class="role-card-desc">전사 대시보드 · 평가</div>
+      </div>
+      <div class="role-card" id="r-user" onclick="pickRole('user')">
+        <div class="role-card-icon">👤</div>
+        <div class="role-card-label">팀 담당자</div>
+        <div class="role-card-desc">월간 입력 · 조회</div>
+      </div>
+    </div>
+    <div id="team-section">
+      <div class="login-section">소속 팀</div>
+      <div class="team-grid">
+        <div class="team-btn" onclick="pickTeam('영업팀',this)">영업팀</div>
+        <div class="team-btn" onclick="pickTeam('생산팀',this)">생산팀</div>
+        <div class="team-btn" onclick="pickTeam('연구개발팀',this)">연구개발팀</div>
+        <div class="team-btn" onclick="pickTeam('구매팀',this)">구매팀</div>
+        <div class="team-btn" onclick="pickTeam('품질팀',this)">품질팀</div>
+      </div>
+      <br>
+    </div>
+    <button class="login-btn" id="login-btn" disabled onclick="doLogin()">접속하기 →</button>
+  </div>
+  <div class="login-footer">SK Chemical 컴플라이언스 법무팀 · 데모 시스템</div>
+</div>
+
+<!-- ════ APP ════ -->
+<div id="app">
+  <!-- TOP BAR -->
+  <div id="top-bar">
+    <div class="top-bar-brand">
+      <div class="top-bar-icon">⚖</div>
+      <div class="top-bar-name">RiskOps<span id="top-page-name"></span></div>
+    </div>
+    <div class="top-bar-right">
+      <div class="top-bar-user" id="top-user-label"></div>
+      <button class="icon-btn" onclick="openDrawer()">☰</button>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div id="filter-bar">
+    <button class="fy-btn" onclick="setYear('2024',this)">2024년</button>
+    <button class="fy-btn on" onclick="setYear('2025',this)">2025년</button>
+    <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
+    <select class="fm-sel">
+      <option>1월</option><option>2월</option><option selected>3월</option>
+      <option>4월</option><option>5월</option><option>6월</option>
+      <option>7월</option><option>8월</option><option>9월</option>
+      <option>10월</option><option>11월</option><option>12월</option>
+    </select>
+    <button class="fy-btn" style="background:var(--accent);color:#fff;border-color:var(--accent)">⬇ 내보내기</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+
+    <!-- ═ DASHBOARD ═ -->
+    <div class="page" id="pg-dash">
+      <div class="kpi-grid">
+        <div class="kpi-card" style="animation-delay:0ms">
+          <div class="kpi-top"><span class="kpi-icon">⚠️</span></div>
+          <div class="kpi-num" data-t="20">0</div>
+          <div class="kpi-label">관리 리스크</div><div class="kpi-sub">5개 팀 전체</div>
         </div>
-        <div class="role-card" data-role="ComplianceAdmin" onclick="selectRole(this)">
-          <span class="rc-icon">🏛️</span>
-          <div class="rc-label">컴플라이언스<br>관리자</div>
-          <div class="rc-desc">리스크 관리 · 평가<br>전체 대시보드</div>
+        <div class="kpi-card" style="animation-delay:80ms">
+          <div class="kpi-top"><span class="kpi-icon">✅</span><span class="badge badge-up">↑ +2</span></div>
+          <div class="kpi-num" data-t="17">0</div>
+          <div class="kpi-label">제출 완료</div><div class="kpi-sub">미제출 3건</div>
+        </div>
+        <div class="kpi-card" style="animation-delay:160ms">
+          <div class="kpi-top"><span class="kpi-icon">📊</span><span class="badge badge-up">↑ +6%</span></div>
+          <div class="kpi-num" data-t="78" data-pct="1">0</div>
+          <div class="kpi-label">전사 달성율</div><div class="kpi-sub">전월 대비 +6%</div>
+        </div>
+        <div class="kpi-card" style="animation-delay:240ms">
+          <div class="kpi-top"><span class="kpi-icon">⏳</span><span class="badge badge-warn">검토</span></div>
+          <div class="kpi-num" data-t="5">0</div>
+          <div class="kpi-label">평가 대기</div><div class="kpi-sub">즉시 처리 필요</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">팀별 이행 달성율</div>
+        <div class="card-sub">2025년 3월 기준</div>
+        <div id="team-bars"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">월별 달성율 추이</div>
+        <div class="card-sub">최근 6개월</div>
+        <canvas id="trend-canvas" height="180" style="width:100%"></canvas>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px" id="trend-legend"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">리스크 Heat Map</div>
+        <div class="card-sub">영향도 × 가능성</div>
+        <div id="heatmap"></div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:16px 18px;border-bottom:1px solid var(--border)">
+          <div class="card-title">⚠ 미제출 현황</div>
+          <div class="card-sub" style="margin-bottom:0">즉시 조치 필요 · D-11</div>
+        </div>
+        <div style="padding:14px">
+          <div class="alert-item-card">
+            <div class="alert-head"><span class="alert-team">구매팀</span><span class="alert-badge">2건 미제출</span><span class="alert-days">D-11</span></div>
+            <div class="alert-risk"><span style="color:var(--red)">•</span>하도급 거래 서면 미교부</div>
+            <div class="alert-risk"><span style="color:var(--red)">•</span>수입물품 관세분류 오류</div>
+            <button class="alert-send-btn" onclick="this.textContent='✓ 발송 완료';this.style.background='#64748B'">독촉 메일 발송</button>
+          </div>
+          <div class="alert-item-card">
+            <div class="alert-head"><span class="alert-team">생산팀</span><span class="alert-badge">1건 미제출</span><span class="alert-days">D-11</span></div>
+            <div class="alert-risk"><span style="color:var(--red)">•</span>근로계약서 필수조항 누락</div>
+            <button class="alert-send-btn" onclick="this.textContent='✓ 발송 완료';this.style.background='#64748B'">독촉 메일 발송</button>
+          </div>
         </div>
       </div>
     </div>
-    <div id="teamSelectGroup" style="margin-bottom:18px">
-      <label class="login-lbl">소속 팀 <span style="color:var(--red)">*</span></label>
-      <select class="login-input" id="loginTeamSelect" style="margin-bottom:0">
-        <option value="">팀을 선택하세요</option>
-      </select>
+
+    <!-- ═ MONTHLY ═ -->
+    <div class="page" id="pg-monthly">
+      <div class="page-title">월간 현황 입력</div>
+      <div class="page-sub" id="monthly-sub">2025년 3월</div>
+      <div class="filter-scroll" id="monthly-filter">
+        <button class="f-btn on" onclick="monthlyFilter('전체',this)">전체</button>
+        <button class="f-btn" onclick="monthlyFilter('미입력',this)">미입력</button>
+        <button class="f-btn" onclick="monthlyFilter('임시저장',this)">임시저장</button>
+        <button class="f-btn" onclick="monthlyFilter('제출완료',this)">제출완료</button>
+      </div>
+      <div id="monthly-list"></div>
     </div>
-    <div style="margin-bottom:22px">
-      <label class="login-lbl">담당자 이름</label>
-      <input type="text" class="login-input" id="loginName"
-        placeholder="이름 입력 (시연용)" value="김법무" style="margin-bottom:0"/>
+
+    <!-- ═ EVAL ═ -->
+    <div class="page" id="pg-eval">
+      <div class="page-title">이행 달성율 평가</div>
+      <div class="page-sub">제출완료 건 검토 및 달성율 입력</div>
+      <div id="eval-list"></div>
     </div>
-    <button class="login-btn" onclick="startApp()">▶ 시스템 시작</button>
+
+    <!-- ═ TEAMS ═ -->
+    <div class="page" id="pg-teams">
+      <div class="page-title">팀 이행현황</div>
+      <div class="page-sub">2025년 3월 기준</div>
+      <div id="team-cards"></div>
+      <div class="card">
+        <div class="card-title">전체 팀 추이</div>
+        <div class="card-sub">최근 6개월</div>
+        <canvas id="teams-canvas" height="180" style="width:100%"></canvas>
+      </div>
+    </div>
+
+    <!-- ═ MASTER ═ -->
+    <div class="page" id="pg-master">
+      <div class="page-title">리스크 Master</div>
+      <div class="page-sub">리스크 원장 관리</div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" placeholder="리스크 검색..." oninput="masterSearch(this.value)">
+      </div>
+      <div class="filter-scroll" id="master-filter">
+        <button class="f-btn on" onclick="masterFilter('전체',this)">전체</button>
+        <button class="f-btn" onclick="masterFilter('영업팀',this)">영업팀</button>
+        <button class="f-btn" onclick="masterFilter('생산팀',this)">생산팀</button>
+        <button class="f-btn" onclick="masterFilter('연구개발팀',this)">연구개발팀</button>
+        <button class="f-btn" onclick="masterFilter('구매팀',this)">구매팀</button>
+        <button class="f-btn" onclick="masterFilter('품질팀',this)">품질팀</button>
+      </div>
+      <button class="add-btn" onclick="alert('리스크 추가 — 추후 구현')">＋ 리스크 추가</button>
+      <div id="master-list"></div>
+    </div>
+
+    <!-- ═ MY TEAM ═ -->
+    <div class="page" id="pg-myteam">
+      <div class="page-title">내 팀 이행현황</div>
+      <div class="page-sub" id="myteam-sub">영업팀 · 2025년 3월</div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi-card">
+          <div class="kpi-top"><span class="kpi-icon">📋</span></div>
+          <div class="kpi-num" data-t="4">0</div>
+          <div class="kpi-label">담당 리스크</div>
+        </div>
+        <div class="kpi-card" style="animation-delay:80ms">
+          <div class="kpi-top"><span class="kpi-icon">📊</span></div>
+          <div class="kpi-num" data-t="86" data-pct="1">0</div>
+          <div class="kpi-label">달성율</div>
+        </div>
+        <div class="kpi-card" style="animation-delay:160ms">
+          <div class="kpi-top"><span class="kpi-icon">⏳</span><span class="badge badge-warn">미제출</span></div>
+          <div class="kpi-num" data-t="1">0</div>
+          <div class="kpi-label">미입력</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">월별 달성율 추이</div>
+        <div class="card-sub" id="myteam-trend-sub">영업팀</div>
+        <canvas id="myteam-canvas" height="160" style="width:100%"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-title">리스크별 현황</div>
+        <div class="card-sub" style="margin-bottom:0">이번달 입력 현황</div>
+        <div id="myteam-risks" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- BOTTOM NAV -->
+  <div id="bottom-nav"></div>
+
+  <!-- DRAWER -->
+  <div id="drawer-overlay" onclick="closeDrawer()"></div>
+  <div id="drawer">
+    <div class="drawer-head">
+      <div class="drawer-brand-icon">⚖</div>
+      <div class="drawer-brand-name">Compliance<span>RiskOps</span></div>
+      <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-user">
+      <div class="drawer-avatar-row">
+        <div class="drawer-avatar" id="drawer-avatar">👤</div>
+        <div>
+          <div class="drawer-uname" id="drawer-uname">-</div>
+          <div class="drawer-urole" id="drawer-urole">-</div>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-nav" id="drawer-nav"></div>
+    <div class="drawer-footer">
+      <button class="drawer-logout" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM SHEET (form) -->
+  <div id="sheet-overlay" onclick="closeSheet()"></div>
+  <div id="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div>
+        <div class="sheet-id" id="sheet-id"></div>
+        <div class="sheet-title" id="sheet-title"></div>
+      </div>
+      <button class="sheet-close" onclick="closeSheet()">✕</button>
+    </div>
+    <div class="sheet-body" id="sheet-body"></div>
+    <div class="sheet-footer" id="sheet-footer"></div>
   </div>
 </div>
 
-<!-- ═══════════════════ MAIN APP ═══════════════════ -->
-<div id="app" style="display:none">
-  <header class="app-header">
-    <button class="hamburger" id="hamburgerBtn" onclick="toggleMobSidebar()" aria-label="메뉴">☰</button>
-    <div class="header-brand">
-      <span class="pulse-dot"></span>
-      🛡️ 컴플라이언스 리스크 관리
-    </div>
-    <div class="header-ctrl">
-      <label>연도</label>
-      <select id="globalYear" class="h-select" onchange="handleGlobalFilter()">
-        <option value="2025">2025</option>
-        <option value="2024">2024</option>
-      </select>
-      <label>월</label>
-      <select id="globalMonth" class="h-select" onchange="handleGlobalFilter()"></select>
-      <div class="header-user-chip" id="userChip"></div>
-      <button class="btn btn-sm logout-btn" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25)" onclick="logoutApp()">로그아웃</button>
-    </div>
-  </header>
-  <div class="main-wrap">
-    <nav class="sidebar" id="sidebar">
-      <div class="sb-label">메뉴</div>
-      <div class="sb-section" id="sbMenu"></div>
-      <div class="sb-label">현황</div>
-      <div class="sb-info" id="sbStatus"></div>
-    </nav>
-    <main class="content" id="mainContent"></main>
-  </div>
-  <!-- Mobile overlay -->
-  <div class="mob-overlay" id="mobOverlay" onclick="closeMobSidebar()"></div>
-  <!-- Mobile bottom nav -->
-  <nav class="mob-bottom-nav" id="mobBottomNav">
-    <div class="mob-bottom-nav-inner" id="mobBottomNavInner"></div>
-  </nav>
-</div>
-<div id="toast-ct"></div>
-
-
 <script>
-/* ════════════════════════════════════════════
-   CONFIG & STATE
-════════════════════════════════════════════ */
-const API_CONFIG = {
-  useMock: true,
-  urls: {
-    fetchRiskMaster:'', saveRiskMaster:'',
-    fetchMonthlyStatus:'', saveMonthlyStatus:'',
-    fetchEvaluation:'', saveEvaluation:'',
-    fetchDashboard:'', saveObjection:'',
-    notifySubmission:'', notifyEvaluation:'', notifyRevision:'',
-  }
-};
-
-const AppState = {
-  role:'TeamUser', userName:'김법무', userTeam:'영업팀',
-  year:2025, month:3, activeView:'team-input',
-  mFilterTeam:'', mFilterCat:'', mFilterSel:'all', mFilterSearch:'',
-  eFilterTeam:'', eFilterStatus:'all',
-  viewAsTeam:'',
-};
-
-const TEAMS        = ['영업팀','생산팀','연구개발팀','구매팀','품질팀'];
-const RISK_CATS    = ['계약','개인정보','환경안전','공정거래','노무','지식재산','수출규제','부패방지'];
-
-/* ════════════════════════════════════════════
-   MOCK DATABASE  (SharePoint List 구조 대응)
-════════════════════════════════════════════ */
-
-/* ── RiskMaster ──
-   SharePoint List 컬럼:
-   RiskID, Year, Team, RiskCategory, RiskTitle, RiskDescription,
-   ImprovementTask, Owner, ImpactScore, LikelihoodScore,
-   RiskFormulaScore, IsSelected
-*/
-let mockRiskMaster = [
-  {riskId:'R-2025-001',year:2025,team:'영업팀',riskCategory:'계약',
-   riskTitle:'계약서 미검토 체결 리스크',
-   riskDescription:'법무 검토 없이 계약서를 체결하거나 표준계약서를 임의 수정하는 경우 법적 분쟁 위험.',
-   improvementTask:'계약 검토 요청 프로세스 준수 및 월 1회 교육 실시',
-   owner:'이영업',impactScore:5,likelihoodScore:4,riskFormulaScore:20,isSelected:true},
-  {riskId:'R-2025-002',year:2025,team:'영업팀',riskCategory:'공정거래',
-   riskTitle:'가격 담합 리스크',
-   riskDescription:'거래처와의 가격 정보 공유 또는 협의로 인한 공정거래법 위반 가능성.',
-   improvementTask:'영업 담당자 대상 공정거래 교육 분기 1회 실시',
-   owner:'이영업',impactScore:5,likelihoodScore:3,riskFormulaScore:15,isSelected:true},
-  {riskId:'R-2025-003',year:2025,team:'영업팀',riskCategory:'부패방지',
-   riskTitle:'고객사 향응·접대 리스크',
-   riskDescription:'규정 한도 초과 접대 또는 부당한 이익 제공으로 인한 부패방지법 위반 위험.',
-   improvementTask:'접대 규정 준수 점검 및 영수증 사전 승인 절차 운용',
-   owner:'김영업',impactScore:4,likelihoodScore:3,riskFormulaScore:12,isSelected:true},
-  {riskId:'R-2025-004',year:2025,team:'영업팀',riskCategory:'개인정보',
-   riskTitle:'고객 개인정보 과다 수집 리스크',
-   riskDescription:'마케팅 목적으로 동의 없이 고객 개인정보를 수집·활용하는 경우.',
-   improvementTask:'개인정보 수집 동의서 검토 및 CRM 접근 권한 점검',
-   owner:'이영업',impactScore:4,likelihoodScore:2,riskFormulaScore:8,isSelected:false},
-  {riskId:'R-2025-005',year:2025,team:'생산팀',riskCategory:'환경안전',
-   riskTitle:'화학물질 취급 안전관리 리스크',
-   riskDescription:'유해화학물질 취급 시 법정 안전조치 미이행으로 인한 산업재해 및 행정제재 위험.',
-   improvementTask:'화학물질 취급 교육 월 1회 및 취급 일지 작성 의무화',
-   owner:'박생산',impactScore:5,likelihoodScore:4,riskFormulaScore:20,isSelected:true},
-  {riskId:'R-2025-006',year:2025,team:'생산팀',riskCategory:'환경안전',
-   riskTitle:'폐수 배출 기준 초과 리스크',
-   riskDescription:'생산 공정 중 폐수 배출 기준 초과 시 환경부 행정처분 및 형사처벌 위험.',
-   improvementTask:'폐수 처리 시설 주간 점검 및 외부 환경측정 분기 실시',
-   owner:'장생산',impactScore:5,likelihoodScore:3,riskFormulaScore:15,isSelected:true},
-  {riskId:'R-2025-007',year:2025,team:'생산팀',riskCategory:'노무',
-   riskTitle:'초과근무 미지급 리스크',
-   riskDescription:'생산직 근로자 연장·야간 근무수당 미지급 또는 포괄임금 오용 관련 노동분쟁.',
-   improvementTask:'근태 시스템 정확도 점검 및 급여 계산 로직 법령 부합 여부 확인',
-   owner:'박생산',impactScore:4,likelihoodScore:3,riskFormulaScore:12,isSelected:true},
-  {riskId:'R-2025-008',year:2025,team:'생산팀',riskCategory:'계약',
-   riskTitle:'협력업체 계약 관리 리스크',
-   riskDescription:'협력업체와의 계약 갱신 누락 또는 하도급법 의무 위반 위험.',
-   improvementTask:'협력업체 계약 만료 알림 시스템 구축 및 연간 갱신 일정 관리',
-   owner:'장생산',impactScore:3,likelihoodScore:4,riskFormulaScore:12,isSelected:false},
-  {riskId:'R-2025-009',year:2025,team:'연구개발팀',riskCategory:'지식재산',
-   riskTitle:'특허 침해 리스크',
-   riskDescription:'제품 개발 과정에서 타사 특허권을 무단 사용하거나 회피 설계 미적용 시 분쟁 위험.',
-   improvementTask:'신제품 개발 단계별 FTO(자유실시조사) 실시 의무화',
-   owner:'최연구',impactScore:5,likelihoodScore:3,riskFormulaScore:15,isSelected:true},
-  {riskId:'R-2025-010',year:2025,team:'연구개발팀',riskCategory:'수출규제',
-   riskTitle:'이중용도품목 수출통제 리스크',
-   riskDescription:'화학·바이오 연구 원료 수출 시 전략물자 해당 여부 미확인으로 인한 수출규제 위반.',
-   improvementTask:'전략물자 품목 분류 체계 수립 및 수출 전 법무팀 사전 확인 절차 운용',
-   owner:'이연구',impactScore:5,likelihoodScore:3,riskFormulaScore:15,isSelected:true},
-  {riskId:'R-2025-011',year:2025,team:'연구개발팀',riskCategory:'개인정보',
-   riskTitle:'임상시험 데이터 관리 리스크',
-   riskDescription:'임상 데이터 내 개인식별정보 미비식별화 또는 데이터 유출 위험.',
-   improvementTask:'임상 데이터 접근 권한 최소화 및 비식별화 프로세스 점검',
-   owner:'최연구',impactScore:4,likelihoodScore:2,riskFormulaScore:8,isSelected:false},
-  {riskId:'R-2025-012',year:2025,team:'연구개발팀',riskCategory:'계약',
-   riskTitle:'공동연구개발 협약 관리 리스크',
-   riskDescription:'산학 또는 기관 간 공동연구 협약의 성과물 귀속, 비밀유지 조항 불명확으로 인한 분쟁.',
-   improvementTask:'공동연구 협약서 표준 템플릿 적용 및 법무 사전 검토 의무화',
-   owner:'이연구',impactScore:4,likelihoodScore:3,riskFormulaScore:12,isSelected:true},
-  {riskId:'R-2025-013',year:2025,team:'구매팀',riskCategory:'부패방지',
-   riskTitle:'리베이트 수수 리스크',
-   riskDescription:'공급업체 선정 과정에서 금품·향응 수수 또는 불공정한 이해충돌 발생 위험.',
-   improvementTask:'구매 담당자 이해충돌 신고 제도 운영 및 반부패 서약서 연 1회 징구',
-   owner:'정구매',impactScore:5,likelihoodScore:3,riskFormulaScore:15,isSelected:true},
-  {riskId:'R-2025-014',year:2025,team:'구매팀',riskCategory:'공정거래',
-   riskTitle:'하도급법 위반 리스크',
-   riskDescription:'수급사업자에 대한 부당한 단가 인하, 기술자료 요구 등 하도급법 위반 가능성.',
-   improvementTask:'하도급 거래 표준계약서 사용 및 연간 법령 교육 실시',
-   owner:'김구매',impactScore:4,likelihoodScore:3,riskFormulaScore:12,isSelected:true},
-  {riskId:'R-2025-015',year:2025,team:'구매팀',riskCategory:'계약',
-   riskTitle:'구매 계약 이행 보증 리스크',
-   riskDescription:'공급업체 계약 불이행 시 이행보증금 청구 및 손해배상 청구 절차 미비.',
-   improvementTask:'이행보증 조항 표준화 및 계약 이행 모니터링 체계 구축',
-   owner:'정구매',impactScore:3,likelihoodScore:3,riskFormulaScore:9,isSelected:false},
-  {riskId:'R-2025-016',year:2025,team:'품질팀',riskCategory:'환경안전',
-   riskTitle:'제품 안전성 검사 미이행 리스크',
-   riskDescription:'출시 전 의무 안전성 시험 누락 또는 GMP 기준 미달로 인한 행정제재.',
-   improvementTask:'출시 전 체크리스트 도입 및 품질 감사 주기 강화',
-   owner:'오품질',impactScore:5,likelihoodScore:3,riskFormulaScore:15,isSelected:true},
-  {riskId:'R-2025-017',year:2025,team:'품질팀',riskCategory:'계약',
-   riskTitle:'제품 책임 클레임 관리 리스크',
-   riskDescription:'고객 클레임 대응 절차 미비로 인한 집단소송 또는 행정처분 위험.',
-   improvementTask:'고객 불만 처리 SOP 수립 및 클레임 대응 매뉴얼 정비',
-   owner:'한품질',impactScore:4,likelihoodScore:4,riskFormulaScore:16,isSelected:true},
-  {riskId:'R-2025-018',year:2025,team:'품질팀',riskCategory:'개인정보',
-   riskTitle:'의약품 부작용 보고 리스크',
-   riskDescription:'이상사례 의무 보고 누락 또는 지연으로 인한 약사법 위반.',
-   improvementTask:'이상사례 보고 담당자 지정 및 자동 알림 시스템 구축',
-   owner:'오품질',impactScore:5,likelihoodScore:2,riskFormulaScore:10,isSelected:true},
-  {riskId:'R-2025-019',year:2025,team:'품질팀',riskCategory:'지식재산',
-   riskTitle:'특허 만료 제품 관리 리스크',
-   riskDescription:'특허 만료 후 경쟁사 복제품 출시에 따른 시장 대응 전략 미비.',
-   improvementTask:'특허 만료 일정 모니터링 및 후속 전략 수립 프로세스 정비',
-   owner:'한품질',impactScore:3,likelihoodScore:3,riskFormulaScore:9,isSelected:false},
-  {riskId:'R-2025-020',year:2025,team:'품질팀',riskCategory:'수출규제',
-   riskTitle:'의약품 수출 인허가 리스크',
-   riskDescription:'해외 수출 시 현지 인허가 미취득 또는 갱신 누락으로 인한 수출 금지 위험.',
-   improvementTask:'해외 인허가 만료 일정 DB 구축 및 자동 갱신 알림 운영',
-   owner:'오품질',impactScore:4,likelihoodScore:3,riskFormulaScore:12,isSelected:true},
-  /* 2024 히스토리 */
-  {riskId:'R-2024-001',year:2024,team:'영업팀',riskCategory:'계약',
-   riskTitle:'계약서 미검토 체결 리스크',riskDescription:'',improvementTask:'',
-   owner:'이영업',impactScore:5,likelihoodScore:4,riskFormulaScore:20,isSelected:true},
-  {riskId:'R-2024-002',year:2024,team:'영업팀',riskCategory:'공정거래',
-   riskTitle:'가격 담합 리스크',riskDescription:'',improvementTask:'',
-   owner:'이영업',impactScore:5,likelihoodScore:3,riskFormulaScore:15,isSelected:true},
-  {riskId:'R-2024-005',year:2024,team:'생산팀',riskCategory:'환경안전',
-   riskTitle:'화학물질 취급 안전관리 리스크',riskDescription:'',improvementTask:'',
-   owner:'박생산',impactScore:5,likelihoodScore:4,riskFormulaScore:20,isSelected:true},
+/* ═══ DATA ═══ */
+const TEAMS_DATA=[
+  {team:"영업팀",avg:86,status:"정상",color:"#3B82F6",jan:85,feb:82,mar:90},
+  {team:"생산팀",avg:72,status:"주의",color:"#8B5CF6",jan:70,feb:75,mar:72},
+  {team:"연구개발팀",avg:92,status:"우수",color:"#10B981",jan:92,feb:95,mar:88},
+  {team:"구매팀",avg:64,status:"위험",color:"#F59E0B",jan:60,feb:65,mar:68},
+  {team:"품질팀",avg:90,status:"우수",color:"#EC4899",jan:88,feb:90,mar:93},
+];
+const TREND=[
+  {month:"10월",영업팀:80,생산팀:65,연구개발팀:88,구매팀:55,품질팀:82},
+  {month:"11월",영업팀:82,생산팀:70,연구개발팀:90,구매팀:60,품질팀:86},
+  {month:"12월",영업팀:78,생산팀:68,연구개발팀:85,구매팀:58,품질팀:84},
+  {month:"1월", 영업팀:85,생산팀:70,연구개발팀:92,구매팀:60,품질팀:88},
+  {month:"2월", 영업팀:82,생산팀:75,연구개발팀:95,구매팀:65,품질팀:90},
+  {month:"3월", 영업팀:90,생산팀:72,연구개발팀:88,구매팀:68,품질팀:93},
+];
+const TKEYS=["영업팀","생산팀","연구개발팀","구매팀","품질팀"];
+const TCOLORS=["#3B82F6","#8B5CF6","#10B981","#F59E0B","#EC4899"];
+const RISKS=[
+  {id:"R001",title:"개인정보 수집·이용 동의 누락",team:"영업팀",cat:"개인정보",score:20,status:"제출완료",achieve:85,owner:"김지훈"},
+  {id:"R002",title:"하도급 거래 서면 미교부",team:"구매팀",cat:"공정거래",score:16,status:"미제출",achieve:null,owner:"박성민"},
+  {id:"R003",title:"화학물질 보관 기준 미준수",team:"생산팀",cat:"환경안전",score:15,status:"제출완료",achieve:72,owner:"이현수"},
+  {id:"R004",title:"영업비밀 보호협약 미체결",team:"연구개발팀",cat:"지식재산",score:12,status:"평가완료",achieve:92,owner:"최민준"},
+  {id:"R005",title:"수출통제 분류 검토 누락",team:"영업팀",cat:"수출규제",score:20,status:"제출완료",achieve:78,owner:"김지훈"},
+  {id:"R006",title:"반부패 교육 미이수",team:"품질팀",cat:"부패방지",score:9,status:"평가완료",achieve:95,owner:"정다은"},
+  {id:"R007",title:"근로계약서 필수조항 누락",team:"생산팀",cat:"노무",score:12,status:"임시저장",achieve:null,owner:"이현수"},
+  {id:"R008",title:"수입물품 관세분류 오류",team:"구매팀",cat:"수출규제",score:9,status:"미제출",achieve:null,owner:"박성민"},
+];
+const NAV_ADMIN=[
+  {section:"대시보드"},{id:"dash",icon:"▦",label:"전사 대시보드"},
+  {section:"관리"},{id:"master",icon:"📋",label:"리스크 Master"},{id:"eval",icon:"⚖",label:"이행 달성율 평가",badge:5},
+  {section:"현황"},{id:"teams",icon:"👥",label:"팀 이행현황"},{id:"monthly",icon:"📝",label:"월간 현황 입력",badge:3},
+];
+const NAV_USER=[
+  {section:"업무"},{id:"monthly",icon:"📝",label:"월간 현황 입력",badge:3},
+  {section:"현황"},{id:"myteam",icon:"📈",label:"내 팀 이행현황"},
+];
+const BNAV_ADMIN=[
+  {id:"dash",icon:"▦",label:"대시보드"},
+  {id:"monthly",icon:"📝",label:"입력",badge:true},
+  {id:"eval",icon:"⚖",label:"평가",badge:true},
+  {id:"teams",icon:"👥",label:"팀현황"},
+  {id:"master",icon:"📋",label:"Master"},
+];
+const BNAV_USER=[
+  {id:"monthly",icon:"📝",label:"현황 입력",badge:true},
+  {id:"myteam",icon:"📈",label:"내 팀 현황"},
 ];
 
-/* ── MonthlyStatus ──
-   SharePoint List 컬럼:
-   ID, RiskID, Team, Year, Month, ThisMonthProgress, TaskStatus,
-   EvidenceDescription, EvidenceFiles, SubmissionStatus,
-   SubmittedAt, SubmittedBy
-*/
-let mockMonthlyStatus = [
-  {id:'MS-001',riskId:'R-2025-001',team:'영업팀',year:2025,month:1,
-   thisMonthProgress:'1월 계약 검토 요청 프로세스 교육 완료. 총 3건의 계약서를 법무팀 사전 검토 후 체결.',
-   taskStatus:'Completed',evidenceDescription:'교육자료 및 참석자 명단 첨부',evidenceFiles:['교육자료_영업팀_1월.pdf'],
-   submissionStatus:'Evaluated',submittedAt:'2025-01-25',submittedBy:'이영업'},
-  {id:'MS-002',riskId:'R-2025-002',team:'영업팀',year:2025,month:1,
-   thisMonthProgress:'공정거래 교육 미실시. 일정 조율 중이며 2월로 연기.',
-   taskStatus:'NotStarted',evidenceDescription:'',evidenceFiles:[],
-   submissionStatus:'Evaluated',submittedAt:'2025-01-25',submittedBy:'이영업'},
-  {id:'MS-003',riskId:'R-2025-003',team:'영업팀',year:2025,month:1,
-   thisMonthProgress:'1월 접대 규정 준수 완료. 승인된 항목 15건 중 0건 위반.',
-   taskStatus:'Completed',evidenceDescription:'접대비 내역서 및 영수증 제출',evidenceFiles:['접대비내역_1월.xlsx'],
-   submissionStatus:'Evaluated',submittedAt:'2025-01-25',submittedBy:'이영업'},
-  {id:'MS-004',riskId:'R-2025-005',team:'생산팀',year:2025,month:1,
-   thisMonthProgress:'화학물질 안전교육 1월 8일 실시. 전 생산 인원 27명 참석 완료.',
-   taskStatus:'Completed',evidenceDescription:'교육 참석부 및 교육자료 첨부',evidenceFiles:['안전교육_생산팀_0108.pdf'],
-   submissionStatus:'Evaluated',submittedAt:'2025-01-26',submittedBy:'박생산'},
-  {id:'MS-005',riskId:'R-2025-006',team:'생산팀',year:2025,month:1,
-   thisMonthProgress:'폐수 처리 시설 주간 점검 4회 실시. 기준치 내 정상 운영 확인.',
-   taskStatus:'Completed',evidenceDescription:'주간 점검일지 4건 첨부',evidenceFiles:['폐수점검일지_1월.pdf'],
-   submissionStatus:'Evaluated',submittedAt:'2025-01-26',submittedBy:'박생산'},
-  {id:'MS-006',riskId:'R-2025-007',team:'생산팀',year:2025,month:1,
-   thisMonthProgress:'근태 시스템 정확도 점검 중. HR팀과 협의 진행.',
-   taskStatus:'InProgress',evidenceDescription:'',evidenceFiles:[],
-   submissionStatus:'Submitted',submittedAt:'2025-01-27',submittedBy:'박생산'},
-  {id:'MS-007',riskId:'R-2025-009',team:'연구개발팀',year:2025,month:2,
-   thisMonthProgress:'신제품 A에 대한 FTO 조사 외부 특허법인 의뢰. 결과 대기 중.',
-   taskStatus:'InProgress',evidenceDescription:'의뢰서 및 계약서 첨부',evidenceFiles:['FTO의뢰서_A제품.pdf'],
-   submissionStatus:'Evaluated',submittedAt:'2025-02-24',submittedBy:'최연구'},
-  {id:'MS-008',riskId:'R-2025-010',team:'연구개발팀',year:2025,month:2,
-   thisMonthProgress:'수출 원료 3종 전략물자 해당 여부 법무팀 확인 완료. 비해당 판정.',
-   taskStatus:'Completed',evidenceDescription:'법무팀 검토의견서 첨부',evidenceFiles:['전략물자확인서_2월.pdf'],
-   submissionStatus:'Evaluated',submittedAt:'2025-02-24',submittedBy:'최연구'},
-  {id:'MS-009',riskId:'R-2025-013',team:'구매팀',year:2025,month:2,
-   thisMonthProgress:'반부패 서약서 구매팀 전원(12명) 징구 완료.',
-   taskStatus:'Completed',evidenceDescription:'서약서 스캔본 첨부',evidenceFiles:['반부패서약서_구매팀_2월.pdf'],
-   submissionStatus:'RevisionReq',submittedAt:'2025-02-23',submittedBy:'정구매'},
-  {id:'MS-010',riskId:'R-2025-014',team:'구매팀',year:2025,month:2,
-   thisMonthProgress:'하도급 교육 준비 중. 3월 실시 예정.',
-   taskStatus:'NotStarted',evidenceDescription:'',evidenceFiles:[],
-   submissionStatus:'Submitted',submittedAt:'2025-02-23',submittedBy:'정구매'},
-  {id:'MS-011',riskId:'R-2025-016',team:'품질팀',year:2025,month:3,
-   thisMonthProgress:'3월 출시 제품 2종에 대한 안전성 검사 완료. GMP 감사 일정 수립.',
-   taskStatus:'Completed',evidenceDescription:'시험성적서 및 감사 계획서 첨부',evidenceFiles:['시험성적서_3월.pdf'],
-   submissionStatus:'Submitted',submittedAt:'2025-03-25',submittedBy:'오품질'},
-  {id:'MS-012',riskId:'R-2025-017',team:'품질팀',year:2025,month:3,
-   thisMonthProgress:'클레임 SOP 초안 작성 완료. 법무팀 검토 요청 예정.',
-   taskStatus:'InProgress',evidenceDescription:'SOP 초안 첨부',evidenceFiles:['클레임SOP_초안.docx'],
-   submissionStatus:'Draft',submittedAt:null,submittedBy:null},
-  {id:'MS-013',riskId:'R-2025-001',team:'영업팀',year:2025,month:3,
-   thisMonthProgress:'3월 계약 검토 요청 3건 처리 완료. 표준 계약서 업데이트 반영.',
-   taskStatus:'Completed',evidenceDescription:'검토의견서 3건 첨부',evidenceFiles:['계약검토의견서_3월.zip'],
-   submissionStatus:'Submitted',submittedAt:'2025-03-24',submittedBy:'이영업'},
-  {id:'MS-014',riskId:'R-2025-002',team:'영업팀',year:2025,month:3,
-   thisMonthProgress:'공정거래 교육 3월 15일 실시. 담당자 8명 참석.',
-   taskStatus:'Completed',evidenceDescription:'교육자료 및 참석자 명단 첨부',evidenceFiles:['공정거래교육_3월.pdf'],
-   submissionStatus:'Submitted',submittedAt:'2025-03-24',submittedBy:'이영업'},
-  {id:'MS-015',riskId:'R-2025-003',team:'영업팀',year:2025,month:3,
-   thisMonthProgress:'접대 내역 검토 중. 일부 항목 사전 승인 누락 발견.',
-   taskStatus:'Blocked',evidenceDescription:'',evidenceFiles:[],
-   submissionStatus:'Draft',submittedAt:null,submittedBy:null},
-  {id:'MS-016',riskId:'R-2025-005',team:'생산팀',year:2025,month:2,
-   thisMonthProgress:'화학물질 교육 2월 12일 실시. 신규 입사자 5명 포함 전원 참석.',
-   taskStatus:'Completed',evidenceDescription:'참석부 첨부',evidenceFiles:['안전교육_2월.pdf'],
-   submissionStatus:'Evaluated',submittedAt:'2025-02-25',submittedBy:'박생산'},
-  {id:'MS-017',riskId:'R-2025-006',team:'생산팀',year:2025,month:2,
-   thisMonthProgress:'2월 주간 점검 4회 완료. 1회 경미한 기준 초과 발견 즉시 조치.',
-   taskStatus:'Completed',evidenceDescription:'점검일지 4건, 조치보고서 첨부',evidenceFiles:['폐수점검_2월.pdf'],
-   submissionStatus:'Evaluated',submittedAt:'2025-02-25',submittedBy:'박생산'},
-  /* 2024 히스토리 */
-  {id:'MS-H001',riskId:'R-2024-001',team:'영업팀',year:2024,month:12,
-   thisMonthProgress:'',taskStatus:'Completed',evidenceDescription:'',evidenceFiles:[],
-   submissionStatus:'Evaluated',submittedAt:'2024-12-26',submittedBy:'이영업'},
-  {id:'MS-H002',riskId:'R-2024-002',team:'영업팀',year:2024,month:12,
-   thisMonthProgress:'',taskStatus:'Completed',evidenceDescription:'',evidenceFiles:[],
-   submissionStatus:'Evaluated',submittedAt:'2024-12-26',submittedBy:'이영업'},
-];
+/* ═══ STATE ═══ */
+let loginRole='',loginTeam='',appRole='',appTeam='',curPage='';
 
-/* ── Evaluations ──
-   SharePoint List 컬럼:
-   ID, RiskID, Team, Year, Month, EvaluationScore,
-   EvaluationComment, EvaluationStatus, EvaluatedAt, EvaluatedBy
-*/
-let mockEvaluations = [
-  {id:'EV-001',riskId:'R-2025-001',team:'영업팀',year:2025,month:1,evaluationScore:85,evaluationComment:'계약 검토 프로세스 준수 양호. 검토 건수 확대 권고.',evaluationStatus:'Evaluated',evaluatedAt:'2025-02-05',evaluatedBy:'김법무'},
-  {id:'EV-002',riskId:'R-2025-002',team:'영업팀',year:2025,month:1,evaluationScore:40,evaluationComment:'교육 미실시. 2월 내 반드시 실시하고 증빙 제출 요망.',evaluationStatus:'Evaluated',evaluatedAt:'2025-02-05',evaluatedBy:'김법무'},
-  {id:'EV-003',riskId:'R-2025-003',team:'영업팀',year:2025,month:1,evaluationScore:90,evaluationComment:'접대 규정 준수 우수. 사전 승인 절차 정착 확인.',evaluationStatus:'Evaluated',evaluatedAt:'2025-02-05',evaluatedBy:'김법무'},
-  {id:'EV-004',riskId:'R-2025-005',team:'생산팀',year:2025,month:1,evaluationScore:92,evaluationComment:'전원 교육 참석 우수. 교육자료 품질 향상 권고.',evaluationStatus:'Evaluated',evaluatedAt:'2025-02-06',evaluatedBy:'김법무'},
-  {id:'EV-005',riskId:'R-2025-006',team:'생산팀',year:2025,month:1,evaluationScore:88,evaluationComment:'주간 점검 체계 양호. 외부 측정 시기 확인 필요.',evaluationStatus:'Evaluated',evaluatedAt:'2025-02-06',evaluatedBy:'김법무'},
-  {id:'EV-006',riskId:'R-2025-007',team:'생산팀',year:2025,month:1,evaluationScore:60,evaluationComment:'점검 진행 중인 점 인정. 2월 내 완료 여부 확인 예정.',evaluationStatus:'Evaluated',evaluatedAt:'2025-02-06',evaluatedBy:'김법무'},
-  {id:'EV-007',riskId:'R-2025-009',team:'연구개발팀',year:2025,month:2,evaluationScore:75,evaluationComment:'FTO 조사 진행 적절. 결과 수령 후 조치계획 제출 요망.',evaluationStatus:'Evaluated',evaluatedAt:'2025-03-10',evaluatedBy:'김법무'},
-  {id:'EV-008',riskId:'R-2025-010',team:'연구개발팀',year:2025,month:2,evaluationScore:95,evaluationComment:'법무 확인 절차 우수. 분기 1회 재확인 권고.',evaluationStatus:'Evaluated',evaluatedAt:'2025-03-10',evaluatedBy:'김법무'},
-  {id:'EV-009',riskId:'R-2025-013',team:'구매팀',year:2025,month:2,evaluationScore:0,evaluationComment:'서약서 서명란 누락 발견. 재제출 필요.',evaluationStatus:'RevisionReq',evaluatedAt:'2025-03-11',evaluatedBy:'김법무'},
-  {id:'EV-010',riskId:'R-2025-005',team:'생산팀',year:2025,month:2,evaluationScore:89,evaluationComment:'신규 입사자 포함 전원 교육 우수.',evaluationStatus:'Evaluated',evaluatedAt:'2025-03-12',evaluatedBy:'김법무'},
-  {id:'EV-011',riskId:'R-2025-006',team:'생산팀',year:2025,month:2,evaluationScore:78,evaluationComment:'기준 초과 즉시 조치 적절. 재발 방지 대책 필요.',evaluationStatus:'Evaluated',evaluatedAt:'2025-03-12',evaluatedBy:'김법무'},
-  {id:'EV-H001',riskId:'R-2024-001',team:'영업팀',year:2024,month:12,evaluationScore:72,evaluationComment:'',evaluationStatus:'Evaluated',evaluatedAt:'2025-01-10',evaluatedBy:'김법무'},
-  {id:'EV-H002',riskId:'R-2024-002',team:'영업팀',year:2024,month:12,evaluationScore:65,evaluationComment:'',evaluationStatus:'Evaluated',evaluatedAt:'2025-01-10',evaluatedBy:'김법무'},
-];
-
-/* ── Objections ──
-   SharePoint List 컬럼:
-   ID, StatusID, RiskID, Team, Year, Month,
-   ObjectionReason, ObjectionStatus, SubmittedAt, SubmittedBy
-*/
-let mockObjections = [
-  {id:'OBJ-001',statusId:'MS-009',riskId:'R-2025-013',team:'구매팀',year:2025,month:2,
-   objectionReason:'서명란 누락은 시스템 오류로 확인됨. 시스템 수정 후 재출력 서명 완료.',
-   objectionStatus:'Pending',submittedAt:'2025-03-13',submittedBy:'정구매'},
-];
-
-/* ════════════════════════════════════════════
-   API LAYER
-════════════════════════════════════════════ */
-async function fetchRiskMaster(year) {
-  if (API_CONFIG.useMock) {
-    const y = Number(year);
-    return y ? mockRiskMaster.filter(r => r.year === y) : [...mockRiskMaster];
-  }
-  const res = await fetch(`${API_CONFIG.urls.fetchRiskMaster}?year=${year}`);
-  return res.json();
+/* ═══ LOGIN ═══ */
+function pickRole(r){
+  loginRole=r;loginTeam='';
+  document.getElementById('r-admin').classList.toggle('on',r==='admin');
+  document.getElementById('r-user').classList.toggle('on',r==='user');
+  document.getElementById('team-section').style.display=r==='user'?'block':'none';
+  document.querySelectorAll('.team-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('login-btn').disabled=r==='user';
+  if(r==='admin') document.getElementById('login-btn').disabled=false;
 }
-async function saveRiskMaster(data) {
-  if (API_CONFIG.useMock) {
-    const idx = mockRiskMaster.findIndex(r => r.riskId === data.riskId);
-    if (idx >= 0) mockRiskMaster[idx] = data; else mockRiskMaster.push(data);
-    return {success:true};
-  }
-  const res = await fetch(API_CONFIG.urls.saveRiskMaster,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  return res.json();
+function pickTeam(t,el){
+  loginTeam=t;
+  document.querySelectorAll('.team-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('login-btn').disabled=false;
 }
-async function fetchMonthlyStatus(team, year, month) {
-  if (API_CONFIG.useMock) {
-    return mockMonthlyStatus.filter(s =>
-      (!team  || s.team  === team)  &&
-      (!year  || s.year  === Number(year))  &&
-      (!month || s.month === Number(month))
-    );
-  }
-  const p = new URLSearchParams({team:team||'',year:year||'',month:month||''});
-  const res = await fetch(`${API_CONFIG.urls.fetchMonthlyStatus}?${p}`);
-  return res.json();
+function doLogin(){
+  appRole=loginRole; appTeam=loginRole==='admin'?'컴플라이언스팀':loginTeam;
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.add('on');
+  document.getElementById('top-user-label').textContent=appTeam;
+  document.getElementById('drawer-uname').textContent=appTeam;
+  document.getElementById('drawer-urole').textContent=appRole==='admin'?'컴플라이언스 관리자':'팀 담당자';
+  document.getElementById('drawer-avatar').textContent=appRole==='admin'?'🛡':'👤';
+  renderDrawerNav();
+  renderBottomNav();
+  const firstPage=appRole==='admin'?'dash':'monthly';
+  navigateTo(firstPage);
+  initDashboard();
 }
-async function saveMonthlyStatus(data) {
-  if (API_CONFIG.useMock) {
-    const idx = mockMonthlyStatus.findIndex(s => s.id === data.id);
-    if (idx >= 0) mockMonthlyStatus[idx] = data; else mockMonthlyStatus.push(data);
-    if (data.submissionStatus === 'Submitted') await triggerSubmissionNotification(data);
-    return {success:true};
-  }
-  const res = await fetch(API_CONFIG.urls.saveMonthlyStatus,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  return res.json();
-}
-async function saveEvaluation(data) {
-  if (API_CONFIG.useMock) {
-    const idx = mockEvaluations.findIndex(e => e.id === data.id);
-    if (idx >= 0) mockEvaluations[idx] = data; else mockEvaluations.push(data);
-    const ms = mockMonthlyStatus.find(s =>
-      s.riskId===data.riskId && s.team===data.team && s.year===data.year && s.month===data.month
-    );
-    if (ms) ms.submissionStatus = data.evaluationStatus==='RevisionReq' ? 'RevisionReq' : 'Evaluated';
-    await triggerEvaluationNotification(data);
-    return {success:true};
-  }
-  const res = await fetch(API_CONFIG.urls.saveEvaluation,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  return res.json();
-}
-async function saveObjection(data) {
-  if (API_CONFIG.useMock) {
-    const idx = mockObjections.findIndex(o => o.id === data.id);
-    if (idx >= 0) mockObjections[idx] = data; else mockObjections.push(data);
-    await triggerRevisionNotification(data);
-    return {success:true};
-  }
-  const res = await fetch(API_CONFIG.urls.saveObjection,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  return res.json();
-}
-async function fetchDashboardData(year, month) {
-  if (API_CONFIG.useMock) return buildDashboardData(year, month);
-  const res = await fetch(`${API_CONFIG.urls.fetchDashboard}?year=${year}&month=${month}`);
-  return res.json();
-}
-async function uploadToSharePoint(file, folder, riskId) {
-  console.log(`[SharePoint Upload Placeholder] file=${file.name} folder=${folder} riskId=${riskId}`);
-  return {success:true, url:`https://sharepoint.example.com/${folder}/${file.name}`, fileName:file.name};
-}
-async function triggerSubmissionNotification(d) {
-  console.log('[PA] 제출완료 알림', d.team, d.riskId);
-}
-async function triggerEvaluationNotification(d) {
-  console.log('[PA] 평가완료 알림', d.team, d.riskId, d.evaluationScore);
-}
-async function triggerRevisionNotification(d) {
-  console.log('[PA] 이의신청 알림', d.team, d.riskId);
-}
-async function generateAISummary(data) {
-  console.log('[AI placeholder] generateAISummary', data);
-  return '(AI 요약 기능은 향후 Claude API 연동 예정)';
-}
-async function generateRiskRecommendation(riskData) {
-  console.log('[AI placeholder] generateRiskRecommendation', riskData);
-  return '(AI 권고 기능은 향후 Claude API 연동 예정)';
+function doLogout(){
+  closeDrawer();
+  document.getElementById('app').classList.remove('on');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('r-admin').classList.remove('on');
+  document.getElementById('r-user').classList.remove('on');
+  document.getElementById('login-btn').disabled=true;
+  loginRole='';loginTeam='';
 }
 
-/* ════════════════════════════════════════════
-   UTILITIES
-════════════════════════════════════════════ */
-function genId(prefix) { return `${prefix}-${Date.now()}-${Math.floor(Math.random()*1000)}`; }
-function calcRiskScore(r) { return (r.impactScore||0)*(r.likelihoodScore||0); }
-
-function getScoreColor(score) {
-  if (score===null||score===undefined) return 'var(--text-muted)';
-  if (score>=80) return 'var(--green)';
-  if (score>=60) return 'var(--amber)';
-  return 'var(--red)';
+/* ═══ NAV ═══ */
+function renderDrawerNav(){
+  const nav=appRole==='admin'?NAV_ADMIN:NAV_USER;
+  document.getElementById('drawer-nav').innerHTML=nav.map(n=>{
+    if(n.section) return `<div class="drawer-section">${n.section}</div>`;
+    return `<button class="drawer-nav-btn" data-id="${n.id}" onclick="closeDrawer();navigateTo('${n.id}')">
+      <span class="drawer-nav-icon">${n.icon}</span>
+      <span class="drawer-nav-lbl">${n.label}</span>
+      ${n.badge?`<span class="drawer-nav-badge">${n.badge}</span>`:''}
+    </button>`;
+  }).join('');
 }
-function getRiskScoreColor(score) {
-  if (score>=15) return 'var(--red)';
-  if (score>=9)  return 'var(--orange)';
-  return 'var(--green)';
-}
-function getStatusBadgeClass(s) {
-  const m={Draft:'b-draft',Submitted:'b-submitted',Evaluated:'b-evaluated',RevisionReq:'b-revision',Resubmitted:'b-resubmitted',Blocked:'b-blocked',InProgress:'b-inprogress',Completed:'b-completed',NotStarted:'b-notstarted'};
-  return `badge ${m[s]||'b-draft'}`;
-}
-function getStatusLabel(s) {
-  const m={Draft:'임시저장',Submitted:'제출완료',Evaluated:'평가완료',RevisionReq:'수정요청',Resubmitted:'재제출',Blocked:'지연/중단',InProgress:'진행중',Completed:'완료',NotStarted:'미착수'};
-  return m[s]||s||'미입력';
-}
-function showToast(msg, type='ok') {
-  const ct=document.getElementById('toast-ct');
-  const el=document.createElement('div');
-  el.className=`toast t-${type}`;
-  const icons={ok:'✓',err:'✕',inf:'ℹ',warn:'⚠'};
-  el.innerHTML=`<span style="font-size:16px">${icons[type]||'•'}</span><span>${msg}</span>`;
-  ct.appendChild(el);
-  setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},3200);
-}
-function openModal(html) {
-  closeModal();
-  const ov=document.createElement('div');
-  ov.id='modal-overlay';
-  ov.onclick=e=>{if(e.target===ov)closeModal();};
-  ov.innerHTML=`<div class="modal-box">${html}</div>`;
-  document.body.appendChild(ov);
-}
-function closeModal() { const m=document.getElementById('modal-overlay'); if(m)m.remove(); }
-
-/* 대시보드 집계 */
-function buildDashboardData(year, month) {
-  const y=Number(year), m=Number(month);
-  const selected   = mockRiskMaster.filter(r=>r.year===y&&r.isSelected);
-  const allSt      = mockMonthlyStatus.filter(s=>s.year===y&&s.month===m);
-  const allEv      = mockEvaluations.filter(e=>e.year===y&&e.month===m);
-
-  const totalRisks  = selected.length;
-  const submitted   = allSt.filter(s=>s.submissionStatus!=='Draft').length;
-  const evaluated   = allSt.filter(s=>s.submissionStatus==='Evaluated').length;
-  const revisionReq = allSt.filter(s=>s.submissionStatus==='RevisionReq').length;
-  const pending     = totalRisks - submitted;
-  const evalRate    = submitted>0 ? Math.round(evaluated/submitted*100) : 0;
-  const submitRate  = totalRisks>0 ? Math.round(submitted/totalRisks*100) : 0;
-
-  const submittedTeams = [...new Set(allSt.filter(s=>s.submissionStatus!=='Draft').map(s=>s.team))];
-  const activeTeams    = [...new Set(selected.map(r=>r.team))];
-  const missingTeams   = activeTeams.filter(t=>!submittedTeams.includes(t));
-
-  const teamScores = TEAMS.map(team=>{
-    const tRisks = selected.filter(r=>r.team===team);
-    const tEvals = allEv.filter(e=>e.team===team);
-    const tSt    = allSt.filter(s=>s.team===team);
-    const avgScore  = tEvals.length ? Math.round(tEvals.reduce((a,e)=>a+e.evaluationScore,0)/tEvals.length) : null;
-    const subCnt    = tSt.filter(s=>s.submissionStatus!=='Draft').length;
-    const evalCnt   = tSt.filter(s=>s.submissionStatus==='Evaluated').length;
-    const subRate   = tRisks.length ? Math.round(subCnt/tRisks.length*100) : 0;
-    const evalPct   = subCnt>0 ? Math.round(evalCnt/subCnt*100) : 0;
-    return {team, score:avgScore, submitRate:subRate, evalRate:evalPct, riskCount:tRisks.length, subCount:subCnt, evalCount:evalCnt};
-  });
-
-  return {totalRisks,submitted,evaluated,revisionReq,pending,evalRate,submitRate,missingTeams,teamScores,allStatuses:allSt,allEvals:allEv,selectedRisks:selected};
-}
-
-function getTeamMonthlyScores(team, year) {
-  return Array.from({length:12},(_,i)=>{
-    const m=i+1;
-    const evals=mockEvaluations.filter(e=>e.team===team&&e.year===year&&e.month===m);
-    return evals.length ? Math.round(evals.reduce((a,e)=>a+e.evaluationScore,0)/evals.length) : null;
-  });
-}
-function getRiskHistory(riskTitle, team, currentYear) {
-  const prev=currentYear-1;
-  const pEvals=mockEvaluations.filter(e=>{
-    const rm=mockRiskMaster.find(r=>r.riskId===e.riskId);
-    return rm&&rm.riskTitle===riskTitle&&e.team===team&&e.year===prev;
-  });
-  const cEvals=mockEvaluations.filter(e=>{
-    const rm=mockRiskMaster.find(r=>r.riskId===e.riskId);
-    return rm&&rm.riskTitle===riskTitle&&e.team===team&&e.year===currentYear;
-  });
-  const p=pEvals.length?Math.round(pEvals.reduce((a,e)=>a+e.evaluationScore,0)/pEvals.length):null;
-  const c=cEvals.length?Math.round(cEvals.reduce((a,e)=>a+e.evaluationScore,0)/cEvals.length):null;
-  return {prev:p,cur:c,delta:(p!==null&&c!==null)?c-p:null};
-}
-</script>
-
-
-<script>
-/* ════════════════════════════════════════════
-   APP INIT & NAVIGATION
-════════════════════════════════════════════ */
-function selectRole(card) {
-  document.querySelectorAll('.role-card').forEach(c=>c.classList.remove('selected'));
-  card.classList.add('selected');
-  document.getElementById('teamSelectGroup').style.display =
-    card.dataset.role==='ComplianceAdmin' ? 'none' : 'block';
-}
-
-function startApp() {
-  const roleCard = document.querySelector('.role-card.selected');
-  const role     = roleCard ? roleCard.dataset.role : 'TeamUser';
-  const team     = document.getElementById('loginTeamSelect').value;
-  const name     = document.getElementById('loginName').value.trim() || '사용자';
-  if (role==='TeamUser' && !team) { showToast('소속 팀을 선택해 주세요.','err'); return; }
-  AppState.role=role; AppState.userName=name;
-  AppState.userTeam=role==='TeamUser'?team:'';
-  AppState.activeView=role==='ComplianceAdmin'?'dashboard':'team-input';
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app').style.display='flex';
-  initApp();
-}
-
-function logoutApp() {
-  document.getElementById('app').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
-  document.querySelectorAll('.role-card').forEach(c=>c.classList.remove('selected'));
-  document.querySelector('[data-role="TeamUser"]').classList.add('selected');
-  document.getElementById('teamSelectGroup').style.display='block';
-}
-
-function initApp() {
-  // 월 셀렉터
-  const ms=document.getElementById('globalMonth');
-  ms.innerHTML='';
-  for(let i=1;i<=12;i++){
-    const o=document.createElement('option');
-    o.value=i; o.textContent=`${i}월`;
-    if(i===AppState.month) o.selected=true;
-    ms.appendChild(o);
-  }
-  document.getElementById('globalYear').value=AppState.year;
-  document.getElementById('userChip').textContent=
-    AppState.role==='ComplianceAdmin'
-      ? `🏛️ ${AppState.userName} (관리자)`
-      : `👤 ${AppState.userName} · ${AppState.userTeam}`;
-  renderSidebar();
-  renderView(AppState.activeView);
-  updateSidebarStatus();
-}
-
-function renderSidebar() {
-  const isAdmin=AppState.role==='ComplianceAdmin';
-  const adminItems = isAdmin ? `
-    <button class="nav-item" data-view="dashboard" onclick="switchView(this)">
-      <span class="nav-icon">📊</span>전사 대시보드
-    </button>
-    <button class="nav-item" data-view="risk-master" onclick="switchView(this)">
-      <span class="nav-icon">📋</span>리스크 Master 관리
-    </button>
-    <button class="nav-item" data-view="risk-select" onclick="switchView(this)">
-      <span class="nav-icon">🎯</span>점검대상 리스크 선정
-    </button>
-    <button class="nav-item" data-view="admin-eval" onclick="switchView(this)">
-      <span class="nav-icon">⚖️</span>이행 달성율 평가
-      <span class="nav-badge" id="evalBadge" style="display:none">0</span>
-    </button>
-    <button class="nav-item" data-view="team-overview" onclick="switchView(this)">
-      <span class="nav-icon">📈</span>팀 이행현황
-    </button>
-  ` : '';
-  const teamItems = isAdmin ? `
-    <button class="nav-item" data-view="team-input" onclick="switchView(this)">
-      <span class="nav-icon">📝</span>월간 현황 입력 (팀 조회)
-    </button>
-  ` : `
-    <button class="nav-item" data-view="team-input" onclick="switchView(this)">
-      <span class="nav-icon">📝</span>월간 현황 입력
-    </button>
-    <button class="nav-item" data-view="my-history" onclick="switchView(this)">
-      <span class="nav-icon">📈</span>내 팀 이행현황
-    </button>
-  `;
-  document.getElementById('sbMenu').innerHTML = adminItems + teamItems;
-  highlightNav(AppState.activeView);
-  updateEvalBadge();
-}
-
-function highlightNav(view) {
-  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.view===view));
-  renderMobBottomNav(view);
-}
-
-/* ── Mobile sidebar ── */
-function toggleMobSidebar() {
-  const sb=document.getElementById('sidebar');
-  const ov=document.getElementById('mobOverlay');
-  const open=sb.classList.contains('mob-open');
-  sb.classList.toggle('mob-open',!open);
-  ov.classList.toggle('visible',!open);
-}
-function closeMobSidebar() {
-  document.getElementById('sidebar')?.classList.remove('mob-open');
-  document.getElementById('mobOverlay')?.classList.remove('visible');
-}
-
-/* ── Mobile bottom nav ── */
-function renderMobBottomNav(activeView) {
-  const ct=document.getElementById('mobBottomNavInner');
-  if(!ct) return;
-  const isAdmin=AppState.role==='ComplianceAdmin';
-  const adminItems=[
-    {view:'dashboard',  icon:'📊', label:'대시보드'},
-    {view:'admin-eval', icon:'⚖️', label:'평가'},
-    {view:'team-overview',icon:'📈',label:'이행현황'},
-    {view:'risk-master',icon:'📋', label:'리스크'},
-    {view:'team-input', icon:'📝', label:'조회'},
-  ];
-  const teamItems=[
-    {view:'team-input', icon:'📝', label:'현황입력'},
-    {view:'my-history', icon:'📈', label:'이행현황'},
-  ];
-  const items = isAdmin ? adminItems : teamItems;
-  const pendingN = mockMonthlyStatus.filter(s=>
-    s.year===AppState.year&&s.month===AppState.month&&s.submissionStatus==='Submitted'
-  ).length;
-  ct.innerHTML = items.map(it=>`
-    <button class="mob-nav-btn ${activeView===it.view?'active':''}"
-      onclick="closeMobSidebar();AppState.activeView='${it.view}';highlightNav('${it.view}');renderView('${it.view}')">
-      <span class="mob-icon">${it.icon}</span>
-      ${it.label==='평가'&&pendingN>0?`<span class="mob-badge">${pendingN}</span>`:''}
-      <span>${it.label}</span>
+function renderBottomNav(){
+  const tabs=appRole==='admin'?BNAV_ADMIN:BNAV_USER;
+  document.getElementById('bottom-nav').innerHTML=tabs.map(t=>`
+    <button class="bnav-btn" data-id="${t.id}" onclick="navigateTo('${t.id}')">
+      ${t.badge?'<div class="bnav-dot"></div>':''}
+      <div class="bnav-icon">${t.icon}</div>
+      <div class="bnav-label">${t.label}</div>
     </button>`).join('');
 }
-function switchView(btn) {
-  AppState.activeView=btn.dataset.view;
-  highlightNav(AppState.activeView);
-  closeMobSidebar();
-  renderView(AppState.activeView);
+const PAGE_TITLES={dash:'대시보드',monthly:'월간 입력',eval:'달성율 평가',teams:'팀 현황',master:'Master',myteam:'내 팀'};
+const SHOW_FILTER=['dash','teams','eval','master'];
+function navigateTo(id){
+  curPage=id;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  const pg=document.getElementById('pg-'+id); if(pg) pg.classList.add('on');
+  document.getElementById('top-page-name').textContent=' · '+(PAGE_TITLES[id]||id);
+  document.getElementById('filter-bar').classList.toggle('on',SHOW_FILTER.includes(id));
+  // bottom nav active
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.toggle('on',b.dataset.id===id));
+  document.querySelectorAll('.drawer-nav-btn').forEach(b=>b.classList.toggle('on',b.dataset.id===id));
+  // lazy init
+  if(id==='monthly') renderMonthlyList(RISKS.filter(r=>appRole==='admin'||r.team===appTeam));
+  if(id==='eval') renderEvalList();
+  if(id==='teams') renderTeamsPage();
+  if(id==='master') renderMasterList(RISKS);
+  if(id==='myteam') renderMyTeam();
+  if(id==='dash') runCounters();
+  window.scrollTo&&window.scrollTo(0,0);
+  document.getElementById('content').scrollTop=0;
 }
-function renderView(view) {
-  const ct=document.getElementById('mainContent');
-  ct.innerHTML='<div style="color:var(--text-muted);padding:48px;text-align:center;font-size:14px">로딩 중...</div>';
-  ct.scrollTop=0;
-  window.scrollTo(0,0);
-  const map={
-    'dashboard':renderDashboardView,
-    'risk-master':renderRiskMasterView,
-    'risk-select':renderRiskSelectView,
-    'admin-eval':renderAdminEvaluationView,
-    'team-overview':renderTeamOverviewView,
-    'team-input':renderTeamInputView,
-    'my-history':renderMyHistoryView,
-  };
-  if(map[view]) map[view](ct);
-  updateSidebarStatus();
+
+/* ═══ DRAWER ═══ */
+function openDrawer(){
+  document.getElementById('drawer').classList.add('on');
+  document.getElementById('drawer-overlay').classList.add('on');
 }
-function handleGlobalFilter() {
-  AppState.year=Number(document.getElementById('globalYear').value);
-  AppState.month=Number(document.getElementById('globalMonth').value);
-  renderView(AppState.activeView);
-  updateSidebarStatus();
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('on');
+  document.getElementById('drawer-overlay').classList.remove('on');
 }
-function updateEvalBadge() {
-  const badge=document.getElementById('evalBadge');
-  if(!badge) return;
-  const n=mockMonthlyStatus.filter(s=>s.year===AppState.year&&s.month===AppState.month&&s.submissionStatus==='Submitted').length;
-  badge.textContent=n; badge.style.display=n>0?'inline-block':'none';
+function setYear(y,btn){document.querySelectorAll('.fy-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on')}
+
+/* ═══ SHEET ═══ */
+function openSheet(id,title,bodyHTML,footerHTML){
+  document.getElementById('sheet-id').textContent=id;
+  document.getElementById('sheet-title').textContent=title;
+  document.getElementById('sheet-body').innerHTML=bodyHTML;
+  document.getElementById('sheet-footer').innerHTML=footerHTML;
+  document.getElementById('sheet-overlay').classList.add('on');
+  document.getElementById('bottom-sheet').classList.add('on');
 }
-function updateSidebarStatus() {
-  const sb=document.getElementById('sbStatus');
-  const isAdmin=AppState.role==='ComplianceAdmin';
-  const selected=mockRiskMaster.filter(r=>r.year===AppState.year&&r.isSelected);
-  const submitted=mockMonthlyStatus.filter(s=>s.year===AppState.year&&s.month===AppState.month&&s.submissionStatus!=='Draft');
-  if(isAdmin){
-    sb.innerHTML=`
-      <div style="margin-bottom:4px"><span class="sb-team-chip">관리자</span></div>
-      <div>점검 리스크 <strong style="color:#fff">${selected.length}</strong>건</div>
-      <div>${AppState.year}년 ${AppState.month}월</div>
-      <div>제출현황 <strong style="color:#60a5fa">${submitted.length}</strong>건</div>
-    `;
-  } else {
-    const myR=selected.filter(r=>r.team===AppState.userTeam);
-    const mySt=submitted.filter(s=>s.team===AppState.userTeam);
-    sb.innerHTML=`
-      <div style="margin-bottom:4px"><span class="sb-team-chip">${AppState.userTeam}</span></div>
-      <div>담당 리스크 <strong style="color:#fff">${myR.length}</strong>건</div>
-      <div>${AppState.year}년 ${AppState.month}월</div>
-      <div>제출 <strong style="color:#60a5fa">${mySt.length}/${myR.length}</strong></div>
-    `;
+function closeSheet(){
+  document.getElementById('sheet-overlay').classList.remove('on');
+  document.getElementById('bottom-sheet').classList.remove('on');
+}
+
+/* ═══ HELPERS ═══ */
+const statusSt=s=>({우수:{bg:'#ECFDF5',tx:'#059669'},정상:{bg:'#EFF6FF',tx:'#2563EB'},주의:{bg:'#FFFBEB',tx:'#D97706'},위험:{bg:'#FEF2F2',tx:'#DC2626'}}[s]||{bg:'#F1F5F9',tx:'#64748B'});
+const stClass=s=>({제출완료:'s-sub',평가완료:'s-eval',미제출:'s-none',임시저장:'s-draft'}[s]||'');
+const scColor=v=>v>=15?'var(--red)':v>=10?'var(--amber)':'var(--green)';
+const heatColor=v=>v>=20?'#EF4444':v>=15?'#F97316':v>=10?'#F59E0B':v>=5?'#84CC16':'#22C55E';
+const barGrad=avg=>`linear-gradient(90deg,#3B82F6,${avg>=80?'#10B981':avg>=65?'#F59E0B':'#EF4444'})`;
+
+/* ═══ INIT DASHBOARD ═══ */
+function initDashboard(){
+  renderTeamBars();
+  renderHeatmap();
+  setTimeout(()=>drawChart('trend-canvas',TREND,TKEYS,TCOLORS,true),80);
+  setTimeout(runCounters,100);
+}
+
+/* ═══ COUNTERS ═══ */
+function runCounters(){
+  document.querySelectorAll('.kpi-num[data-t]').forEach(el=>{
+    if(el.dataset.done) return; el.dataset.done=1;
+    const tgt=+el.dataset.t,pct=el.dataset.pct;let v=0;
+    const step=Math.ceil(tgt/20);
+    const t=setInterval(()=>{v=Math.min(v+step,tgt);el.textContent=v+(pct?'%':'');if(v>=tgt)clearInterval(t);},45);
+  });
+}
+
+/* ═══ TEAM BARS ═══ */
+function renderTeamBars(){
+  document.getElementById('team-bars').innerHTML=TEAMS_DATA.map(d=>{
+    const c=statusSt(d.status);
+    return `<div class="team-bar">
+      <div class="team-name">${d.team}</div>
+      <div class="bar-track"><div class="bar-fill" data-w="${d.avg}" style="background:${barGrad(d.avg)}"></div></div>
+      <div class="team-pct">${d.avg}%</div>
+      <span class="stag" style="background:${c.bg};color:${c.tx}">${d.status}</span>
+    </div>`;
+  }).join('');
+  setTimeout(()=>document.querySelectorAll('.bar-fill').forEach(b=>b.style.width=b.dataset.w+'%'),100);
+}
+
+/* ═══ CHART ═══ */
+function drawChart(cid,data,keys,colors,legend){
+  const canvas=document.getElementById(cid); if(!canvas) return;
+  const W=canvas.offsetWidth||320,H=+canvas.getAttribute('height')||180;
+  canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+  const pad={t:8,r:8,b:28,l:32};
+  const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  const mn=40,mx=100,months=data.map(d=>d.month);
+  const xp=i=>pad.l+i*(cw/(months.length-1));
+  const yp=v=>pad.t+ch-(v-mn)/(mx-mn)*ch;
+  ctx.strokeStyle='#E5EBF2';ctx.lineWidth=1;
+  [40,60,80,100].forEach(v=>{
+    ctx.beginPath();ctx.moveTo(pad.l,yp(v));ctx.lineTo(pad.l+cw,yp(v));ctx.stroke();
+    ctx.fillStyle='#94A3B8';ctx.font=`10px sans-serif`;ctx.textAlign='right';
+    ctx.fillText(v+'%',pad.l-3,yp(v)+3);
+  });
+  ctx.fillStyle='#94A3B8';ctx.textAlign='center';
+  months.forEach((m,i)=>ctx.fillText(m,xp(i),H-6));
+  keys.forEach((key,ki)=>{
+    const vals=data.map(d=>d[key]||0);
+    ctx.beginPath();ctx.strokeStyle=colors[ki];ctx.lineWidth=2.5;ctx.lineJoin='round';
+    vals.forEach((v,i)=>i===0?ctx.moveTo(xp(i),yp(v)):ctx.lineTo(xp(i),yp(v)));ctx.stroke();
+    vals.forEach((v,i)=>{ctx.beginPath();ctx.arc(xp(i),yp(v),3.5,0,Math.PI*2);ctx.fillStyle=colors[ki];ctx.fill();});
+  });
+  if(legend){
+    const el=document.getElementById('trend-legend');
+    if(el) el.innerHTML=keys.map((k,i)=>`<div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:50%;background:${colors[i]};flex-shrink:0"></div><span style="font-size:11px;color:var(--muted)">${k}</span></div>`).join('');
   }
 }
 
-/* ════════════════════════════════════════════
-   RISK MASTER VIEW
-════════════════════════════════════════════ */
-async function renderRiskMasterView(container) {
-  const year=AppState.year;
-  const data=await fetchRiskMaster(year);
-  const fTeam=AppState.mFilterTeam, fCat=AppState.mFilterCat;
-  const fSel=AppState.mFilterSel, fSearch=(AppState.mFilterSearch||'').toLowerCase();
-  const filtered=data.filter(r=>
-    (!fTeam||r.team===fTeam) && (!fCat||r.riskCategory===fCat) &&
-    (fSel==='all'||(fSel==='selected'?r.isSelected:!r.isSelected)) &&
-    (!fSearch||r.riskTitle.toLowerCase().includes(fSearch)||r.riskId.toLowerCase().includes(fSearch))
-  );
-
-  container.innerHTML=`
-    <div class="sec-hd">
-      <div class="sec-title">📋 리스크 Master 관리</div>
-      <div class="sec-sub">${year}년 리스크 목록 · 관리자만 리스크를 등록·수정할 수 있습니다.</div>
-    </div>
-    <div class="flex-row mb-16">
-      <button class="btn btn-primary" onclick="openAddRiskModal()">＋ 리스크 추가</button>
-      <label class="btn btn-secondary" style="cursor:pointer">
-        📂 Excel Upload
-        <input type="file" accept=".xlsx,.xls" style="display:none" onchange="handleExcelUpload(this)"/>
-      </label>
-      <button class="btn btn-secondary" onclick="downloadExcelTemplate()">⬇ 양식 다운로드</button>
-    </div>
-    <div class="fbar">
-      <label>팀</label>
-      <select onchange="AppState.mFilterTeam=this.value;renderView('risk-master')">
-        <option value="">전체</option>
-        ${TEAMS.map(t=>`<option value="${t}" ${t===fTeam?'selected':''}>${t}</option>`).join('')}
-      </select>
-      <label>유형</label>
-      <select onchange="AppState.mFilterCat=this.value;renderView('risk-master')">
-        <option value="">전체</option>
-        ${RISK_CATS.map(c=>`<option value="${c}" ${c===fCat?'selected':''}>${c}</option>`).join('')}
-      </select>
-      <label>선정여부</label>
-      <select onchange="AppState.mFilterSel=this.value;renderView('risk-master')">
-        <option value="all">전체</option>
-        <option value="selected" ${fSel==='selected'?'selected':''}>점검대상만</option>
-        <option value="not" ${fSel==='not'?'selected':''}>미선택만</option>
-      </select>
-      <div class="fbar-sep"></div>
-      <label>검색</label>
-      <input type="text" placeholder="리스크명 또는 ID" value="${AppState.mFilterSearch||''}"
-        oninput="AppState.mFilterSearch=this.value;renderView('risk-master')" style="width:160px"/>
-      <span class="fbar-count">${filtered.length}건</span>
-    </div>
-    <div class="tbl-wrap mob-hidden">
-      <table>
-        <thead><tr>
-          <th>Risk ID</th><th>팀</th><th>유형</th><th>리스크 제목</th>
-          <th>개선 과제</th><th>Owner</th>
-          <th style="text-align:center">영향도</th><th style="text-align:center">가능성</th>
-          <th style="text-align:center">산식점수</th><th style="text-align:center">점검대상</th>
-          <th style="text-align:center">관리</th>
-        </tr></thead>
-        <tbody>
-          ${filtered.length===0
-            ?`<tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:36px">조회된 리스크가 없습니다.</td></tr>`
-            :filtered.map(r=>renderRiskMasterRow(r)).join('')}
-        </tbody>
-      </table>
-    </div>
-    <!-- Mobile card list -->
-    <div class="mob-card-list">
-      ${filtered.length===0
-        ?`<div class="card" style="text-align:center;padding:36px;color:var(--text-muted)">조회된 리스크가 없습니다.</div>`
-        :filtered.map(r=>renderRiskMasterMobCard(r)).join('')}
-    </div>
-  `;
-}
-
-function renderRiskMasterRow(r) {
-  const score=r.riskFormulaScore||calcRiskScore(r);
-  const sc=getRiskScoreColor(score);
-  return `
-  <tr>
-    <td><span style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">${r.riskId}</span></td>
-    <td><span class="chip">${r.team}</span></td>
-    <td><span class="chip">${r.riskCategory}</span></td>
-    <td>
-      <div style="font-weight:600;font-size:14px">${r.riskTitle}</div>
-      <div class="tx-xs tx-sec" style="margin-top:3px;line-height:1.4">${(r.riskDescription||'').substring(0,55)}${(r.riskDescription||'').length>55?'…':''}</div>
-    </td>
-    <td class="tx-xs tx-sec" style="max-width:150px">${(r.improvementTask||'').substring(0,45)}${(r.improvementTask||'').length>45?'…':''}</td>
-    <td>
-      <span style="font-size:13px;font-weight:500;color:var(--text-secondary)">👤 ${r.owner||'—'}</span>
-    </td>
-    <td style="text-align:center;font-family:var(--mono);font-weight:700">${r.impactScore}</td>
-    <td style="text-align:center;font-family:var(--mono);font-weight:700">${r.likelihoodScore}</td>
-    <td style="text-align:center">
-      <span style="font-family:var(--mono);font-size:16px;font-weight:800;color:${sc}">${score}</span>
-    </td>
-    <td style="text-align:center">
-      ${r.isSelected?'<span class="badge b-selected">● 점검대상</span>':'<span class="badge b-draft">○ 미선택</span>'}
-    </td>
-    <td>
-      <div class="flex-row" style="justify-content:center;gap:5px">
-        <button class="btn btn-secondary btn-sm" onclick="openEditRiskModal('${r.riskId}')">수정</button>
-        <button class="btn btn-sm ${r.isSelected?'btn-danger':'btn-success'}"
-          onclick="toggleRiskSelected('${r.riskId}')">
-          ${r.isSelected?'해제':'선정'}
-        </button>
-      </div>
-    </td>
-  </tr>`;
-}
-
-function renderRiskMasterMobCard(r) {
-  const score=r.riskFormulaScore||calcRiskScore(r);
-  const sc=getRiskScoreColor(score);
-  return `
-  <div class="mob-risk-item">
-    <div class="mob-risk-item-top">
-      <div class="mob-risk-item-title">${r.riskTitle}</div>
-      ${r.isSelected?'<span class="badge b-selected">점검대상</span>':'<span class="badge b-draft">미선택</span>'}
-    </div>
-    <div class="mob-risk-item-meta">
-      <span class="chip">${r.team}</span>
-      <span class="chip">${r.riskCategory}</span>
-      <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">${r.riskId}</span>
-    </div>
-    <div class="mob-risk-score-row">
-      <span class="tx-xs tx-muted">영향도</span><strong>${r.impactScore}</strong>
-      <span class="tx-xs tx-muted">× 가능성</span><strong>${r.likelihoodScore}</strong>
-      <span class="tx-xs tx-muted">=</span>
-      <span style="font-family:var(--mono);font-size:16px;font-weight:800;color:${sc}">${score}</span>
-    </div>
-    ${r.owner?`<div class="tx-sm tx-muted">👤 ${r.owner}</div>`:''}
-    <div class="mob-risk-item-acts">
-      <button class="btn btn-secondary btn-sm" onclick="openEditRiskModal('${r.riskId}')">✏️ 수정</button>
-      <button class="btn btn-sm ${r.isSelected?'btn-danger':'btn-success'}"
-        onclick="toggleRiskSelected('${r.riskId}')">
-        ${r.isSelected?'선정 해제':'점검대상 선정'}
-      </button>
-    </div>
-  </div>`;
-}
-
-function toggleRiskSelected(riskId) {
-  const r=mockRiskMaster.find(x=>x.riskId===riskId);
-  if(!r) return;
-  r.isSelected=!r.isSelected;
-  showToast(`${r.riskTitle} → ${r.isSelected?'점검대상 선정':'선정 해제'}`,'ok');
-  renderView('risk-master');
-}
-
-function openAddRiskModal() {
-  openModal(`
-    <div class="modal-title">➕ 리스크 추가</div>
-    <div class="grid-2">
-      <div class="fg"><label class="flabel">팀 <span class="req">*</span></label>
-        <select class="fc" id="mTeam">${TEAMS.map(t=>`<option>${t}</option>`).join('')}</select></div>
-      <div class="fg"><label class="flabel">유형 <span class="req">*</span></label>
-        <select class="fc" id="mCat">${RISK_CATS.map(c=>`<option>${c}</option>`).join('')}</select></div>
-    </div>
-    <div class="fg"><label class="flabel">리스크 제목 <span class="req">*</span></label>
-      <input class="fc" id="mTitle" type="text" placeholder="리스크 제목 입력"/></div>
-    <div class="fg"><label class="flabel">리스크 설명</label>
-      <textarea class="fc" id="mDesc" rows="3" placeholder="리스크 상세 설명"></textarea></div>
-    <div class="fg"><label class="flabel">개선 과제</label>
-      <textarea class="fc" id="mTask" rows="2" placeholder="개선 조치 내용"></textarea></div>
-    <div class="fg"><label class="flabel">담당자 (Owner) <span class="req">*</span></label>
-      <input class="fc" id="mOwner" type="text" placeholder="이름 입력 (예: 홍길동)"/></div>
-    <div class="grid-2">
-      <div class="fg"><label class="flabel">영향도 (1~5)</label>
-        <select class="fc" id="mImpact">${[1,2,3,4,5].map(n=>`<option>${n}</option>`).join('')}</select></div>
-      <div class="fg"><label class="flabel">발생가능성 (1~5)</label>
-        <select class="fc" id="mLikelihood">${[1,2,3,4,5].map(n=>`<option>${n}</option>`).join('')}</select></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal()">취소</button>
-      <button class="btn btn-primary" onclick="submitAddRisk(${AppState.year})">저장</button>
-    </div>
-  `);
-}
-
-async function submitAddRisk(year) {
-  const title=document.getElementById('mTitle').value.trim();
-  const owner=document.getElementById('mOwner').value.trim();
-  if(!title){showToast('리스크 제목을 입력해 주세요.','err');return;}
-  if(!owner){showToast('담당자(Owner)를 입력해 주세요.','err');return;}
-  const impact=Number(document.getElementById('mImpact').value);
-  const likelihood=Number(document.getElementById('mLikelihood').value);
-  const maxNum=mockRiskMaster.filter(r=>r.year===year).length+1;
-  const riskId=`R-${year}-${String(maxNum).padStart(3,'0')}`;
-  await saveRiskMaster({
-    riskId,year,team:document.getElementById('mTeam').value,
-    riskCategory:document.getElementById('mCat').value,
-    riskTitle:title,riskDescription:document.getElementById('mDesc').value,
-    improvementTask:document.getElementById('mTask').value,
-    owner,impactScore:impact,likelihoodScore:likelihood,
-    riskFormulaScore:impact*likelihood,isSelected:false,
-  });
-  closeModal(); showToast('리스크가 추가되었습니다.','ok'); renderView('risk-master');
-}
-
-function openEditRiskModal(riskId) {
-  const r=mockRiskMaster.find(x=>x.riskId===riskId);
-  if(!r) return;
-  openModal(`
-    <div class="modal-title">✏️ 리스크 수정 — <span style="font-family:var(--mono);font-size:13px;color:var(--text-muted)">${r.riskId}</span></div>
-    <div class="grid-2">
-      <div class="fg"><label class="flabel">팀</label>
-        <select class="fc" id="eTeam">${TEAMS.map(t=>`<option ${t===r.team?'selected':''}>${t}</option>`).join('')}</select></div>
-      <div class="fg"><label class="flabel">유형</label>
-        <select class="fc" id="eCat">${RISK_CATS.map(c=>`<option ${c===r.riskCategory?'selected':''}>${c}</option>`).join('')}</select></div>
-    </div>
-    <div class="fg"><label class="flabel">리스크 제목</label>
-      <input class="fc" id="eTitle" type="text" value="${r.riskTitle}"/></div>
-    <div class="fg"><label class="flabel">리스크 설명</label>
-      <textarea class="fc" id="eDesc" rows="3">${r.riskDescription}</textarea></div>
-    <div class="fg"><label class="flabel">개선 과제</label>
-      <textarea class="fc" id="eTask" rows="2">${r.improvementTask}</textarea></div>
-    <div class="fg"><label class="flabel">담당자 (Owner)</label>
-      <input class="fc" id="eOwner" type="text" value="${r.owner||''}"/></div>
-    <div class="grid-2">
-      <div class="fg"><label class="flabel">영향도 (1~5)</label>
-        <select class="fc" id="eImpact">${[1,2,3,4,5].map(n=>`<option ${n===r.impactScore?'selected':''}>${n}</option>`).join('')}</select></div>
-      <div class="fg"><label class="flabel">발생가능성 (1~5)</label>
-        <select class="fc" id="eLikelihood">${[1,2,3,4,5].map(n=>`<option ${n===r.likelihoodScore?'selected':''}>${n}</option>`).join('')}</select></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal()">취소</button>
-      <button class="btn btn-primary" onclick="submitEditRisk('${riskId}')">저장</button>
-    </div>
-  `);
-}
-
-async function submitEditRisk(riskId) {
-  const r=mockRiskMaster.find(x=>x.riskId===riskId);
-  if(!r) return;
-  const impact=Number(document.getElementById('eImpact').value);
-  const likelihood=Number(document.getElementById('eLikelihood').value);
-  r.team=document.getElementById('eTeam').value;
-  r.riskCategory=document.getElementById('eCat').value;
-  r.riskTitle=document.getElementById('eTitle').value.trim();
-  r.riskDescription=document.getElementById('eDesc').value;
-  r.improvementTask=document.getElementById('eTask').value;
-  r.owner=document.getElementById('eOwner').value.trim();
-  r.impactScore=impact; r.likelihoodScore=likelihood; r.riskFormulaScore=impact*likelihood;
-  await saveRiskMaster(r);
-  closeModal(); showToast('리스크가 수정되었습니다.','ok'); renderView('risk-master');
-}
-
-function handleExcelUpload(input) {
-  const file=input.files[0]; if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    try {
-      const wb=XLSX.read(e.target.result,{type:'binary'});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws);
-      let added=0;
-      rows.forEach(row=>{
-        const impact=Number(row.ImpactScore||row['영향도']||3);
-        const likelihood=Number(row.LikelihoodScore||row['발생가능성']||3);
-        const year=Number(row.Year||row['연도']||AppState.year);
-        const team=row.Team||row['팀']||'';
-        const title=row.RiskTitle||row['리스크제목']||'';
-        const owner=row.Owner||row['담당자']||'';
-        if(!title||!team) return;
-        const maxNum=mockRiskMaster.filter(r=>r.year===year).length+added+1;
-        const riskId=`R-${year}-${String(maxNum).padStart(3,'0')}`;
-        mockRiskMaster.push({
-          riskId,year,team,riskCategory:row.RiskCategory||row['유형']||'',
-          riskTitle:title,riskDescription:row.RiskDescription||row['설명']||'',
-          improvementTask:row.ImprovementTask||row['개선과제']||'',
-          owner,impactScore:impact,likelihoodScore:likelihood,
-          riskFormulaScore:impact*likelihood,isSelected:false,
-        });
-        added++;
-      });
-      showToast(`Excel ${added}건 업로드 완료.`,'ok'); renderView('risk-master');
-    } catch(err){ showToast('Excel 파싱 오류','err'); console.error(err); }
-  };
-  reader.readAsBinaryString(file);
-  input.value='';
-}
-
-function downloadExcelTemplate() {
-  const ws=XLSX.utils.aoa_to_sheet([
-    ['Year','Team','RiskCategory','RiskTitle','RiskDescription','ImprovementTask','Owner','ImpactScore','LikelihoodScore'],
-    [2025,'영업팀','계약','계약서 미검토 리스크','예시 설명','예시 개선과제','홍길동',5,4],
-  ]);
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'RiskMaster');
-  XLSX.writeFile(wb,'RiskMaster_Template.xlsx');
-}
-
-/* ════════════════════════════════════════════
-   RISK SELECT VIEW
-════════════════════════════════════════════ */
-async function renderRiskSelectView(container) {
-  const year=AppState.year;
-  const data=await fetchRiskMaster(year);
-  const sorted=[...data].sort((a,b)=>(b.riskFormulaScore||0)-(a.riskFormulaScore||0));
-  const selectedCount=data.filter(r=>r.isSelected).length;
-
-  container.innerHTML=`
-    <div class="sec-hd">
-      <div class="sec-title">🎯 점검대상 리스크 선정</div>
-      <div class="sec-sub">${year}년 RiskFormulaScore 기준으로 점검 대상 리스크를 선정합니다.</div>
-    </div>
-    <div class="card">
-      <div class="card-title">자동 선정</div>
-      <div class="flex-row">
-        <label style="font-size:14px;color:var(--text-secondary);font-weight:600">상위 선정 건수</label>
-        <select class="fc" id="topNSel" style="width:100px">
-          ${[10,12,15,18,20,25,30].map(n=>`<option value="${n}" ${n===15?'selected':''}>${n}건</option>`).join('')}
-        </select>
-        <button class="btn btn-primary" onclick="autoSelectTopRisks()">⚡ Select Top Risks</button>
-        <button class="btn btn-secondary" onclick="clearAllSelected()">초기화</button>
-      </div>
-      <div style="margin-top:12px;font-size:14px;color:var(--text-secondary)">
-        현재 점검대상 <strong style="color:var(--accent)">${selectedCount}건</strong> / 전체 <strong style="color:var(--text-primary)">${data.length}건</strong>
-      </div>
-    </div>
-    <div class="tbl-wrap mob-hidden">
-      <table>
-        <thead><tr>
-          <th style="text-align:center">순위</th><th>Risk ID</th><th>팀</th>
-          <th>리스크 제목</th><th>Owner</th>
-          <th style="text-align:center">영향도</th><th style="text-align:center">가능성</th>
-          <th style="text-align:center">산식점수</th><th style="text-align:center">점검대상</th>
-        </tr></thead>
-        <tbody>
-          ${sorted.map((r,i)=>`
-          <tr style="${r.isSelected?'background:#fffbeb':''}">
-            <td style="text-align:center;font-family:var(--mono);font-size:13px;color:var(--text-muted)">${i+1}</td>
-            <td style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">${r.riskId}</td>
-            <td><span class="chip">${r.team}</span></td>
-            <td><span style="font-weight:600">${r.riskTitle}</span>
-              <span class="chip" style="margin-left:6px;font-size:11px">${r.riskCategory}</span></td>
-            <td style="font-size:13px;color:var(--text-secondary)">👤 ${r.owner||'—'}</td>
-            <td style="text-align:center;font-family:var(--mono);font-weight:700">${r.impactScore}</td>
-            <td style="text-align:center;font-family:var(--mono);font-weight:700">${r.likelihoodScore}</td>
-            <td style="text-align:center">
-              <span style="font-family:var(--mono);font-size:17px;font-weight:800;color:${getRiskScoreColor(r.riskFormulaScore||0)}">${r.riskFormulaScore||0}</span>
-            </td>
-            <td style="text-align:center">
-              <button class="btn btn-sm ${r.isSelected?'btn-danger':'btn-success'}"
-                onclick="toggleRiskSelected('${r.riskId}');renderView('risk-select')">
-                ${r.isSelected?'● 선정됨':'○ 미선택'}
-              </button>
-            </td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
-    <!-- Mobile card list -->
-    <div class="mob-card-list">
-      ${sorted.map((r,i)=>`
-      <div class="mob-risk-item" style="${r.isSelected?'border-left:4px solid var(--amber)':''}">
-        <div class="mob-risk-item-top">
-          <div>
-            <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-right:6px">#${i+1}</span>
-            <span class="mob-risk-item-title" style="display:inline">${r.riskTitle}</span>
-          </div>
-          ${r.isSelected?'<span class="badge b-selected">선정됨</span>':''}
-        </div>
-        <div class="mob-risk-item-meta">
-          <span class="chip">${r.team}</span>
-          <span class="chip">${r.riskCategory}</span>
-          ${r.owner?`<span class="tx-xs tx-muted">👤 ${r.owner}</span>`:''}
-        </div>
-        <div class="mob-risk-score-row">
-          <span class="tx-xs tx-muted">영향도</span><strong>${r.impactScore}</strong>
-          <span class="tx-xs tx-muted">×</span><strong>${r.likelihoodScore}</strong>
-          <span class="tx-xs tx-muted">=</span>
-          <span style="font-family:var(--mono);font-size:18px;font-weight:800;color:${getRiskScoreColor(r.riskFormulaScore||0)}">${r.riskFormulaScore||0}</span>
-        </div>
-        <div class="mob-risk-item-acts">
-          <button class="btn btn-sm ${r.isSelected?'btn-danger':'btn-success'}"
-            onclick="toggleRiskSelected('${r.riskId}');renderView('risk-select')">
-            ${r.isSelected?'선정 해제':'점검대상 선정'}
-          </button>
-        </div>
-      </div>`).join('')}
-    </div>
-  `;
-}
-
-function autoSelectTopRisks() {
-  const n=Number(document.getElementById('topNSel').value);
-  const list=mockRiskMaster.filter(r=>r.year===AppState.year);
-  list.sort((a,b)=>(b.riskFormulaScore||0)-(a.riskFormulaScore||0));
-  list.forEach((r,i)=>{r.isSelected=i<n;});
-  showToast(`상위 ${n}건이 점검대상으로 선정되었습니다.`,'ok');
-  renderView('risk-select');
-}
-function clearAllSelected() {
-  mockRiskMaster.filter(r=>r.year===AppState.year).forEach(r=>{r.isSelected=false;});
-  showToast('점검대상 선정이 초기화되었습니다.','warn');
-  renderView('risk-select');
-}
-</script>
-
-
-<script>
-/* ════════════════════════════════════════════
-   TEAM INPUT VIEW
-════════════════════════════════════════════ */
-async function renderTeamInputView(container) {
-  const {year, month, userTeam} = AppState;
-  const isAdmin  = AppState.role === 'ComplianceAdmin';
-  const viewTeam = isAdmin ? (AppState.viewAsTeam || TEAMS[0]) : userTeam;
-
-  const selectedRisks = mockRiskMaster.filter(r => r.year===year && r.isSelected && r.team===viewTeam);
-  const statuses      = await fetchMonthlyStatus(viewTeam, year, month);
-  const evals         = mockEvaluations.filter(e => e.team===viewTeam && e.year===year && e.month===month);
-
-  // 제출 현황 요약
-  const totalR    = selectedRisks.length;
-  const submitted = statuses.filter(s => s.submissionStatus !== 'Draft').length;
-  const evaluated = statuses.filter(s => s.submissionStatus === 'Evaluated').length;
-
-  container.innerHTML = `
-    <div class="sec-hd">
-      <div class="flex-btw">
-        <div>
-          <div class="sec-title">📝 월간 현황 입력</div>
-          <div class="sec-sub">${year}년 ${month}월 · ${viewTeam} · 점검대상 ${totalR}건</div>
-        </div>
-        <div class="flex-row">
-          ${isAdmin ? `
-          <label style="font-size:13px;color:var(--text-muted);font-weight:600">팀 선택</label>
-          <select class="fc" style="width:120px" onchange="AppState.viewAsTeam=this.value;renderView('team-input')">
-            ${TEAMS.map(t=>`<option value="${t}" ${t===viewTeam?'selected':''}>${t}</option>`).join('')}
-          </select>` : ''}
-        </div>
-      </div>
-    </div>
-
-    <!-- 현황 요약 바 -->
-    <div style="display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap">
-      ${[
-        {label:'점검대상',val:totalR,clr:'var(--accent)'},
-        {label:'제출완료',val:submitted,clr:'var(--green)'},
-        {label:'미제출',val:totalR-submitted,clr:'var(--red)'},
-        {label:'평가완료',val:evaluated,clr:'var(--teal)'},
-      ].map(k=>`
-      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 20px;flex:1;min-width:100px;box-shadow:var(--shadow-sm)">
-        <div style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">${k.label}</div>
-        <div style="font-family:var(--mono);font-size:24px;font-weight:800;color:${k.clr}">${k.val}</div>
-      </div>`).join('')}
-    </div>
-
-    ${totalR === 0
-      ? `<div class="card" style="text-align:center;padding:48px">
-          <div style="font-size:36px;margin-bottom:14px">📭</div>
-          <div style="color:var(--text-secondary);font-size:15px">배정된 점검대상 리스크가 없습니다.</div>
-          <div class="tx-xs tx-muted mt-8">관리자에게 리스크 선정을 요청하세요.</div>
-        </div>`
-      : selectedRisks.map(risk => {
-          const st  = statuses.find(s => s.riskId === risk.riskId);
-          const ev  = evals.find(e => e.riskId === risk.riskId);
-          const obj = mockObjections.find(o => o.riskId===risk.riskId && o.team===viewTeam && o.year===year && o.month===month);
-          return renderRiskInputCard(risk, st, ev, obj, isAdmin, viewTeam);
-        }).join('')}
-  `;
-
-  // 드래그앤드롭 이벤트
-  container.querySelectorAll('.upload-area').forEach(area => {
-    area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
-    area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
-    area.addEventListener('drop', e => {
-      e.preventDefault(); area.classList.remove('drag-over');
-      handleFilesDrop(Array.from(e.dataTransfer.files), area.dataset.riskid);
-    });
-  });
-}
-
-function renderRiskInputCard(risk, st, ev, obj, isAdmin, viewTeam) {
-  const hist     = getRiskHistory(risk.riskTitle, risk.team, AppState.year);
-  const status   = st ? st.submissionStatus : 'Draft';
-  const taskSt   = st ? st.taskStatus : 'NotStarted';
-  const isSubmitted = status !== 'Draft';
-  const isEvaluated = status === 'Evaluated' || status === 'RevisionReq';
-  const canEdit  = !isSubmitted || isEvaluated;
-
-  let borderClass = '';
-  if (status==='Evaluated')  borderClass='rc-evaluated';
-  else if (status==='Submitted'||status==='Resubmitted') borderClass='rc-submitted';
-  else if (status==='RevisionReq') borderClass='rc-revision';
-  else if (taskSt==='Blocked')     borderClass='rc-blocked';
-
-  const stId  = st ? st.id : '';
-  const files = st ? (st.evidenceFiles||[]) : [];
-  const prog  = st ? (st.thisMonthProgress||'') : '';
-  const evdesc= st ? (st.evidenceDescription||'') : '';
-
-  return `
-  <div class="risk-card ${borderClass}" id="rcard-${risk.riskId}">
-    <div class="rch" onclick="toggleRiskCard('${risk.riskId}')">
-      <div class="rch-info">
-        <div class="risk-id-tag">${risk.riskId} · ${risk.riskCategory}</div>
-        <div class="risk-title">${risk.riskTitle}</div>
-        <div class="risk-desc">${risk.riskDescription}</div>
-        <div class="risk-task">📌 ${risk.improvementTask}</div>
-        <div class="risk-owner" style="margin-top:5px">
-          <span style="color:var(--text-muted);font-size:11px">Owner</span>
-          <span style="font-weight:600;margin-left:4px">👤 ${risk.owner||'—'}</span>
-        </div>
-        <div class="risk-meta">
-          <span class="${getStatusBadgeClass(status)}">${getStatusLabel(status)}</span>
-          <span class="${getStatusBadgeClass(taskSt)}">${getStatusLabel(taskSt)}</span>
-          <span class="score-pill">위험도 ${risk.riskFormulaScore}</span>
-          ${hist.delta!==null ? `
-          <span class="hist-delta ${hist.delta>0?'hist-up':hist.delta<0?'hist-dn':'hist-eq'}">
-            ${hist.delta>0?'▲':hist.delta<0?'▼':'─'}${Math.abs(hist.delta)}
-          </span>` : ''}
-        </div>
-      </div>
-      <span class="rch-toggle">▼</span>
-    </div>
-
-    <div class="rcb" id="rcb-${risk.riskId}">
-      <!-- 히스토리 -->
-      ${(hist.prev!==null||hist.cur!==null) ? `
-      <div style="background:#f8fafc;border:1px solid var(--border);border-radius:var(--r-sm);padding:13px 16px;margin-bottom:18px">
-        <div class="tx-xs tx-muted mb-8" style="font-weight:700;text-transform:uppercase;letter-spacing:.05em">이행 히스토리</div>
-        ${hist.prev!==null?`<div class="hist-row"><span class="hist-yr">${AppState.year-1}년</span><span class="hist-sc" style="color:${getScoreColor(hist.prev)}">${hist.prev}점</span><span class="tx-sm tx-muted">전년도 평균</span></div>`:''}
-        ${hist.cur!==null?`<div class="hist-row"><span class="hist-yr">${AppState.year}년</span><span class="hist-sc" style="color:${getScoreColor(hist.cur)}">${hist.cur}점</span><span class="tx-sm tx-muted">현재 평균</span></div>`:''}
-      </div>` : ''}
-
-      <!-- 입력 폼 -->
-      <div class="fg">
-        <label class="flabel">이번 달 이행 내용 <span class="req">*</span></label>
-        <textarea class="fc" id="prog-${risk.riskId}" rows="4"
-          placeholder="이번 달 개선과제 이행 내용을 상세히 입력해 주세요."
-          ${!canEdit?'readonly':''}>${prog}</textarea>
-      </div>
-      <div class="grid-2">
-        <div class="fg">
-          <label class="flabel">이행 상태</label>
-          <select class="fc" id="tstat-${risk.riskId}" ${!canEdit?'disabled':''}>
-            ${['NotStarted','InProgress','Completed','Blocked'].map(v=>
-              `<option value="${v}" ${taskSt===v?'selected':''}>${getStatusLabel(v)}</option>`
-            ).join('')}
-          </select>
-        </div>
-        <div class="fg">
-          <label class="flabel">증빙 설명</label>
-          <input class="fc" id="evdesc-${risk.riskId}" type="text"
-            placeholder="첨부 증빙 파일 설명" value="${evdesc}"/>
-        </div>
-      </div>
-
-      <!-- 파일 업로드 -->
-      <div class="fg">
-        <label class="flabel">증빙 파일 첨부</label>
-        <div class="upload-area" data-riskid="${risk.riskId}"
-          onclick="document.getElementById('file-${risk.riskId}').click()">
-          <div class="up-icon">📎</div>
-          <p>클릭하거나 파일을 드래그하여 업로드<br>
-          <span class="tx-xs tx-muted">교육자료 · 점검보고서 · 계약서 등 (SharePoint 연동 예정)</span></p>
-          <input type="file" id="file-${risk.riskId}" multiple style="display:none"
-            onchange="handleFileInput(this,'${risk.riskId}')"/>
-        </div>
-        <div id="filelist-${risk.riskId}">
-          ${files.map((f,i)=>renderFileItem(f, risk.riskId, i, true)).join('')}
-        </div>
-      </div>
-
-      <!-- 평가 결과 표시 -->
-      ${ev ? renderEvalResultPanel(ev, obj) : ''}
-
-      <!-- 액션 버튼 -->
-      <div class="flex-row mt-16" style="padding-top:14px;border-top:1px solid var(--border)">
-        ${canEdit ? `
-          <button class="btn btn-secondary" onclick="saveDraft('${risk.riskId}','${stId}','${viewTeam}')">
-            💾 임시저장
-          </button>
-          <button class="btn btn-success" onclick="submitStatus('${risk.riskId}','${stId}','${viewTeam}')">
-            ✓ 제출
-          </button>
-        ` : `
-          <span class="badge b-submitted" style="font-size:13px;padding:6px 14px">✓ 제출 완료</span>
-          <span class="tx-sm tx-muted">제출일: ${st?st.submittedAt:''} · ${st?st.submittedBy:''}</span>
-        `}
-        ${ev && ev.evaluationStatus==='RevisionReq' && !obj ? `
-          <button class="btn btn-orange" onclick="openRevisionModal('${risk.riskId}','${stId}')">
-            ⚑ 이의신청
-          </button>` : ''}
-      </div>
-    </div>
-  </div>`;
-}
-
-function renderEvalResultPanel(ev, obj) {
-  const clr      = getScoreColor(ev.evaluationScore);
-  const isRevision = ev.evaluationStatus === 'RevisionReq';
-  return `
-  <div class="eval-result-panel ${isRevision?'warn':'ok'}">
-    <div class="flex-btw mb-8">
-      <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">평가 결과</span>
-      <span class="${getStatusBadgeClass(ev.evaluationStatus)}">${getStatusLabel(ev.evaluationStatus)}</span>
-    </div>
-    <div class="flex-row mb-8">
-      <span style="font-family:var(--mono);font-size:26px;font-weight:800;color:${clr}">${ev.evaluationScore}%</span>
-      <span class="tx-sm tx-muted">달성율</span>
-    </div>
-    ${ev.evaluationComment ? `<div style="font-size:14px;color:var(--text-secondary);line-height:1.6">${ev.evaluationComment}</div>` : ''}
-    <div class="tx-xs tx-muted mt-8">평가자: ${ev.evaluatedBy} · ${ev.evaluatedAt}</div>
-    ${obj ? `<div class="obj-box mt-12">
-      <div class="obj-title">⚑ 이의신청 (${obj.objectionStatus==='Pending'?'검토중':'처리완료'})</div>
-      <div style="color:var(--text-primary);margin-top:4px">${obj.objectionReason}</div>
-    </div>` : ''}
-  </div>`;
-}
-
-function renderFileItem(fileName, riskId, idx, existing=false) {
-  return `
-  <div class="upload-file-item" id="fitem-${riskId}-${idx}">
-    <span class="fn">📄 ${fileName}</span>
-    <span class="fs">${existing?'기존':'신규'}</span>
-    <span class="fr" onclick="this.parentElement.remove()" title="삭제">×</span>
-  </div>`;
-}
-
-function toggleRiskCard(riskId) {
-  const card=document.getElementById(`rcard-${riskId}`);
-  const body=document.getElementById(`rcb-${riskId}`);
-  if(!card||!body) return;
-  const open=body.classList.contains('open');
-  body.classList.toggle('open',!open);
-  card.classList.toggle('expanded',!open);
-}
-
-function handleFileInput(input, riskId) {
-  handleFilesDrop(Array.from(input.files), riskId);
-}
-
-function handleFilesDrop(files, riskId) {
-  if(!window._pendingFiles) window._pendingFiles={};
-  if(!window._pendingFiles[riskId]) window._pendingFiles[riskId]=[];
-  const list=document.getElementById(`filelist-${riskId}`);
-  files.forEach(f=>{
-    window._pendingFiles[riskId].push(f);
-    const sizeStr=f.size<1024*1024?`${Math.round(f.size/1024)}KB`:`${(f.size/1024/1024).toFixed(1)}MB`;
-    if(list) list.insertAdjacentHTML('beforeend',`
-      <div class="upload-file-item">
-        <span class="fn">📎 ${f.name}</span>
-        <span class="fs">${sizeStr}</span>
-        <span class="fr" onclick="this.parentElement.remove()" title="삭제">×</span>
-      </div>`);
-  });
-  showToast(`${files.length}개 파일 추가. 제출 시 SharePoint 업로드 예정.`,'inf');
-}
-
-async function saveDraft(riskId, existingId, team) {
-  const prog  =document.getElementById(`prog-${riskId}`)?.value.trim()||'';
-  const tstat =document.getElementById(`tstat-${riskId}`)?.value||'NotStarted';
-  const evdesc=document.getElementById(`evdesc-${riskId}`)?.value.trim()||'';
-  const id    =existingId||genId('MS');
-  const existing=mockMonthlyStatus.find(s=>s.id===id);
-  const files =existing?(existing.evidenceFiles||[]):[];
-  await saveMonthlyStatus({
-    id, riskId, team, year:AppState.year, month:AppState.month,
-    thisMonthProgress:prog, taskStatus:tstat,
-    evidenceDescription:evdesc, evidenceFiles:files,
-    submissionStatus:'Draft', submittedAt:null, submittedBy:null,
-  });
-  showToast('임시저장 완료.','inf');
-  renderView('team-input');
-}
-
-async function submitStatus(riskId, existingId, team) {
-  const prog  =document.getElementById(`prog-${riskId}`)?.value.trim()||'';
-  if(!prog){showToast('이행 내용을 입력해 주세요.','err');return;}
-  const tstat =document.getElementById(`tstat-${riskId}`)?.value||'NotStarted';
-  const evdesc=document.getElementById(`evdesc-${riskId}`)?.value.trim()||'';
-  const id    =existingId||genId('MS');
-  const existing=mockMonthlyStatus.find(s=>s.id===id);
-  const files =existing?[...(existing.evidenceFiles||[])]:[];
-
-  if(window._pendingFiles&&window._pendingFiles[riskId]){
-    for(const f of window._pendingFiles[riskId]){
-      const res=await uploadToSharePoint(f,`${AppState.year}/${AppState.month}/${riskId}`,riskId);
-      if(res.success) files.push(res.fileName);
-    }
-    delete window._pendingFiles[riskId];
+/* ═══ HEATMAP ═══ */
+function renderHeatmap(){
+  let h='<div style="display:flex;gap:3px;margin-bottom:5px"><div style="width:22px"></div>';
+  for(let l=1;l<=5;l++) h+=`<div style="flex:1;text-align:center;font-size:9px;color:var(--muted);font-weight:600">L${l}</div>`;
+  h+='</div>';
+  for(let imp=5;imp>=1;imp--){
+    h+=`<div class="hm-row"><div class="hm-lbl">${imp}</div>`;
+    for(let li=1;li<=5;li++){const s=imp*li;h+=`<div class="hm-cell" style="background:${heatColor(s)}" title="${s}">${s}</div>`;}
+    h+='</div>';
   }
-  await saveMonthlyStatus({
-    id, riskId, team, year:AppState.year, month:AppState.month,
-    thisMonthProgress:prog, taskStatus:tstat,
-    evidenceDescription:evdesc, evidenceFiles:files,
-    submissionStatus:'Submitted',
-    submittedAt:new Date().toISOString().slice(0,10),
-    submittedBy:AppState.userName,
-  });
-  showToast('제출 완료. 컴플라이언스팀에 알림이 발송됩니다.','ok');
-  updateEvalBadge();
-  renderView('team-input');
+  h+='<div style="display:flex;gap:4px;margin-top:8px;align-items:center"><span style="font-size:9px;color:var(--muted)">낮음</span>';
+  ['#22C55E','#84CC16','#F59E0B','#F97316','#EF4444'].forEach(c=>h+=`<div style="width:14px;height:6px;border-radius:3px;background:${c}"></div>`);
+  h+='<span style="font-size:9px;color:var(--muted)">높음</span></div>';
+  document.getElementById('heatmap').innerHTML=h;
 }
 
-function openRevisionModal(riskId, statusId) {
-  openModal(`
-    <div class="modal-title">⚑ 이의신청</div>
-    <div style="font-size:14px;color:var(--text-secondary);margin-bottom:18px;line-height:1.6">
-      평가 결과에 이의가 있는 경우 사유를 작성하여 제출하세요.<br>
-      제출 후 컴플라이언스팀에 자동으로 통보됩니다.
-    </div>
-    <div class="fg">
-      <label class="flabel">이의신청 사유 <span class="req">*</span></label>
-      <textarea class="fc" id="objReason" rows="5"
-        placeholder="이의신청 사유를 구체적으로 입력해 주세요."></textarea>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal()">취소</button>
-      <button class="btn btn-orange" onclick="submitObjection('${riskId}','${statusId}')">이의신청 제출</button>
-    </div>
-  `);
+/* ═══ MONTHLY LIST ═══ */
+let mFilter='전체';
+function monthlyFilter(f,btn){
+  mFilter=f;
+  document.querySelectorAll('#monthly-filter .f-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  renderMonthlyList(RISKS.filter(r=>appRole==='admin'||r.team===appTeam));
 }
-
-async function submitObjection(riskId, statusId) {
-  const reason=document.getElementById('objReason')?.value.trim();
-  if(!reason){showToast('이의신청 사유를 입력해 주세요.','err');return;}
-  const team=AppState.role==='ComplianceAdmin'?(AppState.viewAsTeam||AppState.userTeam):AppState.userTeam;
-  await saveObjection({
-    id:genId('OBJ'), statusId, riskId, team,
-    year:AppState.year, month:AppState.month,
-    objectionReason:reason, objectionStatus:'Pending',
-    submittedAt:new Date().toISOString().slice(0,10),
-    submittedBy:AppState.userName,
-  });
-  closeModal(); showToast('이의신청이 제출되었습니다.','ok');
-  renderView('team-input');
-}
-
-/* ════════════════════════════════════════════
-   MY HISTORY VIEW (팀 담당자)
-════════════════════════════════════════════ */
-async function renderMyHistoryView(container) {
-  const team  = AppState.role==='ComplianceAdmin'?(AppState.viewAsTeam||TEAMS[0]):AppState.userTeam;
-  const year  = AppState.year;
-  const scores= getTeamMonthlyScores(team, year);
-  const selected=mockRiskMaster.filter(r=>r.year===year&&r.isSelected&&r.team===team);
-  const evals =mockEvaluations.filter(e=>e.team===team&&e.year===year);
-  const avgScore=evals.length?Math.round(evals.reduce((a,e)=>a+e.evaluationScore,0)/evals.length):null;
-  const completedRisks=selected.filter(r=>{
-    const evList=evals.filter(e=>e.riskId===r.riskId);
-    return evList.length>0;
-  }).length;
-
-  container.innerHTML=`
-    <div class="sec-hd">
-      <div class="flex-btw">
-        <div>
-          <div class="sec-title">📈 내 팀 이행현황</div>
-          <div class="sec-sub">${year}년 ${team} · 월별 이행 달성율 추이</div>
-        </div>
-        ${AppState.role==='ComplianceAdmin'?`
-        <select class="fc" style="width:120px" onchange="AppState.viewAsTeam=this.value;renderView('my-history')">
-          ${TEAMS.map(t=>`<option ${t===team?'selected':''}>${t}</option>`).join('')}
-        </select>`:''}
-      </div>
-    </div>
-    <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">
-      <div class="kpi-card c-amber">
-        <span class="kpi-icon">🎯</span>
-        <div class="kpi-label">점검대상</div>
-        <div class="kpi-value">${selected.length}</div>
-        <div class="kpi-sub">이번 연도 배정</div>
-      </div>
-      <div class="kpi-card c-blue">
-        <span class="kpi-icon">✅</span>
-        <div class="kpi-label">평가 완료</div>
-        <div class="kpi-value">${completedRisks}</div>
-        <div class="kpi-sub">리스크 기준</div>
-      </div>
-      <div class="kpi-card c-green">
-        <span class="kpi-icon">📊</span>
-        <div class="kpi-label">연간 평균 달성율</div>
-        <div class="kpi-value" style="color:${avgScore!==null?getScoreColor(avgScore):'var(--text-muted)'}">
-          ${avgScore!==null?avgScore+'%':'—'}
-        </div>
-        <div class="kpi-sub">${avgScore!==null?'평균 달성율':'미평가'}</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">📉 월별 이행 달성율 추이 (${year}년)</div>
-      <div style="height:240px"><canvas id="myTeamChart"></canvas></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">📋 리스크별 이행 현황</div>
-      ${selected.map(risk=>{
-        const rEvals=evals.filter(e=>e.riskId===risk.riskId);
-        const avg=rEvals.length?Math.round(rEvals.reduce((a,e)=>a+e.evaluationScore,0)/rEvals.length):null;
-        const hist=getRiskHistory(risk.riskTitle, team, year);
-        return `
-        <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--border)">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:600">${risk.riskTitle}</div>
-            <div class="tx-xs tx-muted mt-4">${risk.riskCategory} · ${risk.riskId}
-              ${risk.owner?`<span style="margin-left:8px">👤 ${risk.owner}</span>`:''}
-            </div>
-          </div>
-          ${avg!==null
-            ?`<span style="font-family:var(--mono);font-size:18px;font-weight:800;color:${getScoreColor(avg)}">${avg}%</span>`
-            :`<span class="badge b-draft">미평가</span>`}
-          ${hist.delta!==null
-            ?`<span class="hist-delta ${hist.delta>0?'hist-up':hist.delta<0?'hist-dn':'hist-eq'}">${hist.delta>0?'▲':hist.delta<0?'▼':'─'}${Math.abs(hist.delta)}</span>`
-            :''}
-        </div>`;
-      }).join('')}
-    </div>
-  `;
-
-  setTimeout(()=>{
-    const canvas=document.getElementById('myTeamChart');
-    if(!canvas) return;
-    new Chart(canvas,{
-      type:'line',
-      data:{
-        labels:Array.from({length:12},(_,i)=>`${i+1}월`),
-        datasets:[{
-          label:'달성율 (%)', data:scores,
-          borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,.08)',
-          borderWidth:2.5, pointRadius:5,
-          pointBackgroundColor:scores.map(s=>s!==null?getScoreColor(s):'transparent'),
-          tension:.35, spanGaps:false,
-        }]
-      },
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw!==null?` ${c.raw}%`:' 미평가'}}},
-        scales:{
-          y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#94a3b8',font:{size:11},callback:v=>v+'%'}},
-          x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:11}}}
-        }
-      }
-    });
-  },100);
-}
-</script>
-
-
-<script>
-/* ════════════════════════════════════════════
-   ADMIN EVALUATION VIEW
-════════════════════════════════════════════ */
-async function renderAdminEvaluationView(container) {
-  const {year, month} = AppState;
-  const fTeam   = AppState.eFilterTeam;
-  const fStatus = AppState.eFilterStatus;
-
-  let statuses = await fetchMonthlyStatus('', year, month);
-  statuses = statuses.filter(s => s.submissionStatus !== 'Draft');
-  if (fTeam)           statuses = statuses.filter(s => s.team === fTeam);
-  if (fStatus !== 'all') statuses = statuses.filter(s => s.submissionStatus === fStatus);
-
-  const pendingCount = mockMonthlyStatus.filter(s =>
-    s.year===year && s.month===month && s.submissionStatus==='Submitted'
-  ).length;
-  const allSubmitted  = mockMonthlyStatus.filter(s=>s.year===year&&s.month===month&&s.submissionStatus!=='Draft').length;
-  const allEvaluated  = mockMonthlyStatus.filter(s=>s.year===year&&s.month===month&&s.submissionStatus==='Evaluated').length;
-  const allRevision   = mockMonthlyStatus.filter(s=>s.year===year&&s.month===month&&s.submissionStatus==='RevisionReq').length;
-
-  container.innerHTML = `
-    <div class="sec-hd">
-      <div class="flex-btw">
-        <div>
-          <div class="sec-title">⚖️ 이행 달성율 평가</div>
-          <div class="sec-sub">${year}년 ${month}월 · 팀 제출 현황 검토 및 이행 달성율 평가 (0~100%)</div>
+function renderMonthlyList(base){
+  const map={'미입력':'미제출','임시저장':'임시저장','제출완료':'제출완료'};
+  const data=mFilter==='전체'?base:base.filter(r=>r.status===(map[mFilter]||mFilter));
+  document.getElementById('monthly-list').innerHTML=data.length?data.map((r,i)=>`
+    <div class="risk-card" onclick="openMonthlyForm(${RISKS.indexOf(r)})">
+      <div class="risk-card-left">
+        <div class="risk-card-id">${r.id} · ${r.team}</div>
+        <div class="risk-card-title">${r.title}</div>
+        <div class="risk-card-meta">
+          <span class="cat-tag">${r.cat}</span>
+          <span class="score-badge" style="color:${scColor(r.score)}">위험도 ${r.score}</span>
         </div>
       </div>
+      <div class="risk-card-right">
+        <span class="risk-arr">›</span>
+        <span class="status-chip ${stClass(r.status)}">${r.status}</span>
+      </div>
+    </div>`).join(''):
+    '<div style="text-align:center;color:var(--muted);padding:48px;font-size:14px">해당 항목이 없습니다</div>';
+}
+function openMonthlyForm(idx){
+  const r=RISKS[idx];
+  const body=`
+    <div class="submitted-box" style="margin-bottom:16px">
+      <div class="submitted-lbl">📌 개선과제</div>
+      <div class="submitted-txt">정기 교육 실시 및 프로세스 표준화</div>
     </div>
-
-    <!-- 평가 현황 요약 -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:22px">
-      ${[
-        {label:'전체 제출',val:allSubmitted,clr:'var(--blue)',icon:'📬'},
-        {label:'평가대기',val:pendingCount,clr:'var(--orange)',icon:'⏳'},
-        {label:'평가완료',val:allEvaluated,clr:'var(--green)',icon:'✅'},
-        {label:'수정요청',val:allRevision,clr:'var(--red)',icon:'↩'},
-      ].map(k=>`
-      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow-sm)">
-        <div style="font-size:18px;margin-bottom:6px">${k.icon}</div>
-        <div style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${k.label}</div>
-        <div style="font-family:var(--mono);font-size:22px;font-weight:800;color:${k.clr}">${k.val}</div>
-      </div>`).join('')}
+    <div class="form-group">
+      <label class="form-label">이행 상태 <span style="color:var(--red)">*</span></label>
+      <div class="radio-row">
+        ${['이행완료','이행중','미이행','해당없음'].map(st=>`<div class="radio-chip ${r.status==='제출완료'&&st==='이행완료'?'on':''}" onclick="toggleChip(this,'.radio-row')">${st}</div>`).join('')}
+      </div>
     </div>
-
-    <!-- 필터 -->
-    <div class="fbar">
-      <label>팀</label>
-      <select onchange="AppState.eFilterTeam=this.value;renderView('admin-eval')">
-        <option value="">전체</option>
-        ${TEAMS.map(t=>`<option value="${t}" ${t===fTeam?'selected':''}>${t}</option>`).join('')}
-      </select>
-      <label>상태</label>
-      <select onchange="AppState.eFilterStatus=this.value;renderView('admin-eval')">
-        <option value="all">전체 제출건</option>
-        <option value="Submitted"   ${fStatus==='Submitted'  ?'selected':''}>제출완료 (평가대기)</option>
-        <option value="Evaluated"   ${fStatus==='Evaluated'  ?'selected':''}>평가완료</option>
-        <option value="RevisionReq" ${fStatus==='RevisionReq'?'selected':''}>수정요청</option>
-        <option value="Resubmitted" ${fStatus==='Resubmitted'?'selected':''}>재제출</option>
-      </select>
-      <span class="fbar-count">${statuses.length}건</span>
+    <div class="form-group">
+      <label class="form-label">이행 내용 <span style="color:var(--red)">*</span></label>
+      <textarea class="form-textarea" placeholder="이번 달 이행 내용을 구체적으로 작성하세요...">${r.status==='제출완료'?'3월 중 개선 조치를 완료하였습니다. 관련 교육을 전 담당자 대상으로 실시하였으며, 체크리스트 점검을 완료하였습니다.':''}</textarea>
     </div>
-
-    ${statuses.length===0
-      ? `<div class="card" style="text-align:center;padding:40px;color:var(--text-muted)">
-           해당 조건의 제출 건이 없습니다.
-         </div>`
-      : statuses.map(st => renderEvalCard(st, year, month)).join('')}
-  `;
+    <div class="form-group">
+      <label class="form-label">증빙 파일</label>
+      <div class="dropzone">
+        <div class="drop-icon">📎</div>
+        <div class="drop-text">탭하여 파일 업로드</div>
+        <div class="drop-sub">PDF, Word, Excel, 이미지 (최대 10MB)</div>
+        ${r.status==='제출완료'?'<div class="file-chip">📄 교육완료확인서_3월.pdf</div>':''}
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">특이사항</label>
+      <textarea class="form-textarea" style="height:80px" placeholder="특이사항이 있으면 작성하세요 (선택)"></textarea>
+    </div>`;
+  const footer=`
+    <button class="btn btn-ghost" onclick="closeSheet()">취소</button>
+    <button class="btn btn-danger" onclick="alert('이의신청 접수');closeSheet()">이의신청</button>
+    <button class="btn btn-primary" onclick="this.textContent='✓ 제출 완료';this.style.background='var(--green)';setTimeout(closeSheet,800)">제출</button>`;
+  openSheet(r.id+' · '+r.cat, r.title, body, footer);
+}
+function toggleChip(el,groupSel){
+  el.closest(groupSel||'.radio-row').querySelectorAll('.radio-chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
 }
 
-function renderEvalCard(st, year, month) {
-  const risk = mockRiskMaster.find(r => r.riskId === st.riskId);
-  const ev   = mockEvaluations.find(e => e.riskId===st.riskId && e.team===st.team && e.year===year && e.month===month);
-  const obj  = mockObjections.find(o => o.riskId===st.riskId && o.team===st.team && o.year===year && o.month===month);
-
-  const prevScore  = ev ? ev.evaluationScore   : 70;
-  const prevCmt    = ev ? ev.evaluationComment  : '';
-  const prevStatus = ev ? ev.evaluationStatus   : 'Evaluated';
-  const evId       = ev ? ev.id : genId('EV');
-
-  return `
-  <div class="eval-card" id="evcard-${st.id}">
-    <!-- 헤더 -->
-    <div class="flex-btw" style="margin-bottom:12px">
-      <div>
-        <div class="eval-risk-title">
-          ${risk ? risk.riskTitle : st.riskId}
-          <span class="chip" style="margin-left:8px">${risk?risk.riskCategory:''}</span>
-        </div>
-        <div class="eval-risk-sub">
-          <span class="chip">${st.team}</span>
-          ${risk && risk.owner ? `<span style="margin-left:8px;font-size:13px">👤 Owner: <strong>${risk.owner}</strong></span>` : ''}
-          <span style="margin-left:8px;font-size:13px;color:var(--text-muted)">${year}년 ${month}월 · 제출일: ${st.submittedAt||'—'} · ${st.submittedBy||'—'}</span>
+/* ═══ EVAL LIST ═══ */
+function renderEvalList(){
+  const pending=RISKS.filter(r=>r.status==='제출완료');
+  document.getElementById('eval-list').innerHTML=pending.length?pending.map((r,i)=>`
+    <div class="risk-card" onclick="openEvalForm(${RISKS.indexOf(r)})">
+      <div class="risk-card-left">
+        <div class="risk-card-id">${r.id} · ${r.team}</div>
+        <div class="risk-card-title">${r.title}</div>
+        <div class="risk-card-meta">
+          <span class="cat-tag">${r.cat}</span>
+          <span class="score-badge" style="color:${scColor(r.score)}">위험도 ${r.score}</span>
         </div>
       </div>
-      <span class="${getStatusBadgeClass(st.submissionStatus)}" style="flex-shrink:0">${getStatusLabel(st.submissionStatus)}</span>
-    </div>
-
-    <!-- 이행 내용 -->
-    <div style="margin-bottom:6px">
-      <div class="tx-xs tx-muted" style="font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">이행 내용</div>
-      <div class="progress-box">${st.thisMonthProgress || '(미입력)'}</div>
-    </div>
-
-    <!-- 이행 상태 + 증빙 -->
-    <div class="flex-row" style="margin-bottom:14px">
-      <span class="${getStatusBadgeClass(st.taskStatus)}">${getStatusLabel(st.taskStatus)}</span>
-      ${st.evidenceFiles && st.evidenceFiles.length
-        ? st.evidenceFiles.map(f=>`<span class="chip" style="font-size:12px">📎 ${f}</span>`).join('')
-        : '<span class="tx-xs tx-muted">증빙 없음</span>'}
-    </div>
-
-    <!-- 이의신청 표시 -->
-    ${obj ? `
-    <div class="obj-box" style="margin-bottom:14px">
-      <div class="obj-title">⚑ 이의신청 접수 (${obj.submittedAt}) —
-        ${obj.objectionStatus==='Pending'
-          ?`<span style="color:var(--orange)">검토중</span>`
-          :`<span style="color:var(--green)">처리완료</span>`}
+      <div class="risk-card-right">
+        <span class="risk-arr">›</span>
+        <span class="status-chip s-sub">제출완료</span>
       </div>
-      <div style="margin-top:6px;color:var(--text-primary)">${obj.objectionReason}</div>
-    </div>` : ''}
+    </div>`).join(''):
+    '<div style="text-align:center;color:var(--muted);padding:48px;font-size:14px">평가 대기 항목이 없습니다</div>';
+}
+function openEvalForm(idx){
+  const r=RISKS[idx];const initScore=r.achieve||80;
+  const sc=v=>v>=80?'var(--green)':v>=60?'var(--amber)':'var(--red)';
+  const body=`
+    <div class="submitted-box">
+      <div class="submitted-lbl">📝 팀 제출 내용</div>
+      <div class="submitted-txt">3월 중 해당 리스크에 대한 개선 조치를 완료하였습니다. 관련 교육을 전 담당자 대상으로 실시하였으며, 체크리스트 점검을 완료하였습니다.</div>
+      <div class="file-chip">📄 교육완료확인서_3월.pdf</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">이행 달성율 <span style="color:var(--red)">*</span></label>
+      <div class="score-display" id="score-disp" style="color:${sc(initScore)}">${initScore}%</div>
+      <input type="range" min="0" max="100" value="${initScore}" class="eval-slider" id="eval-sl"
+        style="accent-color:${sc(initScore)}" oninput="updateScore(this.value)">
+      <div class="quick-scores">
+        <button class="qs-btn" style="border-color:#EF4444;color:#EF4444;background:#FEF2F2" onclick="setScore(20)">미달성 (0–40%)</button>
+        <button class="qs-btn" style="border-color:var(--amber);color:var(--amber);background:#FFFBEB" onclick="setScore(55)">부분달성 (40–70%)</button>
+        <button class="qs-btn" style="border-color:var(--accent);color:var(--accent);background:var(--accent-l)" onclick="setScore(82)">달성 (70–90%)</button>
+        <button class="qs-btn" style="border-color:var(--green);color:var(--green);background:#ECFDF5" onclick="setScore(95)">완전달성 (90%+)</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">평가 코멘트</label>
+      <textarea class="form-textarea" placeholder="평가 의견 및 개선 권고사항을 작성하세요..."></textarea>
+    </div>`;
+  const footer=`
+    <button class="btn btn-danger" onclick="alert('수정 요청 전송');closeSheet()">수정 요청</button>
+    <button class="btn btn-success" onclick="this.textContent='✓ 평가 완료';this.disabled=true;setTimeout(closeSheet,800)">평가 완료</button>`;
+  openSheet(r.id+' · '+r.team, r.title, body, footer);
+}
+function updateScore(v){
+  const sc=v=>+v>=80?'var(--green)':+v>=60?'var(--amber)':'var(--red)';
+  const d=document.getElementById('score-disp');if(d){d.textContent=v+'%';d.style.color=sc(v);}
+  const s=document.getElementById('eval-sl');if(s)s.style.accentColor=sc(v);
+}
+function setScore(v){const s=document.getElementById('eval-sl');if(s){s.value=v;updateScore(v);}}
 
-    <!-- 평가 입력 패널 -->
-    <div style="background:#f8fafc;border:1.5px solid var(--border);border-radius:var(--r);padding:18px">
-      <div class="tx-xs tx-muted" style="font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px">달성율 입력</div>
-      <div class="score-row">
-        <span style="font-size:14px;color:var(--text-secondary);font-weight:600;white-space:nowrap">이행 달성율 (%)</span>
-        <input type="range" id="srange-${st.id}" min="0" max="100" value="${prevScore}"
-          oninput="document.getElementById('sdisp-${st.id}').textContent=this.value+'%';
-                   document.getElementById('sdisp-${st.id}').style.color=getScoreColor(Number(this.value))"/>
-        <div class="score-disp" id="sdisp-${st.id}" style="color:${getScoreColor(prevScore)}">${prevScore}%</div>
+/* ═══ TEAMS PAGE ═══ */
+function renderTeamsPage(){
+  document.getElementById('team-cards').innerHTML=TEAMS_DATA.map(d=>{
+    const c=statusSt(d.status);
+    const col=d.avg>=80?'var(--green)':d.avg>=65?'var(--amber)':'var(--red)';
+    return `<div class="team-big-card">
+      <div class="team-big-avg" style="color:${col}">${d.avg}%</div>
+      <div class="team-big-info">
+        <div class="team-big-name">${d.team} <span class="stag" style="background:${c.bg};color:${c.tx};font-size:10px">${d.status}</span></div>
+        <div class="team-big-bar"><div style="width:${d.avg}%;height:100%;border-radius:99px;background:${barGrad(d.avg)};transition:width .9s cubic-bezier(.4,0,.2,1)"></div></div>
+        <div class="team-big-months"><span>1월 ${d.jan}%</span><span>2월 ${d.feb}%</span><span>3월 ${d.mar}%</span></div>
       </div>
-      <div class="fg mt-8">
-        <label class="flabel">평가 코멘트</label>
-        <textarea class="fc" id="ecmt-${st.id}" rows="3"
-          placeholder="개선 권고사항, 보완 지시, 우수 사례 등">${prevCmt}</textarea>
-      </div>
-      <div class="fg">
-        <label class="flabel">평가 결과</label>
-        <div class="flex-row">
-          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:14px;font-weight:500">
-            <input type="radio" name="estatus-${st.id}" value="Evaluated"
-              ${prevStatus==='Evaluated'?'checked':''}> 평가완료
-          </label>
-          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:14px;font-weight:500">
-            <input type="radio" name="estatus-${st.id}" value="RevisionReq"
-              ${prevStatus==='RevisionReq'?'checked':''}> 수정요청
-          </label>
+    </div>`;
+  }).join('');
+  setTimeout(()=>drawChart('teams-canvas',TREND,TKEYS,TCOLORS,false),100);
+}
+
+/* ═══ MASTER LIST ═══ */
+let masterQ='',masterTeamF='전체';
+function masterFilter(f,btn){
+  masterTeamF=f;
+  document.querySelectorAll('#master-filter .f-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  applyMasterFilter();
+}
+function masterSearch(q){masterQ=q;applyMasterFilter();}
+function applyMasterFilter(){
+  let data=RISKS;
+  if(masterTeamF!=='전체') data=data.filter(r=>r.team===masterTeamF);
+  if(masterQ) data=data.filter(r=>r.title.includes(masterQ)||r.id.includes(masterQ)||r.cat.includes(masterQ));
+  renderMasterList(data);
+}
+function renderMasterList(data){
+  document.getElementById('master-list').innerHTML=data.map(r=>`
+    <div class="risk-card">
+      <div class="risk-card-left">
+        <div class="risk-card-id">${r.id} · ${r.team} · Owner: ${r.owner}</div>
+        <div class="risk-card-title">${r.title}</div>
+        <div class="risk-card-meta">
+          <span class="cat-tag">${r.cat}</span>
+          <span class="score-badge" style="color:${scColor(r.score)}">위험도 ${r.score}</span>
+          <span style="font-size:10px;color:${r.status!=='미제출'?'var(--green)':'var(--muted)'};font-weight:700">${r.status!=='미제출'?'✓ 선정':'미선정'}</span>
         </div>
       </div>
-      <div class="flex-row" style="margin-top:4px">
-        <button class="btn btn-primary" onclick="submitEvaluation('${st.id}','${st.riskId}','${st.team}','${evId}')">
-          ✓ 평가 저장
-        </button>
-        ${obj && obj.objectionStatus==='Pending'
-          ? `<button class="btn btn-secondary" onclick="resolveObjection('${obj.id}')">이의신청 처리완료</button>`
-          : ''}
-        ${ev ? `<span class="tx-sm tx-muted">마지막 평가: ${ev.evaluatedAt}</span>` : ''}
+      <div class="risk-card-right">
+        <button style="padding:5px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--muted);font-size:11px;cursor:pointer" onclick="alert('수정 — 추후 구현')">수정</button>
       </div>
-    </div>
-  </div>`;
+    </div>`).join('');
 }
 
-async function submitEvaluation(statusId, riskId, team, evId) {
-  const score  = Number(document.getElementById(`srange-${statusId}`)?.value||0);
-  const cmt    = document.getElementById(`ecmt-${statusId}`)?.value.trim()||'';
-  const radio  = document.querySelector(`input[name="estatus-${statusId}"]:checked`);
-  const estatus= radio ? radio.value : 'Evaluated';
-  await saveEvaluation({
-    id:evId, riskId, team, year:AppState.year, month:AppState.month,
-    evaluationScore:score, evaluationComment:cmt, evaluationStatus:estatus,
-    evaluatedAt:new Date().toISOString().slice(0,10), evaluatedBy:AppState.userName,
-  });
-  showToast(`달성율 저장 완료 (${score}% · ${estatus==='Evaluated'?'평가완료':'수정요청'})`,'ok');
-  updateEvalBadge();
-  renderView('admin-eval');
+/* ═══ MY TEAM ═══ */
+function renderMyTeam(){
+  const team=appTeam||'영업팀';
+  document.getElementById('myteam-sub').textContent=`${team} · 2025년 3월`;
+  document.getElementById('myteam-trend-sub').textContent=team;
+  const myTrend=TREND.map(d=>({month:d.month,[team]:d[team]||80}));
+  setTimeout(()=>drawChart('myteam-canvas',myTrend,[team],['#3B82F6'],false),100);
+  const myRisks=RISKS.filter(r=>r.team===team);
+  document.getElementById('myteam-risks').innerHTML=myRisks.length?myRisks.map(r=>{
+    const pb=r.achieve!=null?`<div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:${r.achieve}%;background:${r.achieve>=80?'var(--green)':r.achieve>=60?'var(--amber)':'var(--red)'}"></div></div><span style="font-size:11px;font-weight:700;color:var(--text)">${r.achieve}%</span></div>`:'<span style="font-size:11px;color:var(--red);font-weight:700">미입력</span>';
+    return `<div class="my-risk-row">
+      <div class="my-risk-id">${r.id}</div>
+      <div class="my-risk-name">${r.title}</div>
+      <span class="status-chip ${stClass(r.status)}" style="font-size:9px;flex-shrink:0">${r.status}</span>
+      ${pb}
+    </div>`;
+  }).join(''):
+  '<div style="text-align:center;color:var(--muted);padding:32px;font-size:13px">이번달 점검 리스크가 없습니다</div>';
+  setTimeout(runCounters,100);
 }
 
-async function resolveObjection(objId) {
-  const obj=mockObjections.find(o=>o.id===objId);
-  if(!obj) return;
-  obj.objectionStatus='Resolved';
-  showToast('이의신청을 처리완료로 변경했습니다.','ok');
-  renderView('admin-eval');
-}
-</script>
-
-
-<script>
-/* ════════════════════════════════════════════
-   DASHBOARD VIEW (관리자)
-════════════════════════════════════════════ */
-async function renderDashboardView(container) {
-  const {year, month} = AppState;
-  const dash = await fetchDashboardData(year, month);
-
-  container.innerHTML = `
-    <div class="sec-hd">
-      <div class="flex-btw">
-        <div>
-          <div class="sec-title">📊 전사 대시보드</div>
-          <div class="sec-sub">${year}년 ${month}월 기준 · 전사 컴플라이언스 이행 현황 종합</div>
-        </div>
-        <button class="btn btn-secondary btn-sm" onclick="renderView('dashboard')">🔄 새로고침</button>
-      </div>
-    </div>
-
-    <!-- KPI 카드 -->
-    <div class="kpi-grid">
-      <div class="kpi-card c-blue">
-        <span class="kpi-icon">🗂</span>
-        <div class="kpi-label">Total Risks</div>
-        <div class="kpi-value">${dash.totalRisks}</div>
-        <div class="kpi-sub">점검대상 리스크</div>
-      </div>
-      <div class="kpi-card c-teal">
-        <span class="kpi-icon">📬</span>
-        <div class="kpi-label">제출완료</div>
-        <div class="kpi-value">${dash.submitted}</div>
-        <div class="kpi-sub">이행률 ${dash.submitRate}%</div>
-      </div>
-      <div class="kpi-card c-red">
-        <span class="kpi-icon">⏳</span>
-        <div class="kpi-label">미제출</div>
-        <div class="kpi-value">${dash.pending}</div>
-        <div class="kpi-sub">미입력 팀 ${dash.missingTeams.length}개</div>
-      </div>
-      <div class="kpi-card c-green">
-        <span class="kpi-icon">✅</span>
-        <div class="kpi-label">평가완료</div>
-        <div class="kpi-value">${dash.evaluated}</div>
-        <div class="kpi-sub">평가율 ${dash.evalRate}%</div>
-      </div>
-      <div class="kpi-card c-orange">
-        <span class="kpi-icon">↩</span>
-        <div class="kpi-label">수정요청</div>
-        <div class="kpi-value">${dash.revisionReq}</div>
-        <div class="kpi-sub">재제출 대기</div>
-      </div>
-    </div>
-
-    <!-- 전체 이행률 진행바 -->
-    <div class="card" style="padding:18px 22px">
-      <div class="flex-btw mb-8">
-        <span style="font-size:14px;font-weight:700;color:var(--text-secondary)">전사 이행률</span>
-        <span style="font-family:var(--mono);font-size:16px;font-weight:800;color:${getScoreColor(dash.submitRate)}">${dash.submitRate}%</span>
-      </div>
-      <div class="pbar-wrap" style="height:14px">
-        <div class="pbar-fill" style="width:${dash.submitRate}%;background:${getScoreColor(dash.submitRate)}"></div>
-      </div>
-      <div class="flex-row mt-8" style="justify-content:space-between">
-        <span class="tx-xs tx-muted">제출 ${dash.submitted} / ${dash.totalRisks}건</span>
-        <span class="tx-xs tx-muted">평가 ${dash.evaluated} / ${dash.submitted}건 (${dash.evalRate}%)</span>
-      </div>
-    </div>
-
-    <!-- 미입력 팀 경고 -->
-    ${dash.missingTeams.length>0 ? `
-    <div class="warn-box">
-      <div class="warn-icon">⚠️</div>
-      <div>
-        <div class="warn-title">${month}월 미제출 팀 감지 (${dash.missingTeams.length}개 팀)</div>
-        <div class="warn-sub">아래 팀의 월간 현황이 제출되지 않았습니다. 독촉 알림 발송을 권장합니다.</div>
-        <div class="warn-tags">${dash.missingTeams.map(t=>`<span class="warn-tag">⚠ ${t}</span>`).join('')}</div>
-      </div>
-    </div>` : `
-    <div class="ok-box">
-      <span style="font-size:18px">✅</span>
-      <span style="font-size:14px;font-weight:700;color:var(--green)">모든 팀이 ${month}월 현황을 제출했습니다.</span>
-    </div>`}
-
-    <!-- 팀별 현황 + 히트맵 -->
-    <div class="grid-2" style="margin-bottom:18px">
-      <div class="card" style="margin-bottom:0">
-        <div class="card-title">👥 팀별 이행 현황</div>
-        ${dash.teamScores.map(ts => `
-        <div class="team-row">
-          <span class="t-name">${ts.team}</span>
-          <div style="flex:1">
-            <div class="pbar-wrap">
-              <div class="pbar-fill" style="width:${ts.submitRate}%;background:${ts.submitRate>=80?'var(--green)':ts.submitRate>=50?'var(--amber)':'var(--red)'}"></div>
-            </div>
-            <div class="flex-row mt-4">
-              <span class="tx-xs tx-muted">제출 ${ts.subCount}/${ts.riskCount}</span>
-              <span class="tx-xs tx-muted" style="margin-left:auto">평가율 ${ts.evalRate}%</span>
-            </div>
-          </div>
-          <span class="t-pct" style="color:${ts.submitRate>=80?'var(--green)':ts.submitRate>=50?'var(--amber)':'var(--red)'}">${ts.submitRate}%</span>
-          ${ts.score!==null
-            ?`<span style="font-family:var(--mono);font-size:14px;font-weight:800;color:${getScoreColor(ts.score)};width:52px;text-align:right;flex-shrink:0">${ts.score}%</span>`
-            :`<span class="tx-xs tx-muted" style="width:52px;text-align:right;flex-shrink:0">미평가</span>`}
-        </div>`).join('')}
-        <div style="margin-top:16px;height:200px">
-          <canvas id="teamBarChart"></canvas>
-        </div>
-      </div>
-
-      <div class="card" style="margin-bottom:0">
-        <div class="card-title">🔥 리스크 Heatmap (Impact × Likelihood)</div>
-        ${renderHeatmap(year)}
-      </div>
-    </div>
-
-    <!-- 팀별 상세 아코디언 -->
-    <div class="card">
-      <div class="card-title">📂 팀별 리스크 상세 현황</div>
-      <div id="teamAccordions">
-        ${dash.teamScores.map(ts=>renderTeamAccordion(ts, dash, year, month)).join('')}
-      </div>
-    </div>
-  `;
-
-  setTimeout(()=>{
-    renderTeamBarChart(dash.teamScores);
-    document.querySelectorAll('.acc-hd').forEach(hd=>{
-      hd.addEventListener('click',()=>{
-        const item=hd.parentElement;
-        const wasOpen=item.classList.contains('open');
-        document.querySelectorAll('.acc-item').forEach(i=>i.classList.remove('open'));
-        if(!wasOpen){
-          item.classList.add('open');
-          setTimeout(()=>renderTeamMonthChart(item.dataset.team, year), 50);
-        }
-      });
-    });
-  },100);
-}
-
-function renderTeamAccordion(ts, dash, year, month) {
-  const selRisks=mockRiskMaster.filter(r=>r.year===year&&r.isSelected&&r.team===ts.team);
-  const tSt=dash.allStatuses.filter(s=>s.team===ts.team);
-  const subCnt=tSt.filter(s=>s.submissionStatus!=='Draft').length;
-
-  return `
-  <div class="acc-item" data-team="${ts.team}">
-    <div class="acc-hd">
-      <div class="acc-title">${ts.team}</div>
-      <div class="acc-meta">
-        <span class="chip">점검 ${selRisks.length}건</span>
-        <span class="chip" style="${subCnt===selRisks.length&&selRisks.length>0?'background:var(--green-light);color:var(--green);border-color:rgba(22,163,74,.3)':''}">
-          제출 ${subCnt}/${selRisks.length}
-        </span>
-        ${ts.score!==null
-          ?`<span style="font-family:var(--mono);font-size:15px;font-weight:800;color:${getScoreColor(ts.score)}">${ts.score}%</span>`
-          :`<span class="tx-sm tx-muted">미평가</span>`}
-        <span class="acc-arrow">▼</span>
-      </div>
-    </div>
-    <div class="acc-body">
-      <div style="height:180px;margin-bottom:16px">
-        <canvas id="mchart-${ts.team.replace(/\s/g,'')}"></canvas>
-      </div>
-      ${selRisks.map(risk=>{
-        const st=tSt.find(s=>s.riskId===risk.riskId);
-        const ev=mockEvaluations.find(e=>e.riskId===risk.riskId&&e.year===year&&e.month===month&&e.team===ts.team);
-        return `
-        <div style="background:#fafbfc;border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 15px;margin-bottom:8px">
-          <div class="flex-row" style="flex-wrap:wrap;gap:8px">
-            <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">${risk.riskId}</span>
-            <span style="font-size:14px;font-weight:600">${risk.riskTitle}</span>
-            ${risk.owner?`<span class="tx-xs tx-muted">👤 ${risk.owner}</span>`:''}
-            <span class="${getStatusBadgeClass(st?st.submissionStatus:'Draft')}">${getStatusLabel(st?st.submissionStatus:'미입력')}</span>
-            ${ev?`<span style="margin-left:auto;font-family:var(--mono);font-weight:800;font-size:14px;color:${getScoreColor(ev.evaluationScore)}">${ev.evaluationScore}%</span>`:''}
-          </div>
-          ${st&&st.thisMonthProgress?`<div class="tx-sm tx-muted mt-4">${st.thisMonthProgress.substring(0,80)}${st.thisMonthProgress.length>80?'…':''}</div>`:''}
-        </div>`;
-      }).join('')}
-    </div>
-  </div>`;
-}
-
-/* ── 팀 이행현황 (관리자용 전체 뷰) ── */
-async function renderTeamOverviewView(container) {
-  const year = AppState.year;
-  const selected = mockRiskMaster.filter(r=>r.year===year&&r.isSelected);
-
-  container.innerHTML = `
-    <div class="sec-hd">
-      <div class="sec-title">📈 팀 이행현황</div>
-      <div class="sec-sub">${year}년 · 팀별 월간 이행 달성율 추이 및 리스크 현황</div>
-    </div>
-    ${TEAMS.map(team=>{
-      const tRisks=selected.filter(r=>r.team===team);
-      const tEvals=mockEvaluations.filter(e=>e.team===team&&e.year===year);
-      const avg=tEvals.length?Math.round(tEvals.reduce((a,e)=>a+e.evaluationScore,0)/tEvals.length):null;
-      const safeTeam=team.replace(/\s/g,'');
-      return `
-      <div class="card">
-        <div class="flex-btw" style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
-          <div>
-            <span style="font-size:16px;font-weight:700">${team}</span>
-            <span class="chip" style="margin-left:10px">점검대상 ${tRisks.length}건</span>
-          </div>
-          ${avg!==null
-            ?`<span style="font-family:var(--mono);font-size:20px;font-weight:800;color:${getScoreColor(avg)}">${avg}%</span>`
-            :`<span class="badge b-draft">미평가</span>`}
-        </div>
-        <div style="height:180px;margin-bottom:16px"><canvas id="ov-${safeTeam}"></canvas></div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px">
-          ${tRisks.map(r=>{
-            const rEvals=tEvals.filter(e=>e.riskId===r.riskId);
-            const rAvg=rEvals.length?Math.round(rEvals.reduce((a,e)=>a+e.evaluationScore,0)/rEvals.length):null;
-            return `
-            <div style="background:#f8fafc;border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 12px;min-width:160px;flex:1">
-              <div style="font-size:12px;font-weight:600;margin-bottom:2px">${r.riskTitle.substring(0,22)}${r.riskTitle.length>22?'…':''}</div>
-              <div class="tx-xs tx-muted">${r.riskCategory}${r.owner?` · 👤 ${r.owner}`:''}</div>
-              <div style="margin-top:6px;font-family:var(--mono);font-size:15px;font-weight:800;color:${rAvg!==null?getScoreColor(rAvg):'var(--text-muted)'}">
-                ${rAvg!==null?`${rAvg}%`:'미평가'}
-              </div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>`;
-    }).join('')}
-  `;
-
-  setTimeout(()=>{
-    TEAMS.forEach(team=>{
-      const safeTeam=team.replace(/\s/g,'');
-      const canvas=document.getElementById(`ov-${safeTeam}`);
-      if(!canvas) return;
-      const scores=getTeamMonthlyScores(team, year);
-      new Chart(canvas,{
-        type:'line',
-        data:{
-          labels:Array.from({length:12},(_,i)=>`${i+1}월`),
-          datasets:[{
-            label:'달성율 (%)', data:scores,
-            borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,.07)',
-            borderWidth:2, pointRadius:4,
-            pointBackgroundColor:scores.map(s=>s!==null?getScoreColor(s):'transparent'),
-            tension:.35, spanGaps:false,
-          }]
-        },
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw!==null?` ${c.raw}%`:' 미평가'}}},
-          scales:{
-            y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'%'}},
-            x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:10}}}
-          }
-        }
-      });
-    });
-  },100);
-}
-
-/* ── Heatmap ── */
-function renderHeatmap(year) {
-  const risks=mockRiskMaster.filter(r=>r.year===year&&r.isSelected);
-  const cells={};
-  for(let l=1;l<=5;l++) for(let i=1;i<=5;i++) cells[`${l}_${i}`]=[];
-  risks.forEach(r=>{
-    const key=`${r.likelihoodScore}_${r.impactScore}`;
-    if(cells[key]) cells[key].push(r.riskTitle);
-  });
-
-  const getHmStyle=(impact,likelihood)=>{
-    const s=impact*likelihood;
-    if(s>=15) return {bg:'rgba(220,38,38,.15)',bdr:'rgba(220,38,38,.3)',clr:'#dc2626'};
-    if(s>=9)  return {bg:'rgba(234,88,12,.12)',bdr:'rgba(234,88,12,.3)',clr:'#ea580c'};
-    if(s>=5)  return {bg:'rgba(217,119,6,.1)',bdr:'rgba(217,119,6,.3)',clr:'#d97706'};
-    return           {bg:'rgba(22,163,74,.1)', bdr:'rgba(22,163,74,.3)', clr:'#16a34a'};
-  };
-
-  let html='<div class="hm-wrap"><div class="hm-grid">';
-  html+='<div class="hm-axis"></div>';
-  for(let i=1;i<=5;i++) html+=`<div class="hm-axis" style="font-size:13px">${i}</div>`;
-  for(let l=5;l>=1;l--){
-    html+=`<div class="hm-axis">${l}</div>`;
-    for(let i=1;i<=5;i++){
-      const key=`${l}_${i}`;
-      const count=cells[key].length;
-      const {bg,bdr,clr}=getHmStyle(i,l);
-      const title=cells[key].join('\n');
-      html+=`
-      <div class="hm-cell" style="background:${bg};border-color:${count>0?bdr:'var(--border)'}" title="${title}">
-        <span class="hm-cnt" style="color:${count>0?clr:'var(--text-muted)'}">${count>0?count:'·'}</span>
-        ${count>0?`<span class="hm-lbl" style="color:${clr}">${count}건</span>`:''}
-      </div>`;
-    }
-  }
-  html+='</div>';
-  html+=`
-    <div style="display:flex;justify-content:space-between;margin-top:8px;padding:0 36px">
-      <span class="tx-xs tx-muted">← 영향도 낮음</span>
-      <span style="font-size:12px;color:var(--text-secondary);font-weight:700">영향도 (Impact)</span>
-      <span class="tx-xs tx-muted">높음 →</span>
-    </div>
-    <div style="text-align:center;margin-top:4px">
-      <span style="font-size:12px;color:var(--text-secondary);font-weight:700">발생가능성 (Likelihood) ↑</span>
-    </div>
-    <div class="flex-row mt-10" style="justify-content:center;gap:14px;flex-wrap:wrap">
-      ${[
-        {bg:'rgba(22,163,74,.15)',bdr:'rgba(22,163,74,.4)',label:'저위험 (1~4)'},
-        {bg:'rgba(217,119,6,.12)',bdr:'rgba(217,119,6,.4)',label:'주의 (5~8)'},
-        {bg:'rgba(234,88,12,.15)',bdr:'rgba(234,88,12,.4)',label:'고위험 (9~14)'},
-        {bg:'rgba(220,38,38,.18)',bdr:'rgba(220,38,38,.4)',label:'최고위험 (15~25)'},
-      ].map(l=>`
-      <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary)">
-        <span style="width:13px;height:13px;background:${l.bg};border:1.5px solid ${l.bdr};border-radius:3px;display:inline-block"></span>
-        ${l.label}
-      </span>`).join('')}
-    </div>
-  </div>`;
-  return html;
-}
-
-/* ── 팀별 가로 막대 차트 ── */
-function renderTeamBarChart(teamScores) {
-  const canvas=document.getElementById('teamBarChart');
-  if(!canvas) return;
-  if(window._barChart){window._barChart.destroy();delete window._barChart;}
-  const labels=teamScores.map(t=>t.team);
-  const data=teamScores.map(t=>t.score||0);
-  const colors=data.map(s=>getScoreColor(s));
-  window._barChart=new Chart(canvas,{
-    type:'bar',
-    data:{
-      labels,
-      datasets:[{
-        label:'평균 달성율', data,
-        backgroundColor:colors.map(c=>c+'33'),
-        borderColor:colors, borderWidth:2, borderRadius:5,
-      }]
-    },
-    options:{
-      indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.raw}%`}}},
-      scales:{
-        x:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#94a3b8',font:{size:11},callback:v=>v+'%'}},
-        y:{grid:{display:false},ticks:{color:'#1a2332',font:{size:12,weight:'600'}}}
-      }
-    }
-  });
-}
-
-/* ── 팀 월별 라인 차트 (아코디언) ── */
-function renderTeamMonthChart(team, year) {
-  const safe=team.replace(/\s/g,'');
-  const canvas=document.getElementById(`mchart-${safe}`);
-  if(!canvas) return;
-  if(window[`_mc_${safe}`]){window[`_mc_${safe}`].destroy();delete window[`_mc_${safe}`];}
-  const scores=getTeamMonthlyScores(team, year);
-  window[`_mc_${safe}`]=new Chart(canvas,{
-    type:'line',
-    data:{
-      labels:Array.from({length:12},(_,i)=>`${i+1}월`),
-      datasets:[{
-        label:'달성율 (%)', data:scores,
-        borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,.07)',
-        borderWidth:2.5, pointRadius:5,
-        pointBackgroundColor:scores.map(s=>s!==null?getScoreColor(s):'transparent'),
-        tension:.35, spanGaps:false,
-      }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw!==null?` ${c.raw}%`:' 미평가'}}},
-      scales:{
-        y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'%'}},
-        x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:10}}}
-      }
-    }
-  });
-}
-
-/* ════════════════════════════════════════════
-   BOOTSTRAP
-════════════════════════════════════════════ */
-(function bootstrap() {
-  const sel=document.getElementById('loginTeamSelect');
-  if(sel && sel.options.length<=1){
-    TEAMS.forEach(t=>{
-      const o=document.createElement('option');
-      o.value=t; o.textContent=t; sel.appendChild(o);
-    });
-  }
-  const defaultCard=document.querySelector('[data-role="TeamUser"]');
-  if(defaultCard) defaultCard.classList.add('selected');
-})();
+window.addEventListener('resize',()=>{
+  if(curPage==='dash') setTimeout(()=>drawChart('trend-canvas',TREND,TKEYS,TCOLORS,true),50);
+  if(curPage==='teams') setTimeout(()=>drawChart('teams-canvas',TREND,TKEYS,TCOLORS,false),50);
+});
 </script>
 </body>
 </html>
-
