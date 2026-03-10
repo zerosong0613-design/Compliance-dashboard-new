@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>컴플라이언스 리스크 관리 시스템 v2.1</title>
+<title>컴플라이언스 리스크 관리 시스템 v3.0</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -91,11 +91,14 @@ html, body {
 
 /* ═══════════════════ LOGIN ═══════════════════ */
 #login-screen {
+  position: fixed; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  min-height: 100vh; min-height: 100dvh;
   padding: 20px 16px;
   background: linear-gradient(135deg, #1e2d40 0%, #2e4160 50%, #1a3a5c 100%);
   overflow-y: auto;
+  z-index: 9999;
+  /* iOS 스크롤 활성화 */
+  -webkit-overflow-scrolling: touch;
 }
 .login-box {
   background: #fff;
@@ -602,8 +605,8 @@ tr:hover td { background: #f8fafc; }
   .warn-tags { flex-wrap: wrap; }
 
   /* Login */
-  #login-screen { align-items: flex-start; padding: 24px 14px; }
-  .login-box { padding: 28px 18px; border-radius: var(--r); }
+  #login-screen { align-items: flex-start; padding: 20px 14px 40px; }
+  .login-box { padding: 28px 18px; border-radius: var(--r); width: 100%; }
   .login-logo .logo-icon { font-size: 32px; }
   .login-logo h1 { font-size: 18px; }
   .login-divider { margin: 16px 0; }
@@ -660,7 +663,7 @@ tr:hover td { background: #f8fafc; }
     <div class="login-logo">
       <span class="logo-icon">🛡️</span>
       <h1>컴플라이언스 리스크<br>관리 시스템</h1>
-      <p>Compliance Risk Management System · v2.1</p>
+      <p>Compliance Risk Management System · v3.0</p>
     </div>
     <div class="login-divider"></div>
     <div style="margin-bottom:20px">
