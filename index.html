@@ -4,132 +4,240 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Compliance RiskOps</title>
 <style>
+/* ═══════════════════════════════════════
+   TOKENS & RESET
+═══════════════════════════════════════ */
 :root{
   --accent:#3B82F6;--accent-l:#EFF6FF;--navy:#0D1B2A;--navy2:#1A2E44;
   --surface:#fff;--bg:#F4F7FB;--border:#E5EBF2;
   --text:#0F172A;--muted:#64748B;--light:#F8FAFC;
   --green:#10B981;--amber:#F59E0B;--red:#EF4444;--purple:#8B5CF6;
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-top: env(safe-area-inset-top, 0px);
+  --sb-w:220px;--sb-w-col:62px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-t:env(safe-area-inset-top,0px);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:var(--bg)}
+html,body{height:100%;background:var(--bg);overflow:hidden}
 body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-serif}
-::-webkit-scrollbar{display:none}
-@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+@media(max-width:768px){::-webkit-scrollbar{display:none}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
 
-/* ══ LOGIN ══ */
+/* ═══════════════════════════════════════
+   LOGIN
+═══════════════════════════════════════ */
 #login-screen{
   position:fixed;inset:0;z-index:999;
   background:linear-gradient(160deg,#0D1B2A 0%,#1E3A5F 55%,#0D1B2A 100%);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:24px;padding-top:calc(24px + var(--safe-top));
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;
 }
 #login-screen.hidden{display:none}
-.login-card{
-  background:#fff;border-radius:24px;padding:32px 28px;width:100%;max-width:400px;
-  box-shadow:0 32px 80px rgba(0,0,0,.4);animation:fadeUp .5s ease;
-}
-.login-brand{display:flex;align-items:center;gap:12px;margin-bottom:28px}
-.login-brand-icon{width:48px;height:48px;background:var(--accent);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
-.login-brand-name{font-size:19px;font-weight:800;color:var(--text);line-height:1.2}
+.login-card{background:#fff;border-radius:24px;padding:36px 32px;width:100%;max-width:440px;box-shadow:0 32px 80px rgba(0,0,0,.4);animation:fadeUp .5s ease}
+.login-brand{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+.login-brand-icon{width:50px;height:50px;background:var(--accent);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.login-brand-name{font-size:20px;font-weight:800;color:var(--text);line-height:1.2}
 .login-brand-sub{font-size:12px;color:var(--muted);margin-top:2px}
 .login-section{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
 .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
-.role-card{padding:16px 10px;border:2px solid var(--border);border-radius:14px;background:#fff;cursor:pointer;text-align:center;transition:all .2s;-webkit-user-select:none}
-.role-card:active{transform:scale(.97)}
+.role-card{padding:18px 12px;border:2px solid var(--border);border-radius:14px;background:#fff;cursor:pointer;text-align:center;transition:all .2s}
+.role-card:hover{border-color:#93C5FD;background:var(--accent-l)}
 .role-card.on{border-color:var(--accent);background:var(--accent-l)}
-.role-card-icon{font-size:28px;margin-bottom:6px}
-.role-card-label{font-size:13px;font-weight:700;color:var(--text)}
-.role-card-desc{font-size:11px;color:var(--muted);margin-top:2px}
+.role-icon{font-size:30px;margin-bottom:8px}
+.role-label{font-size:13px;font-weight:700;color:var(--text)}
+.role-desc{font-size:11px;color:var(--muted);margin-top:3px}
 #team-section{display:none;margin-bottom:22px}
 .team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.team-btn{padding:10px 6px;border:1.5px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;text-align:center;font-size:12px;font-weight:600;color:var(--muted);transition:all .2s;font-family:inherit;-webkit-user-select:none}
-.team-btn:active{transform:scale(.95)}
+.team-btn{padding:10px 6px;border:1.5px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;text-align:center;font-size:12px;font-weight:600;color:var(--muted);transition:all .2s;font-family:inherit}
+.team-btn:hover{border-color:#93C5FD;color:var(--accent)}
 .team-btn.on{border-color:var(--accent);background:var(--accent-l);color:var(--accent);font-weight:700}
-.login-btn{width:100%;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px #3B82F655;transition:all .2s}
-.login-btn:active{transform:scale(.98)}
+.login-btn{width:100%;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px #3B82F655;transition:all .2s}
+.login-btn:hover:not(:disabled){background:#2563EB;transform:translateY(-1px)}
 .login-btn:disabled{background:#CBD5E1;box-shadow:none;cursor:not-allowed}
-.login-footer{margin-top:16px;text-align:center;font-size:11px;color:rgba(255,255,255,.4)}
 
-/* ══ APP SHELL ══ */
+/* ═══════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════ */
 #app{position:fixed;inset:0;display:none;flex-direction:column}
 #app.on{display:flex}
 
-/* ══ TOP HEADER ══ */
-#top-bar{
-  background:var(--navy);color:#fff;flex-shrink:0;
-  padding:0 16px;padding-top:var(--safe-top);
-  height:calc(54px + var(--safe-top));
-  display:flex;align-items:flex-end;padding-bottom:10px;
-  position:relative;z-index:100;
+/* ═══════════════════════════════════════
+   DESKTOP LAYOUT (≥769px)
+═══════════════════════════════════════ */
+@media(min-width:769px){
+  #app{flex-direction:row}
+
+  /* SIDEBAR */
+  #sidebar{
+    width:var(--sb-w);background:var(--navy);height:100vh;
+    display:flex;flex-direction:column;flex-shrink:0;
+    transition:width .25s cubic-bezier(.4,0,.2,1);overflow:hidden;
+    border-right:1px solid var(--navy2);
+  }
+  #sidebar.collapsed{width:var(--sb-w-col)}
+  .sb-logo{padding:18px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--navy2);cursor:pointer;flex-shrink:0}
+  .sb-logo-icon{width:34px;height:34px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+  .sb-logo-text{font-size:13px;font-weight:800;color:#fff;line-height:1.3;white-space:nowrap}
+  .sb-logo-text span{color:#5EEAD4;font-size:12px}
+  #sidebar-nav{flex:1;padding:10px 7px;overflow-y:auto}
+  .sb-section{font-size:10px;font-weight:700;color:#4A6280;text-transform:uppercase;letter-spacing:.5px;padding:8px 11px 4px;white-space:nowrap}
+  .sb-btn{width:100%;display:flex;align-items:center;gap:9px;padding:9px 11px;background:transparent;border:1px solid transparent;border-radius:9px;cursor:pointer;margin-bottom:2px;transition:all .15s;font-family:inherit}
+  .sb-btn:hover{background:var(--navy2)}
+  .sb-btn.on{background:#1E3A5F;border-color:#2E5C9A}
+  .sb-btn-icon{font-size:15px;color:#8BA3BC;flex-shrink:0;width:18px;text-align:center}
+  .sb-btn.on .sb-btn-icon,.sb-btn.on .sb-btn-label{color:#fff}
+  .sb-btn-label{font-size:12px;font-weight:500;color:#8BA3BC;flex:1;text-align:left;white-space:nowrap}
+  .sb-btn.on .sb-btn-label{font-weight:700}
+  .sb-badge{background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:99px;flex-shrink:0}
+  .sb-user{padding:12px 14px;border-top:1px solid var(--navy2);display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:pointer}
+  .sb-user:hover .sb-logout{opacity:1}
+  .sb-avatar{width:32px;height:32px;background:var(--navy2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .sb-uname{font-size:12px;font-weight:700;color:#fff}
+  .sb-urole{font-size:10px;color:#8BA3BC}
+  .sb-logout{font-size:11px;color:#8BA3BC;margin-left:auto;opacity:0;transition:opacity .15s}
+  /* collapsed state */
+  #sidebar.collapsed .sb-logo-text,
+  #sidebar.collapsed .sb-section,
+  #sidebar.collapsed .sb-btn-label,
+  #sidebar.collapsed .sb-badge,
+  #sidebar.collapsed .sb-uname,
+  #sidebar.collapsed .sb-urole,
+  #sidebar.collapsed .sb-logout{display:none}
+  #sidebar.collapsed .sb-btn{padding:9px 0;justify-content:center}
+
+  /* MAIN */
+  #main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  #topbar{height:58px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 26px;gap:12px;flex-shrink:0}
+  #page-title{flex:1;font-size:16px;font-weight:800;color:var(--text)}
+  #topbar-right{display:flex;gap:8px;align-items:center}
+  .fy-btn{padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s}
+  .fy-btn.on{border-color:var(--accent);background:var(--accent-l);color:var(--accent);font-weight:700}
+  .fm-sel{padding:5px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);background:var(--surface);cursor:pointer;font-family:inherit;outline:none}
+  .export-btn{padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px #3B82F644}
+  #content{flex:1;overflow-y:auto;padding:24px 28px}
+
+  /* hide mobile-only elements */
+  #mobile-topbar,#bottom-nav,#drawer-overlay,#drawer,#sheet-overlay,#bottom-sheet{display:none!important}
 }
-.top-bar-brand{display:flex;align-items:center;gap:8px;flex:1}
-.top-bar-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
-.top-bar-name{font-size:15px;font-weight:800}
-.top-bar-name span{color:#5EEAD4;font-size:11px;font-weight:600;margin-left:4px}
-.top-bar-right{display:flex;align-items:center;gap:10px}
-.top-bar-user{font-size:11px;color:#8BA3BC;background:var(--navy2);padding:4px 10px;border-radius:99px}
-.icon-btn{width:34px;height:34px;border:none;background:transparent;color:#8BA3BC;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:8px}
-.icon-btn:active{background:var(--navy2)}
 
-/* ══ YEAR/MONTH BAR ══ */
-#filter-bar{
-  background:var(--surface);border-bottom:1px solid var(--border);
-  padding:10px 16px;display:none;gap:8px;align-items:center;flex-shrink:0;overflow-x:auto;
+/* ═══════════════════════════════════════
+   MOBILE LAYOUT (≤768px)
+═══════════════════════════════════════ */
+@media(max-width:768px){
+  #sidebar{display:none!important}
+  #main{flex:1;display:flex;flex-direction:column;overflow:hidden;width:100%}
+  #topbar{display:none!important}
+
+  /* MOBILE TOP BAR */
+  #mobile-topbar{
+    background:var(--navy);color:#fff;flex-shrink:0;
+    padding:0 16px;padding-top:var(--safe-t);
+    height:calc(52px + var(--safe-t));
+    display:flex;align-items:flex-end;padding-bottom:10px;position:relative;z-index:100;
+  }
+  .mob-brand{display:flex;align-items:center;gap:8px;flex:1}
+  .mob-brand-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .mob-brand-name{font-size:15px;font-weight:800}
+  .mob-page-name{color:#5EEAD4;font-size:12px;font-weight:600;margin-left:4px}
+  .mob-right{display:flex;gap:10px;align-items:center}
+  .mob-user-chip{font-size:11px;color:#8BA3BC;background:var(--navy2);padding:4px 10px;border-radius:99px}
+  .mob-menu-btn{width:34px;height:34px;border:none;background:transparent;color:#8BA3BC;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:8px}
+
+  /* MOBILE FILTER BAR */
+  #filter-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:none;gap:8px;align-items:center;flex-shrink:0;overflow-x:auto}
+  #filter-bar.on{display:flex}
+  .fy-btn{padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
+  .fy-btn.on{border-color:var(--accent);background:var(--accent-l);color:var(--accent);font-weight:700}
+  .fm-sel{padding:5px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);background:var(--surface);cursor:pointer;font-family:inherit;outline:none;flex-shrink:0}
+
+  #content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:16px;padding-bottom:calc(80px + var(--safe-b))}
+
+  /* DRAWER */
+  #drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;display:none;backdrop-filter:blur(2px)}
+  #drawer-overlay.on{display:block;animation:fadeIn .2s}
+  #drawer{position:fixed;top:0;left:0;bottom:0;z-index:301;width:280px;background:var(--navy);display:flex;flex-direction:column;padding-top:var(--safe-t);display:none}
+  #drawer.on{display:flex;animation:slideIn .25s cubic-bezier(.4,0,.2,1)}
+  .dr-head{padding:18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--navy2)}
+  .dr-brand-icon{width:36px;height:36px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .dr-brand-name{font-size:14px;font-weight:800;color:#fff;line-height:1.3}
+  .dr-brand-name span{color:#5EEAD4;font-size:11px;display:block}
+  .dr-close{margin-left:auto;width:30px;height:30px;border:none;background:var(--navy2);border-radius:8px;color:#8BA3BC;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .dr-user{padding:12px 18px;border-bottom:1px solid var(--navy2);display:flex;align-items:center;gap:10px}
+  .dr-avatar{width:38px;height:38px;background:var(--navy2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .dr-uname{font-size:13px;font-weight:700;color:#fff}
+  .dr-urole{font-size:11px;color:#8BA3BC}
+  .dr-nav{flex:1;padding:10px;overflow-y:auto}
+  .dr-section{font-size:10px;font-weight:700;color:#4A6280;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px 4px}
+  .dr-btn{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;background:transparent;border:1px solid transparent;border-radius:10px;cursor:pointer;margin-bottom:2px;font-family:inherit;transition:all .15s}
+  .dr-btn:active{background:var(--navy2)}
+  .dr-btn.on{background:#1E3A5F;border-color:#2E5C9A}
+  .dr-btn-icon{font-size:16px;color:#8BA3BC;width:20px;text-align:center}
+  .dr-btn.on .dr-btn-icon,.dr-btn.on .dr-btn-lbl{color:#fff}
+  .dr-btn-lbl{font-size:13px;font-weight:500;color:#8BA3BC;flex:1;text-align:left}
+  .dr-btn.on .dr-btn-lbl{font-weight:700}
+  .dr-badge{background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:99px}
+  .dr-footer{padding:14px 18px;border-top:1px solid var(--navy2)}
+  .dr-logout{width:100%;padding:10px;background:var(--navy2);color:#8BA3BC;border:none;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+
+  /* BOTTOM NAV */
+  #bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--surface);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-b);box-shadow:0 -4px 20px rgba(0,0,0,.08)}
+  .bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;background:none;border:none;cursor:pointer;font-family:inherit;position:relative;min-height:56px}
+  .bnav-btn:active{background:var(--bg)}
+  .bnav-icon{font-size:20px;margin-bottom:3px;line-height:1}
+  .bnav-label{font-size:10px;font-weight:600;color:var(--muted)}
+  .bnav-btn.on .bnav-label{color:var(--accent);font-weight:700}
+  .bnav-dot{position:absolute;top:6px;right:calc(50% - 16px);width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid var(--surface)}
+
+  /* SHEET */
+  #sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;backdrop-filter:blur(2px)}
+  #sheet-overlay.on{display:block;animation:fadeIn .2s}
+  #bottom-sheet{position:fixed;bottom:0;left:0;right:0;z-index:501;background:var(--surface);border-radius:24px 24px 0 0;max-height:90vh;flex-direction:column;padding-bottom:calc(16px + var(--safe-b));display:none}
+  #bottom-sheet.on{display:flex;animation:slideUp .3s cubic-bezier(.4,0,.2,1)}
+  .sheet-handle{width:36px;height:4px;background:#CBD5E1;border-radius:99px;margin:12px auto 0}
+  .sheet-hd{padding:12px 20px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+  .sheet-id{font-size:11px;color:var(--accent);font-weight:700;font-family:monospace}
+  .sheet-title{font-size:15px;font-weight:800;color:var(--text)}
+  .sheet-close{width:28px;height:28px;border:none;background:var(--bg);border-radius:99px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+  .sheet-body{padding:20px;overflow-y:auto;flex:1}
+  .sheet-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:10px;flex-shrink:0}
 }
-#filter-bar.on{display:flex}
-.fy-btn{padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
-.fy-btn.on{border-color:var(--accent);background:var(--accent-l);color:var(--accent);font-weight:700}
-.fm-sel{padding:5px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);background:var(--surface);cursor:pointer;font-family:inherit;outline:none;flex-shrink:0}
 
-/* ══ CONTENT ══ */
-#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
-.page{display:none;padding:16px;padding-bottom:calc(80px + var(--safe-bottom))}
-.page.on{display:block;animation:fadeIn .2s ease}
-
-/* ══ SECTION TITLE ══ */
-.page-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px}
-.page-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
-
-/* ══ KPI GRID ══ */
-.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.kpi-card{background:var(--surface);border-radius:16px;padding:16px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);animation:fadeUp .4s ease both}
+/* ═══════════════════════════════════════
+   SHARED COMPONENTS
+═══════════════════════════════════════ */
+.view{display:none}.view.on{display:block;animation:fadeIn .2s ease}
+.card{background:var(--surface);border-radius:14px;padding:20px 22px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);margin-bottom:16px}
+.card-title{font-size:14px;font-weight:700;color:var(--text)}
+.card-sub{font-size:12px;color:var(--muted);margin-top:3px;margin-bottom:14px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+@media(max-width:768px){.kpi-grid{grid-template-columns:1fr 1fr;gap:12px}}
+.kpi-card{background:var(--surface);border-radius:14px;padding:18px 20px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);animation:fadeUp .4s ease both}
 .kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .kpi-icon{font-size:22px}
-.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px}
-.badge-up{background:#ECFDF5;color:var(--green)}
-.badge-warn{background:#FFFBEB;color:var(--amber)}
-.kpi-num{font-size:32px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-1px}
-.kpi-label{font-size:12px;font-weight:700;color:var(--text);margin-top:5px}
-.kpi-sub{font-size:10px;color:var(--muted);margin-top:2px}
-
-/* ══ CARD ══ */
-.card{background:var(--surface);border-radius:16px;padding:18px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);margin-bottom:14px}
-.card-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
-.card-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
-
-/* ══ TEAM BARS ══ */
+.badge-up{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#ECFDF5;color:var(--green)}
+.badge-warn{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#FFFBEB;color:var(--amber)}
+.kpi-num{font-size:36px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-1px}
+@media(max-width:768px){.kpi-num{font-size:30px}}
+.kpi-label{font-size:12px;font-weight:700;color:var(--text);margin-top:6px}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.chart-row{display:grid;grid-template-columns:1fr 1.2fr;gap:16px;margin-bottom:16px}
+@media(max-width:768px){.chart-row{grid-template-columns:1fr}}
+.bottom-row{display:grid;grid-template-columns:380px 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:1100px){.bottom-row{grid-template-columns:1fr}}
 .team-bar{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
-.team-name{width:72px;font-size:12px;font-weight:600;color:var(--text);flex-shrink:0}
+.team-name{width:80px;font-size:12px;font-weight:600;color:var(--text);flex-shrink:0}
 .bar-track{flex:1;height:8px;background:#EEF2F7;border-radius:99px;overflow:hidden}
 .bar-fill{height:100%;border-radius:99px;width:0%;transition:width 1s cubic-bezier(.4,0,.2,1)}
-.team-pct{width:34px;font-size:12px;font-weight:800;color:var(--text);text-align:right;flex-shrink:0}
-.stag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:99px;white-space:nowrap;flex-shrink:0}
-
-/* ══ HEATMAP ══ */
+.team-pct{width:36px;font-size:12px;font-weight:800;color:var(--text);text-align:right;flex-shrink:0}
+.stag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;white-space:nowrap;flex-shrink:0}
 .hm-row{display:flex;gap:3px;margin-bottom:3px}
-.hm-lbl{width:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted)}
-.hm-cell{flex:1;aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:rgba(255,255,255,.9);transition:transform .15s}
-.hm-cell:active{transform:scale(1.15)}
-
-/* ══ ALERT CARD ══ */
+.hm-lbl{width:24px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted)}
+.hm-cell{flex:1;aspect-ratio:1;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:rgba(255,255,255,.9);cursor:default;transition:transform .15s}
+.hm-cell:hover,.hm-cell:active{transform:scale(1.1)}
 .alert-item-card{background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:14px;margin-bottom:10px}
 .alert-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .alert-team{font-size:13px;font-weight:800;color:var(--red)}
@@ -137,158 +245,115 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .alert-days{margin-left:auto;font-size:11px;color:var(--red);font-weight:700}
 .alert-risk{font-size:12px;color:#7F1D1D;padding:3px 0;display:flex;gap:6px;align-items:center}
 .alert-send-btn{margin-top:10px;width:100%;padding:8px;background:var(--red);color:#fff;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
-.alert-send-btn:active{opacity:.8}
-
-/* ══ RISK LIST CARDS ══ */
-.risk-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;-webkit-user-select:none;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.risk-card:active{transform:scale(.98);background:var(--accent-l)}
-.risk-card-left{flex:1;min-width:0}
-.risk-card-id{font-size:10px;font-weight:700;color:var(--accent);margin-bottom:3px;font-family:monospace}
-.risk-card-title{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
-.risk-card-meta{display:flex;gap:6px;align-items:center}
-.cat-tag{font-size:9px;font-weight:700;background:var(--accent-l);color:var(--accent);padding:2px 7px;border-radius:99px}
-.score-badge{font-size:10px;font-weight:800}
-.risk-card-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
-.risk-arr{font-size:16px;color:#CBD5E1}
-.status-chip{font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap}
+.table-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;margin-bottom:4px}
+.table-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.filter-scroll{display:flex;gap:7px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px}
+.f-btn{padding:6px 13px;border:1px solid var(--border);border-radius:99px;background:#fff;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.f-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.overflow-x{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{padding:10px 14px;text-align:left;font-weight:700;color:var(--muted);white-space:nowrap;background:var(--light);border-bottom:2px solid var(--border)}
+.tbl td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text)}
+.tbl tr:hover td{background:#F0F7FF;cursor:pointer}
+.tbl-id{font-weight:700;color:var(--accent);font-family:monospace;font-size:11px}
+.tbl-title{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbl-muted{color:var(--muted)}
+.cat-tag{font-size:10px;font-weight:700;background:var(--accent-l);color:var(--accent);padding:3px 8px;border-radius:99px;white-space:nowrap}
+.score-hi{color:var(--red);font-weight:800;font-size:13px}
+.score-md{color:var(--amber);font-weight:800;font-size:13px}
+.score-lo{color:var(--green);font-weight:800;font-size:13px}
 .s-sub{background:#EFF6FF;color:#2563EB}
 .s-eval{background:#ECFDF5;color:#059669}
 .s-none{background:#FEF2F2;color:var(--red)}
 .s-draft{background:#FFFBEB;color:var(--amber)}
-
-/* ══ FILTER BAR ══ */
-.filter-scroll{display:flex;gap:7px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px}
-.f-btn{padding:6px 14px;border:1px solid var(--border);border-radius:99px;background:#fff;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;transition:all .15s}
-.f-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
-
-/* ══ BOTTOM SHEET ══ */
-#sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;backdrop-filter:blur(2px)}
-#sheet-overlay.on{display:block;animation:fadeIn .2s}
-#bottom-sheet{
-  position:fixed;bottom:0;left:0;right:0;z-index:501;
-  background:var(--surface);border-radius:24px 24px 0 0;
-  max-height:90vh;display:flex;flex-direction:column;
-  padding-bottom:calc(16px + var(--safe-bottom));
-  display:none;
-}
-#bottom-sheet.on{display:flex;animation:slideUp .3s cubic-bezier(.4,0,.2,1)}
-.sheet-handle{width:36px;height:4px;background:#CBD5E1;border-radius:99px;margin:12px auto 0}
-.sheet-header{padding:12px 20px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
-.sheet-title{font-size:16px;font-weight:800;color:var(--text)}
-.sheet-id{font-size:11px;color:var(--accent);font-weight:700;font-family:monospace}
-.sheet-close{width:28px;height:28px;border:none;background:var(--bg);border-radius:99px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted)}
-.sheet-body{padding:20px;overflow-y:auto;flex:1}
-.sheet-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:10px;flex-shrink:0}
-
-/* ══ FORM ELEMENTS ══ */
+.status-chip{font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap}
+.progress-wrap{display:flex;align-items:center;gap:7px}
+.progress-track{width:48px;height:5px;background:var(--border);border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;border-radius:99px}
+.act-btn{padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s}
+.act-btn:hover{border-color:var(--accent);color:var(--accent)}
+/* Desktop split view */
+.split-view{display:flex;gap:18px;height:calc(100vh - 130px)}
+@media(max-width:768px){.split-view{display:block}}
+.risk-panel{width:280px;flex-shrink:0;background:var(--surface);border-radius:14px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;display:flex;flex-direction:column}
+@media(max-width:768px){.risk-panel{width:100%;height:auto;margin-bottom:12px;max-height:45vh}}
+.panel-hd{padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.panel-title{font-size:13px;font-weight:700;color:var(--text)}
+.panel-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.panel-list{flex:1;overflow-y:auto}
+.r-item{padding:13px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;border-left:3px solid transparent}
+.r-item:hover{background:var(--light)}
+.r-item.on{background:var(--accent-l);border-left-color:var(--accent)}
+.r-item-id{font-size:10px;font-weight:700;color:#94A3B8;margin-bottom:3px}
+.r-item-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;line-height:1.4}
+.form-panel{flex:1;background:var(--surface);border-radius:14px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;display:flex;flex-direction:column}
+@media(max-width:768px){.form-panel{min-height:400px}}
+.form-hd{padding:18px 22px;border-bottom:1px solid var(--border);background:var(--light);flex-shrink:0}
+.form-hd-id{font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px}
+.form-hd-title{font-size:15px;font-weight:800;color:var(--text)}
+.form-hd-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.form-body{padding:22px;overflow-y:auto;flex:1}
+.form-group{margin-bottom:18px}
 .form-label{font-size:13px;font-weight:700;color:var(--text);display:block;margin-bottom:8px}
-.form-group{margin-bottom:20px}
-.radio-row{display:flex;gap:8px;flex-wrap:wrap}
-.radio-chip{padding:9px 16px;border:1.5px solid var(--border);border-radius:10px;background:#fff;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s;-webkit-user-select:none}
-.radio-chip:active{transform:scale(.96)}
+.radio-row{display:flex;gap:7px;flex-wrap:wrap}
+.radio-chip{padding:8px 15px;border:1.5px solid var(--border);border-radius:9px;background:#fff;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s}
+.radio-chip:hover{border-color:#93C5FD}
 .radio-chip.on{border-color:var(--accent);background:var(--accent-l);color:var(--accent);font-weight:700}
-.form-textarea{width:100%;height:110px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font-size:13px;color:var(--text);resize:none;outline:none;font-family:inherit;line-height:1.6;-webkit-appearance:none}
+.form-textarea{width:100%;height:110px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text);resize:vertical;outline:none;font-family:inherit;line-height:1.6}
 .form-textarea:focus{border-color:var(--accent)}
-.dropzone{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;background:var(--light);cursor:pointer}
-.dropzone:active{border-color:var(--accent);background:var(--accent-l)}
-.drop-icon{font-size:28px;margin-bottom:6px}
-.drop-text{font-size:13px;color:var(--muted)}
-.drop-sub{font-size:11px;color:#94A3B8;margin-top:3px}
+.dropzone{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;background:var(--light);cursor:pointer;transition:all .15s}
+.dropzone:hover,.dropzone:active{border-color:var(--accent);background:var(--accent-l)}
 .file-chip{display:inline-flex;align-items:center;gap:6px;background:var(--accent-l);border:1px solid #BFDBFE;border-radius:8px;padding:5px 10px;font-size:11px;color:#2563EB;font-weight:600;margin-top:8px}
-
-/* ══ BUTTONS ══ */
-.btn{padding:13px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:none;transition:all .15s;-webkit-user-select:none}
-.btn:active{transform:scale(.97)}
-.btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 12px #3B82F655;flex:1}
-.btn-ghost{background:var(--bg);color:var(--muted);border:1px solid var(--border);flex:1}
-.btn-danger{background:#FEF2F2;color:var(--red);border:1px solid #FECACA;flex:1}
-.btn-success{background:var(--green);color:#fff;box-shadow:0 2px 12px #10B98155;flex:1}
-
-/* ══ EVAL SLIDER ══ */
-.score-display{font-size:42px;font-weight:800;text-align:center;padding:16px 0;border-radius:14px;background:var(--light);margin-bottom:14px}
-.eval-slider{width:100%;height:8px;border-radius:99px;outline:none;cursor:pointer;margin-bottom:8px;-webkit-appearance:none;background:var(--border)}
-.eval-slider::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer}
-.quick-scores{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
-.qs-btn{padding:10px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid;transition:all .15s;-webkit-user-select:none}
-.qs-btn:active{transform:scale(.95)}
-.submitted-box{background:var(--light);border-radius:12px;padding:14px;margin-bottom:18px;border:1px solid var(--border)}
+.form-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;background:var(--surface)}
+.btn{padding:10px 18px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;border:none;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 10px #3B82F655}
+.btn-primary:hover{background:#2563EB}
+.btn-ghost{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+.btn-danger{background:#FEF2F2;color:var(--red);border:1px solid #FECACA}
+.btn-success{background:var(--green);color:#fff;box-shadow:0 2px 10px #10B98155}
+.empty-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:300px;gap:12px;color:var(--muted);padding:40px}
+.empty-icon{font-size:40px}
+.empty-title{font-size:14px;font-weight:700;color:var(--text)}
+.empty-desc{font-size:12px;color:#94A3B8;text-align:center}
+.submitted-box{background:var(--light);border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid var(--border)}
 .submitted-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px}
 .submitted-txt{font-size:13px;color:var(--text);line-height:1.7}
-
-/* ══ MASTER VIEW ══ */
-.search-wrap{position:relative;margin-bottom:12px}
-.search-input{width:100%;padding:12px 14px 12px 40px;border:1px solid var(--border);border-radius:12px;font-size:13px;outline:none;font-family:inherit;background:var(--surface);-webkit-appearance:none}
-.search-input:focus{border-color:var(--accent)}
-.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--muted)}
-.add-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:6px}
-
-/* ══ MY TEAM ══ */
-.my-risk-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
-.my-risk-id{font-family:monospace;font-size:10px;font-weight:700;color:var(--accent);width:36px;flex-shrink:0}
-.my-risk-name{flex:1;font-size:12px;font-weight:600;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.progress-wrap{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.progress-track{width:42px;height:5px;background:var(--border);border-radius:99px;overflow:hidden}
-.progress-fill{height:100%;border-radius:99px}
-
-/* ══ TEAM CARD ══ */
-.team-big-card{background:var(--surface);border-radius:16px;padding:18px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);margin-bottom:12px;display:flex;align-items:center;gap:16px}
-.team-big-avg{font-size:36px;font-weight:800;flex-shrink:0;width:80px}
+.score-display{font-size:40px;font-weight:800;text-align:center;padding:14px;border-radius:12px;background:var(--light);margin-bottom:12px}
+.eval-slider{width:100%;height:8px;border-radius:99px;outline:none;cursor:pointer;margin-bottom:6px;-webkit-appearance:none;background:var(--border)}
+.eval-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer}
+.slider-ticks{display:flex;justify-content:space-between;font-size:10px;color:#94A3B8}
+.qs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+.qs-btn{padding:10px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid;transition:all .15s}
+.team-big-card{background:var(--surface);border-radius:14px;padding:16px 18px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);margin-bottom:12px;display:flex;align-items:center;gap:16px}
+.team-big-avg{font-size:34px;font-weight:800;flex-shrink:0;width:76px}
 .team-big-info{flex:1}
-.team-big-name{font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px}
+.team-big-name{font-size:14px;font-weight:800;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px}
 .team-big-bar{height:8px;background:#EEF2F7;border-radius:99px;overflow:hidden;margin-bottom:6px}
 .team-big-months{display:flex;gap:12px;font-size:11px;color:var(--muted)}
-
-/* ══ BOTTOM NAV ══ */
-#bottom-nav{
-  position:fixed;bottom:0;left:0;right:0;z-index:200;
-  background:var(--surface);border-top:1px solid var(--border);
-  display:flex;padding-bottom:var(--safe-bottom);
-  box-shadow:0 -4px 20px rgba(0,0,0,.08);
-}
-.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;background:none;border:none;cursor:pointer;font-family:inherit;position:relative;-webkit-user-select:none;min-height:56px}
-.bnav-btn:active{background:var(--bg)}
-.bnav-icon{font-size:20px;margin-bottom:3px;line-height:1}
-.bnav-label{font-size:10px;font-weight:600;color:var(--muted)}
-.bnav-btn.on .bnav-label{color:var(--accent);font-weight:700}
-.bnav-dot{position:absolute;top:6px;right:calc(50% - 16px);width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid var(--surface)}
-
-/* ══ DRAWER (desktop sidebar) ══ */
-#drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;display:none;backdrop-filter:blur(2px)}
-#drawer-overlay.on{display:block;animation:fadeIn .2s}
-#drawer{
-  position:fixed;top:0;left:0;bottom:0;z-index:301;width:280px;
-  background:var(--navy);display:flex;flex-direction:column;
-  padding-top:var(--safe-top);display:none;
-}
-#drawer.on{display:flex;animation:slideIn .25s cubic-bezier(.4,0,.2,1)}
-.drawer-head{padding:20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--navy2)}
-.drawer-brand-icon{width:36px;height:36px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.drawer-brand-name{font-size:14px;font-weight:800;color:#fff;line-height:1.3}
-.drawer-brand-name span{color:#5EEAD4;font-size:11px;display:block}
-.drawer-close{margin-left:auto;width:30px;height:30px;border:none;background:var(--navy2);border-radius:8px;color:#8BA3BC;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.drawer-user{padding:12px 18px;border-bottom:1px solid var(--navy2)}
-.drawer-avatar-row{display:flex;align-items:center;gap:10px}
-.drawer-avatar{width:38px;height:38px;background:var(--navy2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.drawer-uname{font-size:13px;font-weight:700;color:#fff}
-.drawer-urole{font-size:11px;color:#8BA3BC}
-.drawer-nav{flex:1;padding:10px 10px;overflow-y:auto}
-.drawer-section{font-size:10px;font-weight:700;color:#4A6280;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px 4px}
-.drawer-nav-btn{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;background:transparent;border:1px solid transparent;border-radius:10px;cursor:pointer;margin-bottom:2px;font-family:inherit;transition:all .15s;-webkit-user-select:none}
-.drawer-nav-btn:active{background:var(--navy2)}
-.drawer-nav-btn.on{background:#1E3A5F;border-color:#2E5C9A}
-.drawer-nav-icon{font-size:16px;color:#8BA3BC;width:20px;text-align:center;flex-shrink:0}
-.drawer-nav-btn.on .drawer-nav-icon,.drawer-nav-btn.on .drawer-nav-lbl{color:#fff}
-.drawer-nav-lbl{font-size:13px;font-weight:500;color:#8BA3BC;flex:1;text-align:left}
-.drawer-nav-btn.on .drawer-nav-lbl{font-weight:700}
-.drawer-nav-badge{background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:99px}
-.drawer-footer{padding:14px 18px;border-top:1px solid var(--navy2)}
-.drawer-logout{width:100%;padding:10px;background:var(--navy2);color:#8BA3BC;border:none;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
-.drawer-logout:active{opacity:.7}
+.master-toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.search-wrap{flex:1;min-width:200px;position:relative}
+.search-input{width:100%;padding:9px 12px 9px 36px;border:1px solid var(--border);border-radius:10px;font-size:13px;outline:none;font-family:inherit;background:var(--surface)}
+.search-input:focus{border-color:var(--accent)}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--muted)}
+.add-btn{padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+/* Risk cards (mobile list) */
+.risk-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:13px 15px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.risk-card:hover{background:var(--accent-l);border-color:#93C5FD}
+.risk-card:active{transform:scale(.98)}
+.rc-left{flex:1;min-width:0}
+.rc-id{font-size:10px;font-weight:700;color:var(--accent);margin-bottom:3px;font-family:monospace}
+.rc-title{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
+.rc-meta{display:flex;gap:6px;align-items:center}
+.rc-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.rc-arr{font-size:16px;color:#CBD5E1}
+.my-risk-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.my-risk-id{font-family:monospace;font-size:10px;font-weight:700;color:var(--accent);width:36px;flex-shrink:0}
+.my-risk-name{flex:1;font-size:12px;font-weight:600;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
 
-<!-- ════ LOGIN ════ -->
+<!-- ════════════════ LOGIN ════════════════ -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-brand">
@@ -301,14 +366,14 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
     <div class="login-section">역할 선택</div>
     <div class="role-grid">
       <div class="role-card" id="r-admin" onclick="pickRole('admin')">
-        <div class="role-card-icon">🛡</div>
-        <div class="role-card-label">컴플라이언스<br>관리자</div>
-        <div class="role-card-desc">전사 대시보드 · 평가</div>
+        <div class="role-icon">🛡</div>
+        <div class="role-label">컴플라이언스<br>관리자</div>
+        <div class="role-desc">전사 대시보드 · 평가</div>
       </div>
       <div class="role-card" id="r-user" onclick="pickRole('user')">
-        <div class="role-card-icon">👤</div>
-        <div class="role-card-label">팀 담당자</div>
-        <div class="role-card-desc">월간 입력 · 조회</div>
+        <div class="role-icon">👤</div>
+        <div class="role-label">팀 담당자</div>
+        <div class="role-desc">월간 입력 · 조회</div>
       </div>
     </div>
     <div id="team-section">
@@ -319,238 +384,180 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
         <div class="team-btn" onclick="pickTeam('연구개발팀',this)">연구개발팀</div>
         <div class="team-btn" onclick="pickTeam('구매팀',this)">구매팀</div>
         <div class="team-btn" onclick="pickTeam('품질팀',this)">품질팀</div>
-      </div>
-      <br>
+      </div><br>
     </div>
     <button class="login-btn" id="login-btn" disabled onclick="doLogin()">접속하기 →</button>
+    <div style="margin-top:14px;text-align:center;font-size:11px;color:#94A3B8">SK Chemical 컴플라이언스 법무팀 · 데모</div>
   </div>
-  <div class="login-footer">SK Chemical 컴플라이언스 법무팀 · 데모 시스템</div>
 </div>
 
-<!-- ════ APP ════ -->
+<!-- ════════════════ APP ════════════════ -->
 <div id="app">
-  <!-- TOP BAR -->
-  <div id="top-bar">
-    <div class="top-bar-brand">
-      <div class="top-bar-icon">⚖</div>
-      <div class="top-bar-name">RiskOps<span id="top-page-name"></span></div>
+
+  <!-- ── PC SIDEBAR ── -->
+  <div id="sidebar">
+    <div class="sb-logo" onclick="toggleSidebar()">
+      <div class="sb-logo-icon">⚖</div>
+      <div class="sb-logo-text">Compliance<br><span>RiskOps</span></div>
     </div>
-    <div class="top-bar-right">
-      <div class="top-bar-user" id="top-user-label"></div>
-      <button class="icon-btn" onclick="openDrawer()">☰</button>
+    <nav id="sidebar-nav"></nav>
+    <div class="sb-user" onclick="doLogout()">
+      <div class="sb-avatar" id="sb-avatar">👤</div>
+      <div><div class="sb-uname" id="sb-uname">-</div><div class="sb-urole" id="sb-urole">-</div></div>
+      <div class="sb-logout">로그아웃</div>
     </div>
   </div>
 
-  <!-- FILTER BAR -->
-  <div id="filter-bar">
-    <button class="fy-btn" onclick="setYear('2024',this)">2024년</button>
-    <button class="fy-btn on" onclick="setYear('2025',this)">2025년</button>
-    <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
-    <select class="fm-sel">
-      <option>1월</option><option>2월</option><option selected>3월</option>
-      <option>4월</option><option>5월</option><option>6월</option>
-      <option>7월</option><option>8월</option><option>9월</option>
-      <option>10월</option><option>11월</option><option>12월</option>
-    </select>
-    <button class="fy-btn" style="background:var(--accent);color:#fff;border-color:var(--accent)">⬇ 내보내기</button>
-  </div>
+  <!-- ── MAIN ── -->
+  <div id="main">
 
-  <!-- CONTENT -->
-  <div id="content">
-
-    <!-- ═ DASHBOARD ═ -->
-    <div class="page" id="pg-dash">
-      <div class="kpi-grid">
-        <div class="kpi-card" style="animation-delay:0ms">
-          <div class="kpi-top"><span class="kpi-icon">⚠️</span></div>
-          <div class="kpi-num" data-t="20">0</div>
-          <div class="kpi-label">관리 리스크</div><div class="kpi-sub">5개 팀 전체</div>
-        </div>
-        <div class="kpi-card" style="animation-delay:80ms">
-          <div class="kpi-top"><span class="kpi-icon">✅</span><span class="badge badge-up">↑ +2</span></div>
-          <div class="kpi-num" data-t="17">0</div>
-          <div class="kpi-label">제출 완료</div><div class="kpi-sub">미제출 3건</div>
-        </div>
-        <div class="kpi-card" style="animation-delay:160ms">
-          <div class="kpi-top"><span class="kpi-icon">📊</span><span class="badge badge-up">↑ +6%</span></div>
-          <div class="kpi-num" data-t="78" data-pct="1">0</div>
-          <div class="kpi-label">전사 달성율</div><div class="kpi-sub">전월 대비 +6%</div>
-        </div>
-        <div class="kpi-card" style="animation-delay:240ms">
-          <div class="kpi-top"><span class="kpi-icon">⏳</span><span class="badge badge-warn">검토</span></div>
-          <div class="kpi-num" data-t="5">0</div>
-          <div class="kpi-label">평가 대기</div><div class="kpi-sub">즉시 처리 필요</div>
-        </div>
+    <!-- PC TOP BAR -->
+    <div id="topbar">
+      <div id="page-title">전사 대시보드</div>
+      <div id="topbar-right">
+        <button class="fy-btn" onclick="setYear('2024',this)">2024년</button>
+        <button class="fy-btn on" onclick="setYear('2025',this)">2025년</button>
+        <div style="width:1px;height:20px;background:var(--border)"></div>
+        <select class="fm-sel"><option>1월</option><option>2월</option><option selected>3월</option><option>4월</option><option>5월</option><option>6월</option><option>7월</option><option>8월</option><option>9월</option><option>10월</option><option>11월</option><option>12월</option></select>
       </div>
+      <button class="export-btn">⬇ 내보내기</button>
+    </div>
 
-      <div class="card">
-        <div class="card-title">팀별 이행 달성율</div>
-        <div class="card-sub">2025년 3월 기준</div>
-        <div id="team-bars"></div>
+    <!-- MOBILE TOP BAR -->
+    <div id="mobile-topbar">
+      <div class="mob-brand">
+        <div class="mob-brand-icon">⚖</div>
+        <div style="font-size:15px;font-weight:800">RiskOps<span class="mob-page-name" id="mob-page-name"></span></div>
       </div>
-
-      <div class="card">
-        <div class="card-title">월별 달성율 추이</div>
-        <div class="card-sub">최근 6개월</div>
-        <canvas id="trend-canvas" height="180" style="width:100%"></canvas>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px" id="trend-legend"></div>
+      <div class="mob-right">
+        <div class="mob-user-chip" id="mob-user-chip"></div>
+        <button class="mob-menu-btn" onclick="openDrawer()">☰</button>
       </div>
+    </div>
 
-      <div class="card">
-        <div class="card-title">리스크 Heat Map</div>
-        <div class="card-sub">영향도 × 가능성</div>
-        <div id="heatmap"></div>
-      </div>
+    <!-- MOBILE FILTER BAR -->
+    <div id="filter-bar">
+      <button class="fy-btn" onclick="setYear('2024',this)">2024년</button>
+      <button class="fy-btn on" onclick="setYear('2025',this)">2025년</button>
+      <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
+      <select class="fm-sel"><option>1월</option><option>2월</option><option selected>3월</option><option>4월</option><option>5월</option><option>6월</option><option>7월</option><option>8월</option><option>9월</option><option>10월</option><option>11월</option><option>12월</option></select>
+    </div>
 
-      <div class="card" style="padding:0;overflow:hidden">
-        <div style="padding:16px 18px;border-bottom:1px solid var(--border)">
-          <div class="card-title">⚠ 미제출 현황</div>
-          <div class="card-sub" style="margin-bottom:0">즉시 조치 필요 · D-11</div>
+    <!-- CONTENT -->
+    <div id="content">
+
+      <!-- ═ DASHBOARD ═ -->
+      <div class="view" id="view-dash">
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">⚠️</span></div><div class="kpi-num" data-t="20">0</div><div class="kpi-label">관리 리스크</div><div class="kpi-sub">5개 팀 전체</div></div>
+          <div class="kpi-card" style="animation-delay:80ms"><div class="kpi-top"><span class="kpi-icon">✅</span><span class="badge-up">↑ +2</span></div><div class="kpi-num" data-t="17">0</div><div class="kpi-label">제출 완료</div><div class="kpi-sub">미제출 3건</div></div>
+          <div class="kpi-card" style="animation-delay:160ms"><div class="kpi-top"><span class="kpi-icon">📊</span><span class="badge-up">↑ +6%</span></div><div class="kpi-num" data-t="78" data-pct="1">0</div><div class="kpi-label">전사 달성율</div><div class="kpi-sub">전월 대비 +6%</div></div>
+          <div class="kpi-card" style="animation-delay:240ms"><div class="kpi-top"><span class="kpi-icon">⏳</span><span class="badge-warn">검토</span></div><div class="kpi-num" data-t="5">0</div><div class="kpi-label">평가 대기</div><div class="kpi-sub">즉시 처리 필요</div></div>
         </div>
-        <div style="padding:14px">
-          <div class="alert-item-card">
-            <div class="alert-head"><span class="alert-team">구매팀</span><span class="alert-badge">2건 미제출</span><span class="alert-days">D-11</span></div>
-            <div class="alert-risk"><span style="color:var(--red)">•</span>하도급 거래 서면 미교부</div>
-            <div class="alert-risk"><span style="color:var(--red)">•</span>수입물품 관세분류 오류</div>
-            <button class="alert-send-btn" onclick="this.textContent='✓ 발송 완료';this.style.background='#64748B'">독촉 메일 발송</button>
-          </div>
-          <div class="alert-item-card">
-            <div class="alert-head"><span class="alert-team">생산팀</span><span class="alert-badge">1건 미제출</span><span class="alert-days">D-11</span></div>
-            <div class="alert-risk"><span style="color:var(--red)">•</span>근로계약서 필수조항 누락</div>
-            <button class="alert-send-btn" onclick="this.textContent='✓ 발송 완료';this.style.background='#64748B'">독촉 메일 발송</button>
+        <div class="chart-row">
+          <div class="card"><div class="card-title">팀별 이행 달성율</div><div class="card-sub">2025년 3월 기준</div><div id="team-bars"></div></div>
+          <div class="card"><div class="card-title">월별 달성율 추이</div><div class="card-sub">최근 6개월</div><canvas id="trend-canvas" height="200" style="width:100%"></canvas><div id="trend-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div></div>
+        </div>
+        <div class="bottom-row">
+          <div class="card"><div class="card-title">리스크 Heat Map</div><div class="card-sub">영향도 × 가능성</div><div id="heatmap"></div></div>
+          <div class="card"><div class="card-title">⚠ 미제출 현황</div><div class="card-sub">즉시 조치 · D-11</div>
+            <div class="alert-item-card"><div class="alert-head"><span class="alert-team">구매팀</span><span class="alert-badge">2건</span><span class="alert-days">D-11</span></div><div class="alert-risk"><span style="color:var(--red)">•</span>하도급 거래 서면 미교부</div><div class="alert-risk"><span style="color:var(--red)">•</span>수입물품 관세분류 오류</div><button class="alert-send-btn" onclick="this.textContent='✓ 발송 완료';this.style.background='#64748B'">독촉 메일 발송</button></div>
+            <div class="alert-item-card"><div class="alert-head"><span class="alert-team">생산팀</span><span class="alert-badge">1건</span><span class="alert-days">D-11</span></div><div class="alert-risk"><span style="color:var(--red)">•</span>근로계약서 필수조항 누락</div><button class="alert-send-btn" onclick="this.textContent='✓ 발송 완료';this.style.background='#64748B'">독촉 메일 발송</button></div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- ═ MONTHLY ═ -->
-    <div class="page" id="pg-monthly">
-      <div class="page-title">월간 현황 입력</div>
-      <div class="page-sub" id="monthly-sub">2025년 3월</div>
-      <div class="filter-scroll" id="monthly-filter">
-        <button class="f-btn on" onclick="monthlyFilter('전체',this)">전체</button>
-        <button class="f-btn" onclick="monthlyFilter('미입력',this)">미입력</button>
-        <button class="f-btn" onclick="monthlyFilter('임시저장',this)">임시저장</button>
-        <button class="f-btn" onclick="monthlyFilter('제출완료',this)">제출완료</button>
-      </div>
-      <div id="monthly-list"></div>
-    </div>
-
-    <!-- ═ EVAL ═ -->
-    <div class="page" id="pg-eval">
-      <div class="page-title">이행 달성율 평가</div>
-      <div class="page-sub">제출완료 건 검토 및 달성율 입력</div>
-      <div id="eval-list"></div>
-    </div>
-
-    <!-- ═ TEAMS ═ -->
-    <div class="page" id="pg-teams">
-      <div class="page-title">팀 이행현황</div>
-      <div class="page-sub">2025년 3월 기준</div>
-      <div id="team-cards"></div>
-      <div class="card">
-        <div class="card-title">전체 팀 추이</div>
-        <div class="card-sub">최근 6개월</div>
-        <canvas id="teams-canvas" height="180" style="width:100%"></canvas>
-      </div>
-    </div>
-
-    <!-- ═ MASTER ═ -->
-    <div class="page" id="pg-master">
-      <div class="page-title">리스크 Master</div>
-      <div class="page-sub">리스크 원장 관리</div>
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input class="search-input" placeholder="리스크 검색..." oninput="masterSearch(this.value)">
-      </div>
-      <div class="filter-scroll" id="master-filter">
-        <button class="f-btn on" onclick="masterFilter('전체',this)">전체</button>
-        <button class="f-btn" onclick="masterFilter('영업팀',this)">영업팀</button>
-        <button class="f-btn" onclick="masterFilter('생산팀',this)">생산팀</button>
-        <button class="f-btn" onclick="masterFilter('연구개발팀',this)">연구개발팀</button>
-        <button class="f-btn" onclick="masterFilter('구매팀',this)">구매팀</button>
-        <button class="f-btn" onclick="masterFilter('품질팀',this)">품질팀</button>
-      </div>
-      <button class="add-btn" onclick="alert('리스크 추가 — 추후 구현')">＋ 리스크 추가</button>
-      <div id="master-list"></div>
-    </div>
-
-    <!-- ═ MY TEAM ═ -->
-    <div class="page" id="pg-myteam">
-      <div class="page-title">내 팀 이행현황</div>
-      <div class="page-sub" id="myteam-sub">영업팀 · 2025년 3월</div>
-      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="kpi-card">
-          <div class="kpi-top"><span class="kpi-icon">📋</span></div>
-          <div class="kpi-num" data-t="4">0</div>
-          <div class="kpi-label">담당 리스크</div>
-        </div>
-        <div class="kpi-card" style="animation-delay:80ms">
-          <div class="kpi-top"><span class="kpi-icon">📊</span></div>
-          <div class="kpi-num" data-t="86" data-pct="1">0</div>
-          <div class="kpi-label">달성율</div>
-        </div>
-        <div class="kpi-card" style="animation-delay:160ms">
-          <div class="kpi-top"><span class="kpi-icon">⏳</span><span class="badge badge-warn">미제출</span></div>
-          <div class="kpi-num" data-t="1">0</div>
-          <div class="kpi-label">미입력</div>
+        <div class="table-card">
+          <div class="table-header">
+            <div><div style="font-size:14px;font-weight:700;color:var(--text)">리스크 현황 테이블</div><div style="font-size:12px;color:var(--muted);margin-top:2px">이번달 점검 대상</div></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="f-btn on" onclick="filterTbl('전체',this)">전체</button>
+              <button class="f-btn" onclick="filterTbl('제출완료',this)">제출완료</button>
+              <button class="f-btn" onclick="filterTbl('평가완료',this)">평가완료</button>
+              <button class="f-btn" onclick="filterTbl('미제출',this)">미제출</button>
+              <button class="f-btn" onclick="filterTbl('임시저장',this)">임시저장</button>
+            </div>
+          </div>
+          <div class="overflow-x"><table class="tbl"><thead><tr><th>ID</th><th>리스크명</th><th>팀</th><th>유형</th><th>위험도</th><th>상태</th><th>달성율</th><th></th></tr></thead><tbody id="risk-tbody"></tbody></table></div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-title">월별 달성율 추이</div>
-        <div class="card-sub" id="myteam-trend-sub">영업팀</div>
-        <canvas id="myteam-canvas" height="160" style="width:100%"></canvas>
-      </div>
-      <div class="card">
-        <div class="card-title">리스크별 현황</div>
-        <div class="card-sub" style="margin-bottom:0">이번달 입력 현황</div>
-        <div id="myteam-risks" style="margin-top:10px"></div>
-      </div>
-    </div>
 
-  </div><!-- /content -->
+      <!-- ═ MONTHLY ═ -->
+      <div class="view" id="view-monthly">
+        <div class="split-view">
+          <div class="risk-panel"><div class="panel-hd"><div class="panel-title">이번달 점검 리스크</div><div class="panel-sub" id="monthly-psub">2025년 3월</div></div><div class="panel-list" id="monthly-list"></div></div>
+          <div class="form-panel" id="monthly-form"><div class="empty-panel"><div class="empty-icon">📝</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측 목록에서 점검할 리스크를<br>선택하면 입력 폼이 열립니다</div></div></div>
+        </div>
+      </div>
 
-  <!-- BOTTOM NAV -->
+      <!-- ═ EVAL ═ -->
+      <div class="view" id="view-eval">
+        <div class="split-view">
+          <div class="risk-panel"><div class="panel-hd"><div class="panel-title">평가 대기 목록</div><div class="panel-sub" id="eval-psub">제출완료 건</div></div><div class="panel-list" id="eval-list"></div></div>
+          <div class="form-panel" id="eval-form"><div class="empty-panel"><div class="empty-icon">⚖</div><div class="empty-title">평가할 항목을 선택하세요</div><div class="empty-desc">제출된 내용을 검토하고<br>달성율을 평가해주세요</div></div></div>
+        </div>
+      </div>
+
+      <!-- ═ TEAMS ═ -->
+      <div class="view" id="view-teams">
+        <div id="team-cards"></div>
+        <div class="card"><div class="card-title">전체 팀 추이</div><div class="card-sub">최근 6개월</div><canvas id="teams-canvas" height="200" style="width:100%"></canvas></div>
+      </div>
+
+      <!-- ═ MASTER ═ -->
+      <div class="view" id="view-master">
+        <div class="master-toolbar">
+          <div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="리스크 검색..." oninput="masterSearch(this.value)"></div>
+          <select class="fm-sel" style="min-width:110px"><option>전체 팀</option><option>영업팀</option><option>생산팀</option><option>연구개발팀</option><option>구매팀</option><option>품질팀</option></select>
+          <button class="add-btn" onclick="alert('리스크 추가 — 추후 구현')">＋ 리스크 추가</button>
+        </div>
+        <div class="filter-scroll" id="master-filt">
+          <button class="f-btn on" onclick="masterFilter('전체',this)">전체</button>
+          <button class="f-btn" onclick="masterFilter('영업팀',this)">영업팀</button>
+          <button class="f-btn" onclick="masterFilter('생산팀',this)">생산팀</button>
+          <button class="f-btn" onclick="masterFilter('연구개발팀',this)">연구개발팀</button>
+          <button class="f-btn" onclick="masterFilter('구매팀',this)">구매팀</button>
+          <button class="f-btn" onclick="masterFilter('품질팀',this)">품질팀</button>
+        </div>
+        <div class="table-card"><div class="overflow-x"><table class="tbl"><thead><tr><th>ID</th><th>리스크명</th><th>팀</th><th>유형</th><th>위험도</th><th>Owner</th><th>선정</th><th></th></tr></thead><tbody id="master-tbody"></tbody></table></div></div>
+      </div>
+
+      <!-- ═ MY TEAM ═ -->
+      <div class="view" id="view-myteam">
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">📋</span></div><div class="kpi-num" data-t="4">0</div><div class="kpi-label">담당 리스크</div></div>
+          <div class="kpi-card" style="animation-delay:80ms"><div class="kpi-top"><span class="kpi-icon">📊</span></div><div class="kpi-num" data-t="86" data-pct="1">0</div><div class="kpi-label">달성율</div></div>
+          <div class="kpi-card" style="animation-delay:160ms"><div class="kpi-top"><span class="kpi-icon">⏳</span><span class="badge-warn">미제출</span></div><div class="kpi-num" data-t="1">0</div><div class="kpi-label">미입력</div></div>
+        </div>
+        <div class="chart-row">
+          <div class="card"><div class="card-title">월별 달성율 추이</div><div class="card-sub" id="myteam-csub">영업팀</div><canvas id="myteam-canvas" height="180" style="width:100%"></canvas></div>
+          <div class="card"><div class="card-title">리스크별 현황</div><div class="card-sub">이번달 입력 현황</div><div id="myteam-risks" style="margin-top:8px"></div></div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+
+  <!-- MOBILE BOTTOM NAV -->
   <div id="bottom-nav"></div>
 
-  <!-- DRAWER -->
+  <!-- MOBILE DRAWER -->
   <div id="drawer-overlay" onclick="closeDrawer()"></div>
   <div id="drawer">
-    <div class="drawer-head">
-      <div class="drawer-brand-icon">⚖</div>
-      <div class="drawer-brand-name">Compliance<span>RiskOps</span></div>
-      <button class="drawer-close" onclick="closeDrawer()">✕</button>
-    </div>
-    <div class="drawer-user">
-      <div class="drawer-avatar-row">
-        <div class="drawer-avatar" id="drawer-avatar">👤</div>
-        <div>
-          <div class="drawer-uname" id="drawer-uname">-</div>
-          <div class="drawer-urole" id="drawer-urole">-</div>
-        </div>
-      </div>
-    </div>
-    <div class="drawer-nav" id="drawer-nav"></div>
-    <div class="drawer-footer">
-      <button class="drawer-logout" onclick="doLogout()">로그아웃</button>
-    </div>
+    <div class="dr-head"><div class="dr-brand-icon">⚖</div><div class="dr-brand-name">Compliance<span>RiskOps</span></div><button class="dr-close" onclick="closeDrawer()">✕</button></div>
+    <div class="dr-user"><div class="dr-avatar" id="dr-avatar">👤</div><div><div class="dr-uname" id="dr-uname">-</div><div class="dr-urole" id="dr-urole">-</div></div></div>
+    <div class="dr-nav" id="drawer-nav"></div>
+    <div class="dr-footer"><button class="dr-logout" onclick="doLogout()">로그아웃</button></div>
   </div>
 
-  <!-- BOTTOM SHEET (form) -->
+  <!-- MOBILE BOTTOM SHEET -->
   <div id="sheet-overlay" onclick="closeSheet()"></div>
   <div id="bottom-sheet">
     <div class="sheet-handle"></div>
-    <div class="sheet-header">
-      <div>
-        <div class="sheet-id" id="sheet-id"></div>
-        <div class="sheet-title" id="sheet-title"></div>
-      </div>
-      <button class="sheet-close" onclick="closeSheet()">✕</button>
-    </div>
+    <div class="sheet-hd"><div><div class="sheet-id" id="sheet-id"></div><div class="sheet-title" id="sheet-title"></div></div><button class="sheet-close" onclick="closeSheet()">✕</button></div>
     <div class="sheet-body" id="sheet-body"></div>
     <div class="sheet-footer" id="sheet-footer"></div>
   </div>
-</div>
+
+</div><!-- /app -->
 
 <script>
 /* ═══ DATA ═══ */
@@ -582,28 +589,20 @@ const RISKS=[
   {id:"R008",title:"수입물품 관세분류 오류",team:"구매팀",cat:"수출규제",score:9,status:"미제출",achieve:null,owner:"박성민"},
 ];
 const NAV_ADMIN=[
-  {section:"대시보드"},{id:"dash",icon:"▦",label:"전사 대시보드"},
-  {section:"관리"},{id:"master",icon:"📋",label:"리스크 Master"},{id:"eval",icon:"⚖",label:"이행 달성율 평가",badge:5},
-  {section:"현황"},{id:"teams",icon:"👥",label:"팀 이행현황"},{id:"monthly",icon:"📝",label:"월간 현황 입력",badge:3},
+  {sec:"대시보드"},{id:"dash",icon:"▦",label:"전사 대시보드"},
+  {sec:"관리"},{id:"master",icon:"📋",label:"리스크 Master"},{id:"eval",icon:"⚖",label:"이행 달성율 평가",badge:5},
+  {sec:"현황"},{id:"teams",icon:"👥",label:"팀 이행현황"},{id:"monthly",icon:"📝",label:"월간 현황 입력",badge:3},
 ];
 const NAV_USER=[
-  {section:"업무"},{id:"monthly",icon:"📝",label:"월간 현황 입력",badge:3},
-  {section:"현황"},{id:"myteam",icon:"📈",label:"내 팀 이행현황"},
+  {sec:"업무"},{id:"monthly",icon:"📝",label:"월간 현황 입력",badge:3},
+  {sec:"현황"},{id:"myteam",icon:"📈",label:"내 팀 이행현황"},
 ];
-const BNAV_ADMIN=[
-  {id:"dash",icon:"▦",label:"대시보드"},
-  {id:"monthly",icon:"📝",label:"입력",badge:true},
-  {id:"eval",icon:"⚖",label:"평가",badge:true},
-  {id:"teams",icon:"👥",label:"팀현황"},
-  {id:"master",icon:"📋",label:"Master"},
-];
-const BNAV_USER=[
-  {id:"monthly",icon:"📝",label:"현황 입력",badge:true},
-  {id:"myteam",icon:"📈",label:"내 팀 현황"},
-];
+const BNAV_ADMIN=[{id:"dash",icon:"▦",label:"대시보드"},{id:"monthly",icon:"📝",label:"입력",badge:true},{id:"eval",icon:"⚖",label:"평가",badge:true},{id:"teams",icon:"👥",label:"팀현황"},{id:"master",icon:"📋",label:"Master"}];
+const BNAV_USER=[{id:"monthly",icon:"📝",label:"현황 입력",badge:true},{id:"myteam",icon:"📈",label:"내 팀 현황"}];
 
 /* ═══ STATE ═══ */
-let loginRole='',loginTeam='',appRole='',appTeam='',curPage='';
+let appRole='',appTeam='',loginRole='',loginTeam='',curPage='';
+let isMobile=()=>window.innerWidth<=768;
 
 /* ═══ LOGIN ═══ */
 function pickRole(r){
@@ -613,27 +612,25 @@ function pickRole(r){
   document.getElementById('team-section').style.display=r==='user'?'block':'none';
   document.querySelectorAll('.team-btn').forEach(b=>b.classList.remove('on'));
   document.getElementById('login-btn').disabled=r==='user';
-  if(r==='admin') document.getElementById('login-btn').disabled=false;
+  if(r==='admin')document.getElementById('login-btn').disabled=false;
 }
-function pickTeam(t,el){
-  loginTeam=t;
-  document.querySelectorAll('.team-btn').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-  document.getElementById('login-btn').disabled=false;
-}
+function pickTeam(t,el){loginTeam=t;document.querySelectorAll('.team-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');document.getElementById('login-btn').disabled=false;}
 function doLogin(){
-  appRole=loginRole; appTeam=loginRole==='admin'?'컴플라이언스팀':loginTeam;
+  appRole=loginRole;appTeam=loginRole==='admin'?'컴플라이언스팀':loginTeam;
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app').classList.add('on');
-  document.getElementById('top-user-label').textContent=appTeam;
-  document.getElementById('drawer-uname').textContent=appTeam;
-  document.getElementById('drawer-urole').textContent=appRole==='admin'?'컴플라이언스 관리자':'팀 담당자';
-  document.getElementById('drawer-avatar').textContent=appRole==='admin'?'🛡':'👤';
-  renderDrawerNav();
-  renderBottomNav();
-  const firstPage=appRole==='admin'?'dash':'monthly';
-  navigateTo(firstPage);
-  initDashboard();
+  // PC elements
+  document.getElementById('sb-avatar').textContent=appRole==='admin'?'🛡':'👤';
+  document.getElementById('sb-uname').textContent=appTeam;
+  document.getElementById('sb-urole').textContent=appRole==='admin'?'컴플라이언스 관리자':'팀 담당자';
+  // Mobile elements
+  document.getElementById('mob-user-chip').textContent=appTeam;
+  document.getElementById('dr-avatar').textContent=appRole==='admin'?'🛡':'👤';
+  document.getElementById('dr-uname').textContent=appTeam;
+  document.getElementById('dr-urole').textContent=appRole==='admin'?'컴플라이언스 관리자':'팀 담당자';
+  buildNav();
+  navigateTo(appRole==='admin'?'dash':'monthly');
+  initDash();
 }
 function doLogout(){
   closeDrawer();
@@ -642,23 +639,33 @@ function doLogout(){
   document.getElementById('r-admin').classList.remove('on');
   document.getElementById('r-user').classList.remove('on');
   document.getElementById('login-btn').disabled=true;
+  document.getElementById('team-section').style.display='none';
   loginRole='';loginTeam='';
 }
 
-/* ═══ NAV ═══ */
-function renderDrawerNav(){
+/* ═══ NAV BUILD ═══ */
+function buildNav(){
   const nav=appRole==='admin'?NAV_ADMIN:NAV_USER;
-  document.getElementById('drawer-nav').innerHTML=nav.map(n=>{
-    if(n.section) return `<div class="drawer-section">${n.section}</div>`;
-    return `<button class="drawer-nav-btn" data-id="${n.id}" onclick="closeDrawer();navigateTo('${n.id}')">
-      <span class="drawer-nav-icon">${n.icon}</span>
-      <span class="drawer-nav-lbl">${n.label}</span>
-      ${n.badge?`<span class="drawer-nav-badge">${n.badge}</span>`:''}
+  const tabs=appRole==='admin'?BNAV_ADMIN:BNAV_USER;
+  // PC sidebar
+  document.getElementById('sidebar-nav').innerHTML=nav.map(n=>{
+    if(n.sec)return`<div class="sb-section">${n.sec}</div>`;
+    return`<button class="sb-btn" data-id="${n.id}" onclick="navigateTo('${n.id}')">
+      <span class="sb-btn-icon">${n.icon}</span>
+      <span class="sb-btn-label">${n.label}</span>
+      ${n.badge?`<span class="sb-badge">${n.badge}</span>`:''}
     </button>`;
   }).join('');
-}
-function renderBottomNav(){
-  const tabs=appRole==='admin'?BNAV_ADMIN:BNAV_USER;
+  // Mobile drawer
+  document.getElementById('drawer-nav').innerHTML=nav.map(n=>{
+    if(n.sec)return`<div class="dr-section">${n.sec}</div>`;
+    return`<button class="dr-btn" data-id="${n.id}" onclick="closeDrawer();navigateTo('${n.id}')">
+      <span class="dr-btn-icon">${n.icon}</span>
+      <span class="dr-btn-lbl">${n.label}</span>
+      ${n.badge?`<span class="dr-badge">${n.badge}</span>`:''}
+    </button>`;
+  }).join('');
+  // Mobile bottom nav
   document.getElementById('bottom-nav').innerHTML=tabs.map(t=>`
     <button class="bnav-btn" data-id="${t.id}" onclick="navigateTo('${t.id}')">
       ${t.badge?'<div class="bnav-dot"></div>':''}
@@ -666,337 +673,236 @@ function renderBottomNav(){
       <div class="bnav-label">${t.label}</div>
     </button>`).join('');
 }
-const PAGE_TITLES={dash:'대시보드',monthly:'월간 입력',eval:'달성율 평가',teams:'팀 현황',master:'Master',myteam:'내 팀'};
+
+/* ═══ NAVIGATE ═══ */
+const PAGE_TITLES={dash:'전사 대시보드',monthly:'월간 현황 입력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',myteam:'내 팀 이행현황'};
 const SHOW_FILTER=['dash','teams','eval','master'];
 function navigateTo(id){
   curPage=id;
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
-  const pg=document.getElementById('pg-'+id); if(pg) pg.classList.add('on');
-  document.getElementById('top-page-name').textContent=' · '+(PAGE_TITLES[id]||id);
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  const v=document.getElementById('view-'+id);if(v)v.classList.add('on');
+  const title=PAGE_TITLES[id]||id;
+  document.getElementById('page-title').textContent=title;
+  document.getElementById('mob-page-name').textContent=' · '+title;
   document.getElementById('filter-bar').classList.toggle('on',SHOW_FILTER.includes(id));
-  // bottom nav active
-  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.toggle('on',b.dataset.id===id));
-  document.querySelectorAll('.drawer-nav-btn').forEach(b=>b.classList.toggle('on',b.dataset.id===id));
-  // lazy init
-  if(id==='monthly') renderMonthlyList(RISKS.filter(r=>appRole==='admin'||r.team===appTeam));
-  if(id==='eval') renderEvalList();
-  if(id==='teams') renderTeamsPage();
-  if(id==='master') renderMasterList(RISKS);
-  if(id==='myteam') renderMyTeam();
-  if(id==='dash') runCounters();
-  window.scrollTo&&window.scrollTo(0,0);
+  document.querySelectorAll('.sb-btn,.bnav-btn,.dr-btn').forEach(b=>b.classList.toggle('on',b.dataset.id===id));
+  if(id==='monthly')renderMonthly();
+  if(id==='eval')renderEvalList();
+  if(id==='teams')renderTeams();
+  if(id==='master')renderMaster(RISKS);
+  if(id==='myteam')renderMyTeam();
+  if(id==='dash')runCounters();
   document.getElementById('content').scrollTop=0;
 }
-
-/* ═══ DRAWER ═══ */
-function openDrawer(){
-  document.getElementById('drawer').classList.add('on');
-  document.getElementById('drawer-overlay').classList.add('on');
-}
-function closeDrawer(){
-  document.getElementById('drawer').classList.remove('on');
-  document.getElementById('drawer-overlay').classList.remove('on');
-}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('collapsed')}
 function setYear(y,btn){document.querySelectorAll('.fy-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on')}
-
-/* ═══ SHEET ═══ */
-function openSheet(id,title,bodyHTML,footerHTML){
+function openDrawer(){document.getElementById('drawer').classList.add('on');document.getElementById('drawer-overlay').classList.add('on')}
+function closeDrawer(){document.getElementById('drawer').classList.remove('on');document.getElementById('drawer-overlay').classList.remove('on')}
+function openSheet(id,title,body,footer){
   document.getElementById('sheet-id').textContent=id;
   document.getElementById('sheet-title').textContent=title;
-  document.getElementById('sheet-body').innerHTML=bodyHTML;
-  document.getElementById('sheet-footer').innerHTML=footerHTML;
+  document.getElementById('sheet-body').innerHTML=body;
+  document.getElementById('sheet-footer').innerHTML=footer;
   document.getElementById('sheet-overlay').classList.add('on');
   document.getElementById('bottom-sheet').classList.add('on');
 }
-function closeSheet(){
-  document.getElementById('sheet-overlay').classList.remove('on');
-  document.getElementById('bottom-sheet').classList.remove('on');
-}
+function closeSheet(){document.getElementById('sheet-overlay').classList.remove('on');document.getElementById('bottom-sheet').classList.remove('on')}
 
 /* ═══ HELPERS ═══ */
 const statusSt=s=>({우수:{bg:'#ECFDF5',tx:'#059669'},정상:{bg:'#EFF6FF',tx:'#2563EB'},주의:{bg:'#FFFBEB',tx:'#D97706'},위험:{bg:'#FEF2F2',tx:'#DC2626'}}[s]||{bg:'#F1F5F9',tx:'#64748B'});
 const stClass=s=>({제출완료:'s-sub',평가완료:'s-eval',미제출:'s-none',임시저장:'s-draft'}[s]||'');
 const scColor=v=>v>=15?'var(--red)':v>=10?'var(--amber)':'var(--green)';
+const scClass=v=>v>=15?'score-hi':v>=10?'score-md':'score-lo';
 const heatColor=v=>v>=20?'#EF4444':v>=15?'#F97316':v>=10?'#F59E0B':v>=5?'#84CC16':'#22C55E';
 const barGrad=avg=>`linear-gradient(90deg,#3B82F6,${avg>=80?'#10B981':avg>=65?'#F59E0B':'#EF4444'})`;
+const scoreCol=v=>+v>=80?'var(--green)':+v>=60?'var(--amber)':'var(--red)';
 
-/* ═══ INIT DASHBOARD ═══ */
-function initDashboard(){
-  renderTeamBars();
-  renderHeatmap();
+/* ═══ INIT DASH ═══ */
+function initDash(){
+  renderTeamBars();renderHeatmap();renderRiskTable('전체');
   setTimeout(()=>drawChart('trend-canvas',TREND,TKEYS,TCOLORS,true),80);
   setTimeout(runCounters,100);
 }
-
-/* ═══ COUNTERS ═══ */
 function runCounters(){
   document.querySelectorAll('.kpi-num[data-t]').forEach(el=>{
-    if(el.dataset.done) return; el.dataset.done=1;
+    if(el.dataset.done)return;el.dataset.done=1;
     const tgt=+el.dataset.t,pct=el.dataset.pct;let v=0;
     const step=Math.ceil(tgt/20);
     const t=setInterval(()=>{v=Math.min(v+step,tgt);el.textContent=v+(pct?'%':'');if(v>=tgt)clearInterval(t);},45);
   });
 }
-
-/* ═══ TEAM BARS ═══ */
 function renderTeamBars(){
   document.getElementById('team-bars').innerHTML=TEAMS_DATA.map(d=>{
     const c=statusSt(d.status);
-    return `<div class="team-bar">
-      <div class="team-name">${d.team}</div>
-      <div class="bar-track"><div class="bar-fill" data-w="${d.avg}" style="background:${barGrad(d.avg)}"></div></div>
-      <div class="team-pct">${d.avg}%</div>
-      <span class="stag" style="background:${c.bg};color:${c.tx}">${d.status}</span>
-    </div>`;
+    return`<div class="team-bar"><div class="team-name">${d.team}</div><div class="bar-track"><div class="bar-fill" data-w="${d.avg}" style="background:${barGrad(d.avg)}"></div></div><div class="team-pct">${d.avg}%</div><span class="stag" style="background:${c.bg};color:${c.tx}">${d.status}</span></div>`;
   }).join('');
   setTimeout(()=>document.querySelectorAll('.bar-fill').forEach(b=>b.style.width=b.dataset.w+'%'),100);
 }
-
-/* ═══ CHART ═══ */
 function drawChart(cid,data,keys,colors,legend){
-  const canvas=document.getElementById(cid); if(!canvas) return;
-  const W=canvas.offsetWidth||320,H=+canvas.getAttribute('height')||180;
+  const canvas=document.getElementById(cid);if(!canvas)return;
+  const W=canvas.offsetWidth||400,H=+canvas.getAttribute('height')||200;
   canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
   const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
-  const pad={t:8,r:8,b:28,l:32};
+  const pad={t:8,r:8,b:28,l:34};
   const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
   const mn=40,mx=100,months=data.map(d=>d.month);
   const xp=i=>pad.l+i*(cw/(months.length-1));
   const yp=v=>pad.t+ch-(v-mn)/(mx-mn)*ch;
   ctx.strokeStyle='#E5EBF2';ctx.lineWidth=1;
-  [40,60,80,100].forEach(v=>{
-    ctx.beginPath();ctx.moveTo(pad.l,yp(v));ctx.lineTo(pad.l+cw,yp(v));ctx.stroke();
-    ctx.fillStyle='#94A3B8';ctx.font=`10px sans-serif`;ctx.textAlign='right';
-    ctx.fillText(v+'%',pad.l-3,yp(v)+3);
-  });
-  ctx.fillStyle='#94A3B8';ctx.textAlign='center';
-  months.forEach((m,i)=>ctx.fillText(m,xp(i),H-6));
+  [40,60,80,100].forEach(v=>{ctx.beginPath();ctx.moveTo(pad.l,yp(v));ctx.lineTo(pad.l+cw,yp(v));ctx.stroke();ctx.fillStyle='#94A3B8';ctx.font='10px sans-serif';ctx.textAlign='right';ctx.fillText(v+'%',pad.l-3,yp(v)+3);});
+  ctx.fillStyle='#94A3B8';ctx.textAlign='center';months.forEach((m,i)=>ctx.fillText(m,xp(i),H-6));
   keys.forEach((key,ki)=>{
     const vals=data.map(d=>d[key]||0);
     ctx.beginPath();ctx.strokeStyle=colors[ki];ctx.lineWidth=2.5;ctx.lineJoin='round';
     vals.forEach((v,i)=>i===0?ctx.moveTo(xp(i),yp(v)):ctx.lineTo(xp(i),yp(v)));ctx.stroke();
     vals.forEach((v,i)=>{ctx.beginPath();ctx.arc(xp(i),yp(v),3.5,0,Math.PI*2);ctx.fillStyle=colors[ki];ctx.fill();});
   });
-  if(legend){
-    const el=document.getElementById('trend-legend');
-    if(el) el.innerHTML=keys.map((k,i)=>`<div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:50%;background:${colors[i]};flex-shrink:0"></div><span style="font-size:11px;color:var(--muted)">${k}</span></div>`).join('');
-  }
+  if(legend){const el=document.getElementById('trend-legend');if(el)el.innerHTML=keys.map((k,i)=>`<div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:50%;background:${colors[i]}"></div><span style="font-size:11px;color:var(--muted)">${k}</span></div>`).join('');}
 }
-
-/* ═══ HEATMAP ═══ */
 function renderHeatmap(){
-  let h='<div style="display:flex;gap:3px;margin-bottom:5px"><div style="width:22px"></div>';
-  for(let l=1;l<=5;l++) h+=`<div style="flex:1;text-align:center;font-size:9px;color:var(--muted);font-weight:600">L${l}</div>`;
+  let h='<div style="display:flex;gap:3px;margin-bottom:5px"><div style="width:24px"></div>';
+  for(let l=1;l<=5;l++)h+=`<div style="flex:1;text-align:center;font-size:9px;color:var(--muted);font-weight:600">L${l}</div>`;
   h+='</div>';
-  for(let imp=5;imp>=1;imp--){
-    h+=`<div class="hm-row"><div class="hm-lbl">${imp}</div>`;
-    for(let li=1;li<=5;li++){const s=imp*li;h+=`<div class="hm-cell" style="background:${heatColor(s)}" title="${s}">${s}</div>`;}
-    h+='</div>';
-  }
+  for(let imp=5;imp>=1;imp--){h+=`<div class="hm-row"><div class="hm-lbl">${imp}</div>`;for(let li=1;li<=5;li++){const s=imp*li;h+=`<div class="hm-cell" style="background:${heatColor(s)}" title="${s}">${s}</div>`;}h+='</div>';}
   h+='<div style="display:flex;gap:4px;margin-top:8px;align-items:center"><span style="font-size:9px;color:var(--muted)">낮음</span>';
   ['#22C55E','#84CC16','#F59E0B','#F97316','#EF4444'].forEach(c=>h+=`<div style="width:14px;height:6px;border-radius:3px;background:${c}"></div>`);
   h+='<span style="font-size:9px;color:var(--muted)">높음</span></div>';
   document.getElementById('heatmap').innerHTML=h;
 }
+function renderRiskTable(filter){
+  const data=filter==='전체'?RISKS:RISKS.filter(r=>r.status===filter);
+  document.getElementById('risk-tbody').innerHTML=data.map(r=>{
+    const pb=r.achieve!=null?`<div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:${r.achieve}%;background:${r.achieve>=80?'var(--green)':r.achieve>=60?'var(--amber)':'var(--red)'}"></div></div><span style="font-weight:700">${r.achieve}%</span></div>`:'<span style="color:#94A3B8">미평가</span>';
+    return`<tr><td class="tbl-id">${r.id}</td><td class="tbl-title" title="${r.title}">${r.title}</td><td class="tbl-muted">${r.team}</td><td><span class="cat-tag">${r.cat}</span></td><td><span class="${scClass(r.score)}">${r.score}</span></td><td><span class="status-chip ${stClass(r.status)}">${r.status}</span></td><td>${pb}</td><td><button class="act-btn">상세</button></td></tr>`;
+  }).join('');
+}
+function filterTbl(f,btn){document.querySelectorAll('.table-header .f-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderRiskTable(f);}
 
-/* ═══ MONTHLY LIST ═══ */
-let mFilter='전체';
-function monthlyFilter(f,btn){
-  mFilter=f;
-  document.querySelectorAll('#monthly-filter .f-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
-  renderMonthlyList(RISKS.filter(r=>appRole==='admin'||r.team===appTeam));
+/* ═══ MONTHLY ═══ */
+let selMonthly=null;
+function renderMonthly(){
+  const base=appRole==='admin'?RISKS:RISKS.filter(r=>r.team===appTeam);
+  document.getElementById('monthly-psub').textContent=`2025년 3월 · ${appRole==='admin'?'전체':appTeam}`;
+  document.getElementById('monthly-list').innerHTML=base.map((r,i)=>`
+    <div class="r-item ${selMonthly===i?'on':''}" onclick="selectMonthly(${i})">
+      <div class="r-item-id">${r.id} · ${r.cat}</div>
+      <div class="r-item-name">${r.title}</div>
+      <span class="status-chip ${stClass(r.status)}" style="font-size:9px">${r.status}</span>
+    </div>`).join('');
 }
-function renderMonthlyList(base){
-  const map={'미입력':'미제출','임시저장':'임시저장','제출완료':'제출완료'};
-  const data=mFilter==='전체'?base:base.filter(r=>r.status===(map[mFilter]||mFilter));
-  document.getElementById('monthly-list').innerHTML=data.length?data.map((r,i)=>`
-    <div class="risk-card" onclick="openMonthlyForm(${RISKS.indexOf(r)})">
-      <div class="risk-card-left">
-        <div class="risk-card-id">${r.id} · ${r.team}</div>
-        <div class="risk-card-title">${r.title}</div>
-        <div class="risk-card-meta">
-          <span class="cat-tag">${r.cat}</span>
-          <span class="score-badge" style="color:${scColor(r.score)}">위험도 ${r.score}</span>
-        </div>
-      </div>
-      <div class="risk-card-right">
-        <span class="risk-arr">›</span>
-        <span class="status-chip ${stClass(r.status)}">${r.status}</span>
-      </div>
-    </div>`).join(''):
-    '<div style="text-align:center;color:var(--muted);padding:48px;font-size:14px">해당 항목이 없습니다</div>';
+function selectMonthly(i){
+  selMonthly=i;
+  const r=RISKS[i];
+  const formBody=buildMonthlyFormBody(r);
+  const formFooter=`<button class="btn btn-ghost" onclick="">임시저장</button><button class="btn btn-danger" onclick="alert('이의신청 접수')">이의신청</button><button class="btn btn-primary" onclick="this.textContent='✓ 제출 완료';this.style.background='var(--green)'">제출하기 →</button>`;
+  if(isMobile()){
+    openSheet(r.id+' · '+r.cat,r.title,formBody,formFooter);
+  } else {
+    renderMonthly();
+    document.getElementById('monthly-form').innerHTML=`<div class="form-hd"><div class="form-hd-id">${r.id} · ${r.cat} · ${r.team}</div><div class="form-hd-title">${r.title}</div><div class="form-hd-sub">📌 개선과제: 정기 교육 실시 및 프로세스 표준화</div></div><div class="form-body">${formBody}</div><div class="form-footer">${formFooter}</div>`;
+  }
 }
-function openMonthlyForm(idx){
-  const r=RISKS[idx];
-  const body=`
-    <div class="submitted-box" style="margin-bottom:16px">
-      <div class="submitted-lbl">📌 개선과제</div>
-      <div class="submitted-txt">정기 교육 실시 및 프로세스 표준화</div>
+function buildMonthlyFormBody(r){
+  return`
+    <div class="form-group"><label class="form-label">이행 상태 <span style="color:var(--red)">*</span></label>
+      <div class="radio-row">${['이행완료','이행중','미이행','해당없음'].map(st=>`<div class="radio-chip ${r.status==='제출완료'&&st==='이행완료'?'on':''}" onclick="toggleChip(this)">${st}</div>`).join('')}</div>
     </div>
-    <div class="form-group">
-      <label class="form-label">이행 상태 <span style="color:var(--red)">*</span></label>
-      <div class="radio-row">
-        ${['이행완료','이행중','미이행','해당없음'].map(st=>`<div class="radio-chip ${r.status==='제출완료'&&st==='이행완료'?'on':''}" onclick="toggleChip(this,'.radio-row')">${st}</div>`).join('')}
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">이행 내용 <span style="color:var(--red)">*</span></label>
+    <div class="form-group"><label class="form-label">이행 내용 <span style="color:var(--red)">*</span></label>
       <textarea class="form-textarea" placeholder="이번 달 이행 내용을 구체적으로 작성하세요...">${r.status==='제출완료'?'3월 중 개선 조치를 완료하였습니다. 관련 교육을 전 담당자 대상으로 실시하였으며, 체크리스트 점검을 완료하였습니다.':''}</textarea>
     </div>
-    <div class="form-group">
-      <label class="form-label">증빙 파일</label>
-      <div class="dropzone">
-        <div class="drop-icon">📎</div>
-        <div class="drop-text">탭하여 파일 업로드</div>
-        <div class="drop-sub">PDF, Word, Excel, 이미지 (최대 10MB)</div>
-        ${r.status==='제출완료'?'<div class="file-chip">📄 교육완료확인서_3월.pdf</div>':''}
-      </div>
+    <div class="form-group"><label class="form-label">증빙 파일</label>
+      <div class="dropzone"><div style="font-size:26px;margin-bottom:6px">📎</div><div style="font-size:13px;color:var(--muted)">파일을 드래그하거나 클릭하여 업로드</div><div style="font-size:11px;color:#94A3B8;margin-top:3px">PDF, Word, Excel, 이미지 (최대 10MB)</div>${r.status==='제출완료'?'<div class="file-chip">📄 교육완료확인서_3월.pdf</div>':''}</div>
     </div>
-    <div class="form-group">
-      <label class="form-label">특이사항</label>
+    <div class="form-group"><label class="form-label">특이사항</label>
       <textarea class="form-textarea" style="height:80px" placeholder="특이사항이 있으면 작성하세요 (선택)"></textarea>
     </div>`;
-  const footer=`
-    <button class="btn btn-ghost" onclick="closeSheet()">취소</button>
-    <button class="btn btn-danger" onclick="alert('이의신청 접수');closeSheet()">이의신청</button>
-    <button class="btn btn-primary" onclick="this.textContent='✓ 제출 완료';this.style.background='var(--green)';setTimeout(closeSheet,800)">제출</button>`;
-  openSheet(r.id+' · '+r.cat, r.title, body, footer);
 }
-function toggleChip(el,groupSel){
-  el.closest(groupSel||'.radio-row').querySelectorAll('.radio-chip').forEach(c=>c.classList.remove('on'));
-  el.classList.add('on');
-}
+function toggleChip(el){el.closest('.radio-row').querySelectorAll('.radio-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
 
-/* ═══ EVAL LIST ═══ */
+/* ═══ EVAL ═══ */
+let selEval=null;
 function renderEvalList(){
   const pending=RISKS.filter(r=>r.status==='제출완료');
-  document.getElementById('eval-list').innerHTML=pending.length?pending.map((r,i)=>`
-    <div class="risk-card" onclick="openEvalForm(${RISKS.indexOf(r)})">
-      <div class="risk-card-left">
-        <div class="risk-card-id">${r.id} · ${r.team}</div>
-        <div class="risk-card-title">${r.title}</div>
-        <div class="risk-card-meta">
-          <span class="cat-tag">${r.cat}</span>
-          <span class="score-badge" style="color:${scColor(r.score)}">위험도 ${r.score}</span>
-        </div>
-      </div>
-      <div class="risk-card-right">
-        <span class="risk-arr">›</span>
-        <span class="status-chip s-sub">제출완료</span>
-      </div>
-    </div>`).join(''):
-    '<div style="text-align:center;color:var(--muted);padding:48px;font-size:14px">평가 대기 항목이 없습니다</div>';
+  document.getElementById('eval-psub').textContent=`${pending.length}건 검토 필요`;
+  document.getElementById('eval-list').innerHTML=pending.map((r,i)=>`
+    <div class="r-item ${selEval===i?'on':''}" onclick="selectEval(${i})">
+      <div class="r-item-id">${r.id} · ${r.team}</div>
+      <div class="r-item-name">${r.title}</div>
+      <span class="status-chip s-sub" style="font-size:9px">제출완료</span>
+    </div>`).join('');
 }
-function openEvalForm(idx){
-  const r=RISKS[idx];const initScore=r.achieve||80;
-  const sc=v=>v>=80?'var(--green)':v>=60?'var(--amber)':'var(--red)';
-  const body=`
-    <div class="submitted-box">
-      <div class="submitted-lbl">📝 팀 제출 내용</div>
-      <div class="submitted-txt">3월 중 해당 리스크에 대한 개선 조치를 완료하였습니다. 관련 교육을 전 담당자 대상으로 실시하였으며, 체크리스트 점검을 완료하였습니다.</div>
-      <div class="file-chip">📄 교육완료확인서_3월.pdf</div>
-    </div>
+function selectEval(i){
+  selEval=i;
+  const pending=RISKS.filter(r=>r.status==='제출완료');
+  const r=pending[i];
+  const initScore=r.achieve||80;
+  const body=buildEvalBody(r,initScore);
+  const footer=`<button class="btn btn-danger" onclick="alert('수정 요청 전송')">수정 요청</button><button class="btn btn-success" onclick="this.textContent='✓ 평가 완료';this.disabled=true;this.style.background='#64748B'">평가 완료</button>`;
+  if(isMobile()){
+    openSheet(r.id+' · '+r.team,r.title,body,footer);
+  } else {
+    renderEvalList();
+    document.getElementById('eval-form').innerHTML=`<div class="form-hd"><div class="form-hd-id">${r.id} · ${r.team} · ${r.cat}</div><div class="form-hd-title">${r.title}</div></div><div class="form-body">${body}</div><div class="form-footer">${footer}</div>`;
+  }
+}
+function buildEvalBody(r,score){
+  const sc=scoreCol(score);
+  return`
+    <div class="submitted-box"><div class="submitted-lbl">📝 팀 제출 내용</div><div class="submitted-txt">3월 중 해당 리스크에 대한 개선 조치를 완료하였습니다. 관련 교육을 전 담당자 대상으로 실시하였으며, 체크리스트 점검을 완료하였습니다.</div><div class="file-chip">📄 교육완료확인서_3월.pdf</div></div>
     <div class="form-group">
-      <label class="form-label">이행 달성율 <span style="color:var(--red)">*</span></label>
-      <div class="score-display" id="score-disp" style="color:${sc(initScore)}">${initScore}%</div>
-      <input type="range" min="0" max="100" value="${initScore}" class="eval-slider" id="eval-sl"
-        style="accent-color:${sc(initScore)}" oninput="updateScore(this.value)">
-      <div class="quick-scores">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><label class="form-label" style="margin:0">이행 달성율 <span style="color:var(--red)">*</span></label><span class="score-display" id="score-disp" style="font-size:32px;padding:8px 16px;margin:0;color:${sc}">${score}%</span></div>
+      <input type="range" min="0" max="100" value="${score}" class="eval-slider" id="eval-sl" style="accent-color:${sc}" oninput="updateScore(this.value)">
+      <div class="slider-ticks"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+      <div class="qs-grid">
         <button class="qs-btn" style="border-color:#EF4444;color:#EF4444;background:#FEF2F2" onclick="setScore(20)">미달성 (0–40%)</button>
         <button class="qs-btn" style="border-color:var(--amber);color:var(--amber);background:#FFFBEB" onclick="setScore(55)">부분달성 (40–70%)</button>
         <button class="qs-btn" style="border-color:var(--accent);color:var(--accent);background:var(--accent-l)" onclick="setScore(82)">달성 (70–90%)</button>
         <button class="qs-btn" style="border-color:var(--green);color:var(--green);background:#ECFDF5" onclick="setScore(95)">완전달성 (90%+)</button>
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">평가 코멘트</label>
-      <textarea class="form-textarea" placeholder="평가 의견 및 개선 권고사항을 작성하세요..."></textarea>
-    </div>`;
-  const footer=`
-    <button class="btn btn-danger" onclick="alert('수정 요청 전송');closeSheet()">수정 요청</button>
-    <button class="btn btn-success" onclick="this.textContent='✓ 평가 완료';this.disabled=true;setTimeout(closeSheet,800)">평가 완료</button>`;
-  openSheet(r.id+' · '+r.team, r.title, body, footer);
+    <div class="form-group"><label class="form-label">평가 코멘트</label><textarea class="form-textarea" style="height:90px" placeholder="평가 의견 및 개선 권고사항을 작성하세요..."></textarea></div>`;
 }
-function updateScore(v){
-  const sc=v=>+v>=80?'var(--green)':+v>=60?'var(--amber)':'var(--red)';
-  const d=document.getElementById('score-disp');if(d){d.textContent=v+'%';d.style.color=sc(v);}
-  const s=document.getElementById('eval-sl');if(s)s.style.accentColor=sc(v);
-}
+function updateScore(v){const c=scoreCol(v);const d=document.getElementById('score-disp');if(d){d.textContent=v+'%';d.style.color=c;}const s=document.getElementById('eval-sl');if(s)s.style.accentColor=c;}
 function setScore(v){const s=document.getElementById('eval-sl');if(s){s.value=v;updateScore(v);}}
 
-/* ═══ TEAMS PAGE ═══ */
-function renderTeamsPage(){
+/* ═══ TEAMS ═══ */
+function renderTeams(){
   document.getElementById('team-cards').innerHTML=TEAMS_DATA.map(d=>{
-    const c=statusSt(d.status);
-    const col=d.avg>=80?'var(--green)':d.avg>=65?'var(--amber)':'var(--red)';
-    return `<div class="team-big-card">
-      <div class="team-big-avg" style="color:${col}">${d.avg}%</div>
-      <div class="team-big-info">
-        <div class="team-big-name">${d.team} <span class="stag" style="background:${c.bg};color:${c.tx};font-size:10px">${d.status}</span></div>
-        <div class="team-big-bar"><div style="width:${d.avg}%;height:100%;border-radius:99px;background:${barGrad(d.avg)};transition:width .9s cubic-bezier(.4,0,.2,1)"></div></div>
-        <div class="team-big-months"><span>1월 ${d.jan}%</span><span>2월 ${d.feb}%</span><span>3월 ${d.mar}%</span></div>
-      </div>
-    </div>`;
+    const c=statusSt(d.status);const col=d.avg>=80?'var(--green)':d.avg>=65?'var(--amber)':'var(--red)';
+    return`<div class="team-big-card"><div class="team-big-avg" style="color:${col}">${d.avg}%</div><div class="team-big-info"><div class="team-big-name">${d.team}<span class="stag" style="background:${c.bg};color:${c.tx}">${d.status}</span></div><div class="team-big-bar"><div style="width:${d.avg}%;height:100%;border-radius:99px;background:${barGrad(d.avg)};transition:width .9s cubic-bezier(.4,0,.2,1)"></div></div><div class="team-big-months"><span>1월 ${d.jan}%</span><span>2월 ${d.feb}%</span><span>3월 ${d.mar}%</span></div></div></div>`;
   }).join('');
   setTimeout(()=>drawChart('teams-canvas',TREND,TKEYS,TCOLORS,false),100);
 }
 
-/* ═══ MASTER LIST ═══ */
-let masterQ='',masterTeamF='전체';
-function masterFilter(f,btn){
-  masterTeamF=f;
-  document.querySelectorAll('#master-filter .f-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
-  applyMasterFilter();
-}
-function masterSearch(q){masterQ=q;applyMasterFilter();}
-function applyMasterFilter(){
-  let data=RISKS;
-  if(masterTeamF!=='전체') data=data.filter(r=>r.team===masterTeamF);
-  if(masterQ) data=data.filter(r=>r.title.includes(masterQ)||r.id.includes(masterQ)||r.cat.includes(masterQ));
-  renderMasterList(data);
-}
-function renderMasterList(data){
-  document.getElementById('master-list').innerHTML=data.map(r=>`
-    <div class="risk-card">
-      <div class="risk-card-left">
-        <div class="risk-card-id">${r.id} · ${r.team} · Owner: ${r.owner}</div>
-        <div class="risk-card-title">${r.title}</div>
-        <div class="risk-card-meta">
-          <span class="cat-tag">${r.cat}</span>
-          <span class="score-badge" style="color:${scColor(r.score)}">위험도 ${r.score}</span>
-          <span style="font-size:10px;color:${r.status!=='미제출'?'var(--green)':'var(--muted)'};font-weight:700">${r.status!=='미제출'?'✓ 선정':'미선정'}</span>
-        </div>
-      </div>
-      <div class="risk-card-right">
-        <button style="padding:5px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--muted);font-size:11px;cursor:pointer" onclick="alert('수정 — 추후 구현')">수정</button>
-      </div>
-    </div>`).join('');
+/* ═══ MASTER ═══ */
+let masterQ='',masterTeam='전체';
+function masterFilter(f,btn){masterTeam=f;document.querySelectorAll('#master-filt .f-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');applyMaster();}
+function masterSearch(q){masterQ=q;applyMaster();}
+function applyMaster(){let d=RISKS;if(masterTeam!=='전체')d=d.filter(r=>r.team===masterTeam);if(masterQ)d=d.filter(r=>r.title.includes(masterQ)||r.id.includes(masterQ));renderMaster(d);}
+function renderMaster(data){
+  document.getElementById('master-tbody').innerHTML=data.map(r=>`
+    <tr><td class="tbl-id">${r.id}</td><td class="tbl-title" title="${r.title}">${r.title}</td><td class="tbl-muted">${r.team}</td><td><span class="cat-tag">${r.cat}</span></td><td><span class="${scClass(r.score)}">${r.score}</span></td><td class="tbl-muted">${r.owner}</td>
+    <td>${r.status!=='미제출'?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:#94A3B8">미선정</span>'}</td>
+    <td><button class="act-btn">수정</button></td></tr>`).join('');
 }
 
 /* ═══ MY TEAM ═══ */
 function renderMyTeam(){
   const team=appTeam||'영업팀';
-  document.getElementById('myteam-sub').textContent=`${team} · 2025년 3월`;
-  document.getElementById('myteam-trend-sub').textContent=team;
+  document.getElementById('myteam-csub').textContent=team;
   const myTrend=TREND.map(d=>({month:d.month,[team]:d[team]||80}));
   setTimeout(()=>drawChart('myteam-canvas',myTrend,[team],['#3B82F6'],false),100);
   const myRisks=RISKS.filter(r=>r.team===team);
   document.getElementById('myteam-risks').innerHTML=myRisks.length?myRisks.map(r=>{
-    const pb=r.achieve!=null?`<div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:${r.achieve}%;background:${r.achieve>=80?'var(--green)':r.achieve>=60?'var(--amber)':'var(--red)'}"></div></div><span style="font-size:11px;font-weight:700;color:var(--text)">${r.achieve}%</span></div>`:'<span style="font-size:11px;color:var(--red);font-weight:700">미입력</span>';
-    return `<div class="my-risk-row">
-      <div class="my-risk-id">${r.id}</div>
-      <div class="my-risk-name">${r.title}</div>
-      <span class="status-chip ${stClass(r.status)}" style="font-size:9px;flex-shrink:0">${r.status}</span>
-      ${pb}
-    </div>`;
-  }).join(''):
-  '<div style="text-align:center;color:var(--muted);padding:32px;font-size:13px">이번달 점검 리스크가 없습니다</div>';
+    const pb=r.achieve!=null?`<div class="progress-wrap"><div class="progress-track" style="width:50px"><div class="progress-fill" style="width:${r.achieve}%;background:${r.achieve>=80?'var(--green)':r.achieve>=60?'var(--amber)':'var(--red)'}"></div></div><span style="font-weight:700;font-size:12px">${r.achieve}%</span></div>`:'<span style="color:var(--red);font-size:12px;font-weight:700">미입력</span>';
+    return`<div class="my-risk-row"><div class="my-risk-id">${r.id}</div><div class="my-risk-name">${r.title}</div><span class="status-chip ${stClass(r.status)}" style="font-size:9px;flex-shrink:0">${r.status}</span>${pb}</div>`;
+  }).join(''):'<div style="text-align:center;color:var(--muted);padding:32px;font-size:13px">이번달 점검 리스크가 없습니다</div>';
   setTimeout(runCounters,100);
 }
 
 window.addEventListener('resize',()=>{
-  if(curPage==='dash') setTimeout(()=>drawChart('trend-canvas',TREND,TKEYS,TCOLORS,true),50);
-  if(curPage==='teams') setTimeout(()=>drawChart('teams-canvas',TREND,TKEYS,TCOLORS,false),50);
+  if(curPage==='dash')setTimeout(()=>drawChart('trend-canvas',TREND,TKEYS,TCOLORS,true),50);
+  if(curPage==='teams')setTimeout(()=>drawChart('teams-canvas',TREND,TKEYS,TCOLORS,false),50);
 });
 </script>
 </body>
