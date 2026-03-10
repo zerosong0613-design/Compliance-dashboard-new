@@ -1078,14 +1078,18 @@ function renderSidebar() {
       <span class="nav-icon">🎯</span>점검대상 리스크 선정
     </button>
     <button class="nav-item" data-view="admin-eval" onclick="switchView(this)">
-      <span class="nav-icon">⚖️</span>이행점수 평가
+      <span class="nav-icon">⚖️</span>이행 달성율 평가
       <span class="nav-badge" id="evalBadge" style="display:none">0</span>
     </button>
     <button class="nav-item" data-view="team-overview" onclick="switchView(this)">
       <span class="nav-icon">📈</span>팀 이행현황
     </button>
   ` : '';
-  const teamItems = `
+  const teamItems = isAdmin ? `
+    <button class="nav-item" data-view="team-input" onclick="switchView(this)">
+      <span class="nav-icon">📝</span>월간 현황 입력 (팀 조회)
+    </button>
+  ` : `
     <button class="nav-item" data-view="team-input" onclick="switchView(this)">
       <span class="nav-icon">📝</span>월간 현황 입력
     </button>
@@ -1693,8 +1697,8 @@ function renderEvalResultPanel(ev, obj) {
       <span class="${getStatusBadgeClass(ev.evaluationStatus)}">${getStatusLabel(ev.evaluationStatus)}</span>
     </div>
     <div class="flex-row mb-8">
-      <span style="font-family:var(--mono);font-size:26px;font-weight:800;color:${clr}">${ev.evaluationScore}</span>
-      <span class="tx-sm tx-muted">/ 100점</span>
+      <span style="font-family:var(--mono);font-size:26px;font-weight:800;color:${clr}">${ev.evaluationScore}%</span>
+      <span class="tx-sm tx-muted">달성율</span>
     </div>
     ${ev.evaluationComment ? `<div style="font-size:14px;color:var(--text-secondary);line-height:1.6">${ev.evaluationComment}</div>` : ''}
     <div class="tx-xs tx-muted mt-8">평가자: ${ev.evaluatedBy} · ${ev.evaluatedAt}</div>
@@ -1844,7 +1848,7 @@ async function renderMyHistoryView(container) {
       <div class="flex-btw">
         <div>
           <div class="sec-title">📈 내 팀 이행현황</div>
-          <div class="sec-sub">${year}년 ${team} · 월별 이행점수 추이</div>
+          <div class="sec-sub">${year}년 ${team} · 월별 이행 달성율 추이</div>
         </div>
         ${AppState.role==='ComplianceAdmin'?`
         <select class="fc" style="width:120px" onchange="AppState.viewAsTeam=this.value;renderView('my-history')">
@@ -1867,16 +1871,16 @@ async function renderMyHistoryView(container) {
       </div>
       <div class="kpi-card c-green">
         <span class="kpi-icon">📊</span>
-        <div class="kpi-label">연간 평균점수</div>
+        <div class="kpi-label">연간 평균 달성율</div>
         <div class="kpi-value" style="color:${avgScore!==null?getScoreColor(avgScore):'var(--text-muted)'}">
-          ${avgScore!==null?avgScore:'—'}
+          ${avgScore!==null?avgScore+'%':'—'}
         </div>
-        <div class="kpi-sub">${avgScore!==null?'/ 100점':'미평가'}</div>
+        <div class="kpi-sub">${avgScore!==null?'평균 달성율':'미평가'}</div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">📉 월별 이행점수 추이 (${year}년)</div>
+      <div class="card-title">📉 월별 이행 달성율 추이 (${year}년)</div>
       <div style="height:240px"><canvas id="myTeamChart"></canvas></div>
     </div>
 
@@ -1895,7 +1899,7 @@ async function renderMyHistoryView(container) {
             </div>
           </div>
           ${avg!==null
-            ?`<span style="font-family:var(--mono);font-size:18px;font-weight:800;color:${getScoreColor(avg)}">${avg}점</span>`
+            ?`<span style="font-family:var(--mono);font-size:18px;font-weight:800;color:${getScoreColor(avg)}">${avg}%</span>`
             :`<span class="badge b-draft">미평가</span>`}
           ${hist.delta!==null
             ?`<span class="hist-delta ${hist.delta>0?'hist-up':hist.delta<0?'hist-dn':'hist-eq'}">${hist.delta>0?'▲':hist.delta<0?'▼':'─'}${Math.abs(hist.delta)}</span>`
@@ -1913,7 +1917,7 @@ async function renderMyHistoryView(container) {
       data:{
         labels:Array.from({length:12},(_,i)=>`${i+1}월`),
         datasets:[{
-          label:'이행점수', data:scores,
+          label:'달성율 (%)', data:scores,
           borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,.08)',
           borderWidth:2.5, pointRadius:5,
           pointBackgroundColor:scores.map(s=>s!==null?getScoreColor(s):'transparent'),
@@ -1922,9 +1926,9 @@ async function renderMyHistoryView(container) {
       },
       options:{
         responsive:true, maintainAspectRatio:false,
-        plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw!==null?` ${c.raw}점`:' 미평가'}}},
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw!==null?` ${c.raw}%`:' 미평가'}}},
         scales:{
-          y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#94a3b8',font:{size:11}}},
+          y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#94a3b8',font:{size:11},callback:v=>v+'%'}},
           x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:11}}}
         }
       }
@@ -1959,8 +1963,8 @@ async function renderAdminEvaluationView(container) {
     <div class="sec-hd">
       <div class="flex-btw">
         <div>
-          <div class="sec-title">⚖️ 이행점수 평가</div>
-          <div class="sec-sub">${year}년 ${month}월 · 팀 제출 현황 검토 및 이행점수 평가</div>
+          <div class="sec-title">⚖️ 이행 달성율 평가</div>
+          <div class="sec-sub">${year}년 ${month}월 · 팀 제출 현황 검토 및 이행 달성율 평가 (0~100%)</div>
         </div>
       </div>
     </div>
@@ -2061,13 +2065,13 @@ function renderEvalCard(st, year, month) {
 
     <!-- 평가 입력 패널 -->
     <div style="background:#f8fafc;border:1.5px solid var(--border);border-radius:var(--r);padding:18px">
-      <div class="tx-xs tx-muted" style="font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px">평가 입력</div>
+      <div class="tx-xs tx-muted" style="font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px">달성율 입력</div>
       <div class="score-row">
-        <span style="font-size:14px;color:var(--text-secondary);font-weight:600;white-space:nowrap">이행점수</span>
+        <span style="font-size:14px;color:var(--text-secondary);font-weight:600;white-space:nowrap">이행 달성율 (%)</span>
         <input type="range" id="srange-${st.id}" min="0" max="100" value="${prevScore}"
-          oninput="document.getElementById('sdisp-${st.id}').textContent=this.value;
+          oninput="document.getElementById('sdisp-${st.id}').textContent=this.value+'%';
                    document.getElementById('sdisp-${st.id}').style.color=getScoreColor(Number(this.value))"/>
-        <div class="score-disp" id="sdisp-${st.id}" style="color:${getScoreColor(prevScore)}">${prevScore}</div>
+        <div class="score-disp" id="sdisp-${st.id}" style="color:${getScoreColor(prevScore)}">${prevScore}%</div>
       </div>
       <div class="fg mt-8">
         <label class="flabel">평가 코멘트</label>
@@ -2110,7 +2114,7 @@ async function submitEvaluation(statusId, riskId, team, evId) {
     evaluationScore:score, evaluationComment:cmt, evaluationStatus:estatus,
     evaluatedAt:new Date().toISOString().slice(0,10), evaluatedBy:AppState.userName,
   });
-  showToast(`평가 저장 완료 (${score}점 · ${estatus==='Evaluated'?'평가완료':'수정요청'})`,'ok');
+  showToast(`달성율 저장 완료 (${score}% · ${estatus==='Evaluated'?'평가완료':'수정요청'})`,'ok');
   updateEvalBadge();
   renderView('admin-eval');
 }
@@ -2226,7 +2230,7 @@ async function renderDashboardView(container) {
           </div>
           <span class="t-pct" style="color:${ts.submitRate>=80?'var(--green)':ts.submitRate>=50?'var(--amber)':'var(--red)'}">${ts.submitRate}%</span>
           ${ts.score!==null
-            ?`<span style="font-family:var(--mono);font-size:14px;font-weight:800;color:${getScoreColor(ts.score)};width:52px;text-align:right;flex-shrink:0">${ts.score}점</span>`
+            ?`<span style="font-family:var(--mono);font-size:14px;font-weight:800;color:${getScoreColor(ts.score)};width:52px;text-align:right;flex-shrink:0">${ts.score}%</span>`
             :`<span class="tx-xs tx-muted" style="width:52px;text-align:right;flex-shrink:0">미평가</span>`}
         </div>`).join('')}
         <div style="margin-top:16px;height:200px">
@@ -2280,7 +2284,7 @@ function renderTeamAccordion(ts, dash, year, month) {
           제출 ${subCnt}/${selRisks.length}
         </span>
         ${ts.score!==null
-          ?`<span style="font-family:var(--mono);font-size:15px;font-weight:800;color:${getScoreColor(ts.score)}">${ts.score}점</span>`
+          ?`<span style="font-family:var(--mono);font-size:15px;font-weight:800;color:${getScoreColor(ts.score)}">${ts.score}%</span>`
           :`<span class="tx-sm tx-muted">미평가</span>`}
         <span class="acc-arrow">▼</span>
       </div>
@@ -2299,7 +2303,7 @@ function renderTeamAccordion(ts, dash, year, month) {
             <span style="font-size:14px;font-weight:600">${risk.riskTitle}</span>
             ${risk.owner?`<span class="tx-xs tx-muted">👤 ${risk.owner}</span>`:''}
             <span class="${getStatusBadgeClass(st?st.submissionStatus:'Draft')}">${getStatusLabel(st?st.submissionStatus:'미입력')}</span>
-            ${ev?`<span style="margin-left:auto;font-family:var(--mono);font-weight:800;font-size:14px;color:${getScoreColor(ev.evaluationScore)}">${ev.evaluationScore}점</span>`:''}
+            ${ev?`<span style="margin-left:auto;font-family:var(--mono);font-weight:800;font-size:14px;color:${getScoreColor(ev.evaluationScore)}">${ev.evaluationScore}%</span>`:''}
           </div>
           ${st&&st.thisMonthProgress?`<div class="tx-sm tx-muted mt-4">${st.thisMonthProgress.substring(0,80)}${st.thisMonthProgress.length>80?'…':''}</div>`:''}
         </div>`;
@@ -2316,7 +2320,7 @@ async function renderTeamOverviewView(container) {
   container.innerHTML = `
     <div class="sec-hd">
       <div class="sec-title">📈 팀 이행현황</div>
-      <div class="sec-sub">${year}년 · 팀별 월간 이행점수 추이 및 리스크 현황</div>
+      <div class="sec-sub">${year}년 · 팀별 월간 이행 달성율 추이 및 리스크 현황</div>
     </div>
     ${TEAMS.map(team=>{
       const tRisks=selected.filter(r=>r.team===team);
@@ -2331,7 +2335,7 @@ async function renderTeamOverviewView(container) {
             <span class="chip" style="margin-left:10px">점검대상 ${tRisks.length}건</span>
           </div>
           ${avg!==null
-            ?`<span style="font-family:var(--mono);font-size:20px;font-weight:800;color:${getScoreColor(avg)}">${avg}점</span>`
+            ?`<span style="font-family:var(--mono);font-size:20px;font-weight:800;color:${getScoreColor(avg)}">${avg}%</span>`
             :`<span class="badge b-draft">미평가</span>`}
         </div>
         <div style="height:180px;margin-bottom:16px"><canvas id="ov-${safeTeam}"></canvas></div>
@@ -2344,7 +2348,7 @@ async function renderTeamOverviewView(container) {
               <div style="font-size:12px;font-weight:600;margin-bottom:2px">${r.riskTitle.substring(0,22)}${r.riskTitle.length>22?'…':''}</div>
               <div class="tx-xs tx-muted">${r.riskCategory}${r.owner?` · 👤 ${r.owner}`:''}</div>
               <div style="margin-top:6px;font-family:var(--mono);font-size:15px;font-weight:800;color:${rAvg!==null?getScoreColor(rAvg):'var(--text-muted)'}">
-                ${rAvg!==null?`${rAvg}점`:'미평가'}
+                ${rAvg!==null?`${rAvg}%`:'미평가'}
               </div>
             </div>`;
           }).join('')}
@@ -2364,7 +2368,7 @@ async function renderTeamOverviewView(container) {
         data:{
           labels:Array.from({length:12},(_,i)=>`${i+1}월`),
           datasets:[{
-            label:'이행점수', data:scores,
+            label:'달성율 (%)', data:scores,
             borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,.07)',
             borderWidth:2, pointRadius:4,
             pointBackgroundColor:scores.map(s=>s!==null?getScoreColor(s):'transparent'),
@@ -2373,9 +2377,9 @@ async function renderTeamOverviewView(container) {
         },
         options:{
           responsive:true, maintainAspectRatio:false,
-          plugins:{legend:{display:false}},
+          plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw!==null?` ${c.raw}%`:' 미평가'}}},
           scales:{
-            y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#94a3b8',font:{size:10}}},
+            y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'%'}},
             x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:10}}}
           }
         }
@@ -2458,16 +2462,16 @@ function renderTeamBarChart(teamScores) {
     data:{
       labels,
       datasets:[{
-        label:'평균 이행점수', data,
+        label:'평균 달성율', data,
         backgroundColor:colors.map(c=>c+'33'),
         borderColor:colors, borderWidth:2, borderRadius:5,
       }]
     },
     options:{
       indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.raw}점`}}},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.raw}%`}}},
       scales:{
-        x:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#94a3b8',font:{size:11}}},
+        x:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#94a3b8',font:{size:11},callback:v=>v+'%'}},
         y:{grid:{display:false},ticks:{color:'#1a2332',font:{size:12,weight:'600'}}}
       }
     }
@@ -2486,7 +2490,7 @@ function renderTeamMonthChart(team, year) {
     data:{
       labels:Array.from({length:12},(_,i)=>`${i+1}월`),
       datasets:[{
-        label:'이행점수', data:scores,
+        label:'달성율 (%)', data:scores,
         borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,.07)',
         borderWidth:2.5, pointRadius:5,
         pointBackgroundColor:scores.map(s=>s!==null?getScoreColor(s):'transparent'),
@@ -2495,9 +2499,9 @@ function renderTeamMonthChart(team, year) {
     },
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw!==null?` ${c.raw}점`:' 미평가'}}},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw!==null?` ${c.raw}%`:' 미평가'}}},
       scales:{
-        y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#94a3b8',font:{size:10}}},
+        y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'%'}},
         x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:10}}}
       }
     }
