@@ -449,6 +449,18 @@ tr:hover td { background: #f8fafc; }
 .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1.5px solid var(--border); color: var(--text-primary); }
 .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; padding-top: 16px; border-top: 1.5px solid var(--border); }
 
+@media (max-width: 768px) {
+  #modal-overlay { align-items: flex-end; padding: 0; }
+  .modal-box { 
+    width: 100%; max-width: 100%; border-radius: var(--r-lg) var(--r-lg) 0 0;
+    max-height: 88vh; padding: 22px 16px 32px;
+    animation: slideUpMob .28s ease;
+  }
+  @keyframes slideUpMob { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
+  .modal-footer { justify-content: stretch; }
+  .modal-footer .btn { flex: 1; justify-content: center; }
+}
+
 /* ═══════════════════ HEATMAP ═══════════════════ */
 .hm-wrap { overflow-x: auto; }
 .hm-grid { display: grid; grid-template-columns: 36px repeat(5, 1fr); gap: 5px; min-width: 340px; }
@@ -470,11 +482,160 @@ tr:hover td { background: #f8fafc; }
 .stat-val   { font-family: var(--mono); font-size: 15px; font-weight: 800; }
 
 /* ═══════════════════ RESPONSIVE ═══════════════════ */
+/* ═══════════════════ MOBILE NAV OVERLAY ═══════════════════ */
+.mob-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.45); z-index: 299;
+  animation: fadeIn .2s ease;
+}
+.mob-overlay.visible { display: block; }
+
+.hamburger {
+  display: none; align-items: center; justify-content: center;
+  width: 38px; height: 38px; background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2); border-radius: var(--r-sm);
+  cursor: pointer; font-size: 17px; color: #fff; flex-shrink: 0;
+  margin-right: 4px;
+}
+
+/* ═══════════════════ MOBILE BOTTOM NAV ═══════════════════ */
+.mob-bottom-nav {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--bg-sidebar);
+  border-top: 1px solid rgba(255,255,255,.1);
+  z-index: 200;
+  padding: 6px 0 max(6px, env(safe-area-inset-bottom));
+}
+.mob-bottom-nav-inner {
+  display: flex; justify-content: space-around; align-items: center;
+}
+.mob-nav-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 10px; border-radius: var(--r-sm);
+  background: none; border: none; cursor: pointer;
+  color: rgba(200,214,229,.6); font-family: var(--font);
+  font-size: 10px; font-weight: 600; transition: color .15s;
+  min-width: 52px; position: relative;
+}
+.mob-nav-btn .mob-icon { font-size: 18px; }
+.mob-nav-btn.active { color: #60a5fa; }
+.mob-nav-btn .mob-badge {
+  position: absolute; top: 2px; right: 8px;
+  background: #ef4444; color: #fff;
+  font-size: 9px; font-weight: 800; padding: 1px 4px;
+  border-radius: 8px; min-width: 14px; text-align: center;
+}
+
+/* ═══════════════════ RESPONSIVE BREAKPOINTS ═══════════════════ */
 @media (max-width: 768px) {
-  .sidebar { display: none; }
+  /* Layout */
+  .sidebar { 
+    position: fixed; top: 0; left: -var(--sidebar); bottom: 0;
+    width: 260px; z-index: 300;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    padding-top: calc(var(--header) + 8px);
+  }
+  .sidebar.mob-open { transform: translateX(0); }
+  .hamburger { display: flex; }
+  .content { padding: 16px 14px 100px; }
+
+  /* Header */
+  .app-header { padding: 0 12px; gap: 8px; }
+  .header-brand { font-size: 13px; }
+  .header-brand::after { content: ''; }
+  .header-ctrl { gap: 6px; }
+  .header-ctrl > label { display: none; }
+  .h-select { padding: 4px 6px; font-size: 12px; }
+  .header-user-chip { display: none; }
+  .btn.logout-btn { padding: 5px 9px; font-size: 11px; }
+
+  /* Bottom nav */
+  .mob-bottom-nav { display: block; }
+
+  /* Grid collapse */
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  .content { padding: 16px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+  /* Section header */
+  .sec-title { font-size: 17px; }
+  .flex-btw { flex-wrap: wrap; gap: 8px; }
+
+  /* Cards */
+  .card { padding: 16px; }
+  .kpi-card { padding: 16px 14px; }
+  .kpi-value { font-size: 24px; }
+
+  /* Filter bar */
+  .fbar { padding: 10px 12px; gap: 7px; }
+  .fbar select, .fbar input[type=text] { font-size: 12px; padding: 6px 8px; }
+  .fbar-sep { display: none; }
+  .fbar-count { margin-left: 0; width: 100%; text-align: right; }
+
+  /* Table — scroll container */
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tbl-wrap table { min-width: 700px; }
+  .tbl-wrap th, .tbl-wrap td { padding: 9px 10px; font-size: 12px; }
+
+  /* Accordion + eval cards */
+  .eval-card { padding: 14px; }
+  .score-row { flex-wrap: wrap; gap: 8px; }
+  .score-disp { width: auto; }
+  .modal-box { padding: 20px 16px; }
+
+  /* Risk cards */
+  .rch { padding: 14px 16px; }
+  .rcb { padding: 16px; }
+
+  /* Heatmap scroll */
+  .hm-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .hm-grid { min-width: 280px; }
+
+  /* Warn box */
+  .warn-box { flex-direction: column; gap: 8px; }
+  .warn-tags { flex-wrap: wrap; }
+
+  /* Login */
+  .login-box { padding: 32px 20px; }
+  .role-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .role-card { padding: 14px 8px; }
+  .role-card .rc-icon { font-size: 22px; }
+  .role-card .rc-label { font-size: 13px; }
+
+  /* Toast */
+  #toast-ct { bottom: 90px; right: 12px; left: 12px; }
+  .toast { min-width: auto; }
+}
+
+@media (max-width: 430px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .kpi-card { padding: 12px 10px; }
+  .kpi-icon { font-size: 18px; margin-bottom: 6px; }
+  .kpi-value { font-size: 20px; }
+  .kpi-label { font-size: 10px; }
+  .btn { padding: 8px 12px; font-size: 13px; }
+  .btn-sm { padding: 5px 9px; font-size: 11px; }
+  .sec-title { font-size: 16px; }
+  .content { padding: 12px 10px 100px; }
+}
+
+/* ── Mobile card list (RiskMaster table 대체) ── */
+.mob-card-list { display: none; flex-direction: column; gap: 10px; }
+.tbl-wrap.mob-hidden { display: none; }
+@media (max-width: 768px) {
+  .mob-card-list { display: flex; }
+  .tbl-wrap.mob-hidden { display: none !important; }
+  .mob-risk-item {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--r); padding: 14px 16px; box-shadow: var(--shadow-sm);
+  }
+  .mob-risk-item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .mob-risk-item-title { font-size: 14px; font-weight: 700; color: var(--text-primary); flex: 1; line-height: 1.4; }
+  .mob-risk-item-meta  { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
+  .mob-risk-item-desc  { font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 4px 0; }
+  .mob-risk-item-acts  { display: flex; gap: 7px; margin-top: 10px; }
+  .mob-risk-score-row  { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
 }
 </style>
 </head>
@@ -523,6 +684,7 @@ tr:hover td { background: #f8fafc; }
 <!-- ═══════════════════ MAIN APP ═══════════════════ -->
 <div id="app" style="display:none">
   <header class="app-header">
+    <button class="hamburger" id="hamburgerBtn" onclick="toggleMobSidebar()" aria-label="메뉴">☰</button>
     <div class="header-brand">
       <span class="pulse-dot"></span>
       🛡️ 컴플라이언스 리스크 관리
@@ -536,7 +698,7 @@ tr:hover td { background: #f8fafc; }
       <label>월</label>
       <select id="globalMonth" class="h-select" onchange="handleGlobalFilter()"></select>
       <div class="header-user-chip" id="userChip"></div>
-      <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25)" onclick="logoutApp()">로그아웃</button>
+      <button class="btn btn-sm logout-btn" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25)" onclick="logoutApp()">로그아웃</button>
     </div>
   </header>
   <div class="main-wrap">
@@ -548,6 +710,12 @@ tr:hover td { background: #f8fafc; }
     </nav>
     <main class="content" id="mainContent"></main>
   </div>
+  <!-- Mobile overlay -->
+  <div class="mob-overlay" id="mobOverlay" onclick="closeMobSidebar()"></div>
+  <!-- Mobile bottom nav -->
+  <nav class="mob-bottom-nav" id="mobBottomNav">
+    <div class="mob-bottom-nav-inner" id="mobBottomNavInner"></div>
+  </nav>
 </div>
 <div id="toast-ct"></div>
 
@@ -1104,15 +1272,61 @@ function renderSidebar() {
 
 function highlightNav(view) {
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.view===view));
+  renderMobBottomNav(view);
+}
+
+/* ── Mobile sidebar ── */
+function toggleMobSidebar() {
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('mobOverlay');
+  const open=sb.classList.contains('mob-open');
+  sb.classList.toggle('mob-open',!open);
+  ov.classList.toggle('visible',!open);
+}
+function closeMobSidebar() {
+  document.getElementById('sidebar')?.classList.remove('mob-open');
+  document.getElementById('mobOverlay')?.classList.remove('visible');
+}
+
+/* ── Mobile bottom nav ── */
+function renderMobBottomNav(activeView) {
+  const ct=document.getElementById('mobBottomNavInner');
+  if(!ct) return;
+  const isAdmin=AppState.role==='ComplianceAdmin';
+  const adminItems=[
+    {view:'dashboard',  icon:'📊', label:'대시보드'},
+    {view:'admin-eval', icon:'⚖️', label:'평가'},
+    {view:'team-overview',icon:'📈',label:'이행현황'},
+    {view:'risk-master',icon:'📋', label:'리스크'},
+    {view:'team-input', icon:'📝', label:'조회'},
+  ];
+  const teamItems=[
+    {view:'team-input', icon:'📝', label:'현황입력'},
+    {view:'my-history', icon:'📈', label:'이행현황'},
+  ];
+  const items = isAdmin ? adminItems : teamItems;
+  const pendingN = mockMonthlyStatus.filter(s=>
+    s.year===AppState.year&&s.month===AppState.month&&s.submissionStatus==='Submitted'
+  ).length;
+  ct.innerHTML = items.map(it=>`
+    <button class="mob-nav-btn ${activeView===it.view?'active':''}"
+      onclick="closeMobSidebar();AppState.activeView='${it.view}';highlightNav('${it.view}');renderView('${it.view}')">
+      <span class="mob-icon">${it.icon}</span>
+      ${it.label==='평가'&&pendingN>0?`<span class="mob-badge">${pendingN}</span>`:''}
+      <span>${it.label}</span>
+    </button>`).join('');
 }
 function switchView(btn) {
   AppState.activeView=btn.dataset.view;
   highlightNav(AppState.activeView);
+  closeMobSidebar();
   renderView(AppState.activeView);
 }
 function renderView(view) {
   const ct=document.getElementById('mainContent');
   ct.innerHTML='<div style="color:var(--text-muted);padding:48px;text-align:center;font-size:14px">로딩 중...</div>';
+  ct.scrollTop=0;
+  window.scrollTo(0,0);
   const map={
     'dashboard':renderDashboardView,
     'risk-master':renderRiskMasterView,
@@ -1211,7 +1425,7 @@ async function renderRiskMasterView(container) {
         oninput="AppState.mFilterSearch=this.value;renderView('risk-master')" style="width:160px"/>
       <span class="fbar-count">${filtered.length}건</span>
     </div>
-    <div class="tbl-wrap">
+    <div class="tbl-wrap mob-hidden">
       <table>
         <thead><tr>
           <th>Risk ID</th><th>팀</th><th>유형</th><th>리스크 제목</th>
@@ -1226,6 +1440,12 @@ async function renderRiskMasterView(container) {
             :filtered.map(r=>renderRiskMasterRow(r)).join('')}
         </tbody>
       </table>
+    </div>
+    <!-- Mobile card list -->
+    <div class="mob-card-list">
+      ${filtered.length===0
+        ?`<div class="card" style="text-align:center;padding:36px;color:var(--text-muted)">조회된 리스크가 없습니다.</div>`
+        :filtered.map(r=>renderRiskMasterMobCard(r)).join('')}
     </div>
   `;
 }
@@ -1264,6 +1484,37 @@ function renderRiskMasterRow(r) {
       </div>
     </td>
   </tr>`;
+}
+
+function renderRiskMasterMobCard(r) {
+  const score=r.riskFormulaScore||calcRiskScore(r);
+  const sc=getRiskScoreColor(score);
+  return `
+  <div class="mob-risk-item">
+    <div class="mob-risk-item-top">
+      <div class="mob-risk-item-title">${r.riskTitle}</div>
+      ${r.isSelected?'<span class="badge b-selected">점검대상</span>':'<span class="badge b-draft">미선택</span>'}
+    </div>
+    <div class="mob-risk-item-meta">
+      <span class="chip">${r.team}</span>
+      <span class="chip">${r.riskCategory}</span>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">${r.riskId}</span>
+    </div>
+    <div class="mob-risk-score-row">
+      <span class="tx-xs tx-muted">영향도</span><strong>${r.impactScore}</strong>
+      <span class="tx-xs tx-muted">× 가능성</span><strong>${r.likelihoodScore}</strong>
+      <span class="tx-xs tx-muted">=</span>
+      <span style="font-family:var(--mono);font-size:16px;font-weight:800;color:${sc}">${score}</span>
+    </div>
+    ${r.owner?`<div class="tx-sm tx-muted">👤 ${r.owner}</div>`:''}
+    <div class="mob-risk-item-acts">
+      <button class="btn btn-secondary btn-sm" onclick="openEditRiskModal('${r.riskId}')">✏️ 수정</button>
+      <button class="btn btn-sm ${r.isSelected?'btn-danger':'btn-success'}"
+        onclick="toggleRiskSelected('${r.riskId}')">
+        ${r.isSelected?'선정 해제':'점검대상 선정'}
+      </button>
+    </div>
+  </div>`;
 }
 
 function toggleRiskSelected(riskId) {
@@ -1445,7 +1696,7 @@ async function renderRiskSelectView(container) {
         현재 점검대상 <strong style="color:var(--accent)">${selectedCount}건</strong> / 전체 <strong style="color:var(--text-primary)">${data.length}건</strong>
       </div>
     </div>
-    <div class="tbl-wrap">
+    <div class="tbl-wrap mob-hidden">
       <table>
         <thead><tr>
           <th style="text-align:center">순위</th><th>Risk ID</th><th>팀</th>
@@ -1476,6 +1727,36 @@ async function renderRiskSelectView(container) {
           </tr>`).join('')}
         </tbody>
       </table>
+    </div>
+    <!-- Mobile card list -->
+    <div class="mob-card-list">
+      ${sorted.map((r,i)=>`
+      <div class="mob-risk-item" style="${r.isSelected?'border-left:4px solid var(--amber)':''}">
+        <div class="mob-risk-item-top">
+          <div>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-right:6px">#${i+1}</span>
+            <span class="mob-risk-item-title" style="display:inline">${r.riskTitle}</span>
+          </div>
+          ${r.isSelected?'<span class="badge b-selected">선정됨</span>':''}
+        </div>
+        <div class="mob-risk-item-meta">
+          <span class="chip">${r.team}</span>
+          <span class="chip">${r.riskCategory}</span>
+          ${r.owner?`<span class="tx-xs tx-muted">👤 ${r.owner}</span>`:''}
+        </div>
+        <div class="mob-risk-score-row">
+          <span class="tx-xs tx-muted">영향도</span><strong>${r.impactScore}</strong>
+          <span class="tx-xs tx-muted">×</span><strong>${r.likelihoodScore}</strong>
+          <span class="tx-xs tx-muted">=</span>
+          <span style="font-family:var(--mono);font-size:18px;font-weight:800;color:${getRiskScoreColor(r.riskFormulaScore||0)}">${r.riskFormulaScore||0}</span>
+        </div>
+        <div class="mob-risk-item-acts">
+          <button class="btn btn-sm ${r.isSelected?'btn-danger':'btn-success'}"
+            onclick="toggleRiskSelected('${r.riskId}');renderView('risk-select')">
+            ${r.isSelected?'선정 해제':'점검대상 선정'}
+          </button>
+        </div>
+      </div>`).join('')}
     </div>
   `;
 }
