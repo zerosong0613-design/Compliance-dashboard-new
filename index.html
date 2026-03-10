@@ -92,14 +92,16 @@ html, body {
 /* ═══════════════════ LOGIN ═══════════════════ */
 #login-screen {
   display: flex; align-items: center; justify-content: center;
-  min-height: 100vh;
+  min-height: 100vh; min-height: 100dvh;
+  padding: 20px 16px;
   background: linear-gradient(135deg, #1e2d40 0%, #2e4160 50%, #1a3a5c 100%);
+  overflow-y: auto;
 }
 .login-box {
   background: #fff;
   border-radius: var(--r-lg);
   padding: 44px 40px;
-  width: 440px; max-width: 95vw;
+  width: 440px; max-width: 100%;
   box-shadow: var(--shadow-lg);
 }
 .login-logo { text-align: center; margin-bottom: 32px; }
@@ -503,28 +505,30 @@ tr:hover td { background: #f8fafc; }
   display: none;
   position: fixed; bottom: 0; left: 0; right: 0;
   background: var(--bg-sidebar);
-  border-top: 1px solid rgba(255,255,255,.1);
+  border-top: 1px solid rgba(255,255,255,.12);
   z-index: 200;
-  padding: 6px 0 max(6px, env(safe-area-inset-bottom));
+  /* iOS Safari 홈 인디케이터 영역 확보 */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .mob-bottom-nav-inner {
   display: flex; justify-content: space-around; align-items: center;
+  height: 56px;
 }
 .mob-nav-btn {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 6px 10px; border-radius: var(--r-sm);
+  padding: 6px 8px; border-radius: var(--r-sm);
   background: none; border: none; cursor: pointer;
-  color: rgba(200,214,229,.6); font-family: var(--font);
+  color: rgba(200,214,229,.55); font-family: var(--font);
   font-size: 10px; font-weight: 600; transition: color .15s;
-  min-width: 52px; position: relative;
+  min-width: 48px; flex: 1; position: relative;
 }
-.mob-nav-btn .mob-icon { font-size: 18px; }
+.mob-nav-btn .mob-icon { font-size: 20px; line-height: 1; }
 .mob-nav-btn.active { color: #60a5fa; }
 .mob-nav-btn .mob-badge {
-  position: absolute; top: 2px; right: 8px;
+  position: absolute; top: 4px; right: calc(50% - 18px);
   background: #ef4444; color: #fff;
-  font-size: 9px; font-weight: 800; padding: 1px 4px;
-  border-radius: 8px; min-width: 14px; text-align: center;
+  font-size: 9px; font-weight: 800; padding: 1px 5px;
+  border-radius: 8px; min-width: 16px; text-align: center;
 }
 
 /* ═══════════════════ RESPONSIVE BREAKPOINTS ═══════════════════ */
@@ -539,7 +543,8 @@ tr:hover td { background: #f8fafc; }
   }
   .sidebar.mob-open { transform: translateX(0); }
   .hamburger { display: flex; }
-  .content { padding: 16px 14px 100px; }
+  /* 하단 탭바(56px) + safe-area + 여유 16px */
+  .content { padding: 16px 14px calc(56px + env(safe-area-inset-bottom, 0px) + 16px); }
 
   /* Header */
   .app-header { padding: 0 12px; gap: 8px; }
@@ -597,11 +602,18 @@ tr:hover td { background: #f8fafc; }
   .warn-tags { flex-wrap: wrap; }
 
   /* Login */
-  .login-box { padding: 32px 20px; }
+  #login-screen { align-items: flex-start; padding: 24px 14px; }
+  .login-box { padding: 28px 18px; border-radius: var(--r); }
+  .login-logo .logo-icon { font-size: 32px; }
+  .login-logo h1 { font-size: 18px; }
+  .login-divider { margin: 16px 0; }
   .role-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .role-card { padding: 14px 8px; }
   .role-card .rc-icon { font-size: 22px; }
-  .role-card .rc-label { font-size: 13px; }
+  .role-card .rc-label { font-size: 12px; }
+  .role-card .rc-desc { font-size: 10px; }
+  .login-input { padding: 11px 12px; font-size: 14px; }
+  .login-btn { padding: 13px; font-size: 15px; }
 
   /* Toast */
   #toast-ct { bottom: 90px; right: 12px; left: 12px; }
@@ -617,7 +629,7 @@ tr:hover td { background: #f8fafc; }
   .btn { padding: 8px 12px; font-size: 13px; }
   .btn-sm { padding: 5px 9px; font-size: 11px; }
   .sec-title { font-size: 16px; }
-  .content { padding: 12px 10px 100px; }
+  .content { padding: 12px 10px calc(56px + env(safe-area-inset-bottom, 0px) + 16px); }
 }
 
 /* ── Mobile card list (RiskMaster table 대체) ── */
