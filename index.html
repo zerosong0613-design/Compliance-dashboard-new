@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Compliance RiskOps</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 /* ═══════════════════════════════════════
    TOKENS & RESET
@@ -349,6 +350,38 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .my-risk-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
 .my-risk-id{font-family:monospace;font-size:10px;font-weight:700;color:var(--accent);width:36px;flex-shrink:0}
 .my-risk-name{flex:1;font-size:12px;font-weight:600;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ═══════════════════════════════════════
+   EXCEL UPLOAD MODAL
+═══════════════════════════════════════ */
+#excel-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);padding:20px}
+#excel-modal-overlay.on{display:flex;animation:fadeIn .2s}
+#excel-modal{background:#fff;border-radius:20px;width:100%;max-width:680px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.3);animation:fadeUp .3s ease}
+.em-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.em-title{font-size:16px;font-weight:800;color:var(--text)}
+.em-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.em-close{width:30px;height:30px;border:none;background:var(--bg);border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.em-body{padding:20px 24px;overflow-y:auto;flex:1}
+.em-info-bar{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#1E40AF;line-height:1.6}
+.em-score-legend{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.em-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.em-legend-dot{width:10px;height:10px;border-radius:50%}
+.em-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.em-tbl th{padding:9px 12px;text-align:left;font-weight:700;font-size:11px;color:var(--muted);background:var(--light);border-bottom:2px solid var(--border);white-space:nowrap}
+.em-tbl td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+.em-tbl tr:hover td{background:#F0F7FF}
+.em-rank{font-size:11px;font-weight:800;color:#94A3B8;text-align:center}
+.em-score-badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:800}
+.em-check{width:17px;height:17px;accent-color:var(--accent);cursor:pointer}
+.em-sel-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;color:var(--muted)}
+.em-sel-count{font-weight:700;color:var(--accent)}
+.em-foot{padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0}
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:32px;text-align:center;background:var(--light);cursor:pointer;transition:all .2s;margin-bottom:4px}
+.upload-zone:hover{border-color:var(--accent);background:var(--accent-l)}
+.upload-zone-icon{font-size:36px;margin-bottom:10px}
+.upload-zone-txt{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.upload-zone-sub{font-size:12px;color:var(--muted)}
+#excel-file-input{display:none}
 </style>
 </head>
 <body>
@@ -506,7 +539,10 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
       <div class="view" id="view-master">
         <div class="master-toolbar">
           <div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="리스크 검색..." oninput="masterSearch(this.value)"></div>
-          <select class="fm-sel" style="min-width:110px"><option>전체 팀</option><option>영업팀</option><option>생산팀</option><option>연구개발팀</option><option>구매팀</option><option>품질팀</option></select>
+          <select class="fm-sel" style="min-width:110px" onchange="masterFilter(this.value, null, this)"><option value="전체">전체 팀</option><option>영업팀</option><option>생산팀</option><option>연구개발팀</option><option>구매팀</option><option>품질팀</option></select>
+          <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px" onclick="downloadTemplate()">📥 양식 다운로드</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;border-color:#93C5FD;color:var(--accent)" onclick="document.getElementById('excel-file-input').click()">📤 엑셀 등록</button>
+          <input type="file" id="excel-file-input" accept=".xlsx,.xls" onchange="handleExcelUpload(event)">
           <button class="add-btn" onclick="alert('리스크 추가 — 추후 구현')">＋ 리스크 추가</button>
         </div>
         <div class="filter-scroll" id="master-filt">
@@ -518,6 +554,55 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
           <button class="f-btn" onclick="masterFilter('품질팀',this)">품질팀</button>
         </div>
         <div class="table-card"><div class="overflow-x"><table class="tbl"><thead><tr><th>ID</th><th>리스크명</th><th>팀</th><th>유형</th><th>위험도</th><th>Owner</th><th>선정</th><th></th></tr></thead><tbody id="master-tbody"></tbody></table></div></div>
+      </div>
+
+      <!-- ═ SELECTION ═ -->
+      <div class="view" id="view-selection">
+        <div style="margin-bottom:20px">
+          <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">🎯 점검대상 리스크 선정</div>
+          <div style="font-size:13px;color:var(--muted)">위험도(영향도×가능성) 점수 기준으로 이번 연도 점검 대상 리스크를 선정합니다.</div>
+        </div>
+        <!-- Auto-select card -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:14px">⚡ 자동 선정</div>
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="font-size:13px;font-weight:600;color:var(--text)">상위 선정 건수</label>
+              <select id="sel-topn" class="fm-sel" style="min-width:90px">
+                <option value="5">5건</option>
+                <option value="10">10건</option>
+                <option value="15" selected>15건</option>
+                <option value="20">20건</option>
+                <option value="999">전체</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" style="padding:10px 20px;font-size:13px" onclick="autoSelectTopRisks()">⚡ Select Top Risks</button>
+            <button class="btn btn-ghost" style="padding:10px 16px;font-size:13px" onclick="resetSelection()">초기화</button>
+          </div>
+          <div style="margin-top:14px;font-size:13px;color:var(--muted)">
+            현재 점검대상 <strong><span id="sel-selected-count" style="color:var(--accent)">0</span>건</strong> / 전체 <strong><span id="sel-total-count">0</span>건</strong>
+          </div>
+        </div>
+        <!-- Score legend -->
+        <div class="card" style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+            <div class="card-title">📋 리스크 목록 (위험도 순)</div>
+            <div style="display:flex;gap:8px;align-items:center;font-size:12px">
+              <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:50%;background:var(--red)"></div><span style="color:var(--muted)">높음 15~25</span></div>
+              <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:50%;background:var(--amber)"></div><span style="color:var(--muted)">중간 8~14</span></div>
+              <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:50%;background:var(--green)"></div><span style="color:var(--muted)">낮음 1~7</span></div>
+            </div>
+          </div>
+          <div class="overflow-x">
+            <table class="tbl">
+              <thead><tr><th style="width:44px;text-align:center">선정</th><th style="width:36px;text-align:center">순위</th><th>리스크명</th><th>팀</th><th>유형</th><th style="text-align:center">영향도</th><th style="text-align:center">가능성</th><th style="text-align:center">위험도</th></tr></thead>
+              <tbody id="sel-tbody"></tbody>
+            </table>
+          </div>
+          <div style="padding:14px 0 2px;display:flex;justify-content:flex-end">
+            <button class="btn btn-primary" onclick="saveSelection()">✓ 선정 저장</button>
+          </div>
+        </div>
       </div>
 
       <!-- ═ MY TEAM ═ -->
@@ -559,6 +644,64 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 
 </div><!-- /app -->
 
+<!-- ════════════════ EXCEL UPLOAD MODAL ════════════════ -->
+<div id="excel-modal-overlay" onclick="if(event.target===this)closeExcelModal()">
+  <div id="excel-modal">
+    <div class="em-head">
+      <div>
+        <div class="em-title" id="em-title">📤 리스크 마스터 등록</div>
+        <div class="em-sub" id="em-sub">엑셀 파일을 업로드하여 리스크를 일괄 등록하세요</div>
+      </div>
+      <button class="em-close" onclick="closeExcelModal()">✕</button>
+    </div>
+    <div class="em-body" id="em-body">
+      <!-- Step 1: Upload zone -->
+      <div id="em-step-upload">
+        <div class="em-info-bar">
+          📌 <strong>등록 방법:</strong> 양식 다운로드 → 리스크 입력 (영향도·가능성 각 1~5점) → 파일 업로드<br>
+          위험도 점수 = 영향도(ImpactScore) × 가능성(LikelihoodScore) 로 자동 계산됩니다.
+        </div>
+        <div class="upload-zone" onclick="document.getElementById('excel-file-input2').click()"
+             ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+             ondragleave="this.style.borderColor=''"
+             ondrop="event.preventDefault();this.style.borderColor='';handleExcelDrop(event)">
+          <input type="file" id="excel-file-input2" accept=".xlsx,.xls" style="display:none" onchange="handleExcelUpload(event)">
+          <div class="upload-zone-icon">📊</div>
+          <div class="upload-zone-txt">엑셀 파일을 드래그하거나 클릭하여 업로드</div>
+          <div class="upload-zone-sub">RiskMaster_Template.xlsx 양식만 지원 · 최대 5MB</div>
+        </div>
+      </div>
+      <!-- Step 2: Risk selection table -->
+      <div id="em-step-select" style="display:none">
+        <div class="em-info-bar" id="em-parse-info"></div>
+        <div class="em-score-legend">
+          <span style="font-size:12px;font-weight:700;color:var(--text);margin-right:4px">위험도 기준:</span>
+          <div class="em-legend-item"><div class="em-legend-dot" style="background:var(--red)"></div>높음 (15~25)</div>
+          <div class="em-legend-item"><div class="em-legend-dot" style="background:var(--amber)"></div>중간 (8~14)</div>
+          <div class="em-legend-item"><div class="em-legend-dot" style="background:var(--green)"></div>낮음 (1~7)</div>
+        </div>
+        <div class="em-sel-bar">
+          <span>선정된 리스크: <span class="em-sel-count" id="em-sel-count">0</span>건</span>
+          <button style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:11px;cursor:pointer;font-family:inherit" onclick="emSelectAll(true)">전체 선택</button>
+          <button style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:11px;cursor:pointer;font-family:inherit" onclick="emSelectAll(false)">전체 해제</button>
+          <button style="padding:4px 10px;border:1px solid #BFDBFE;border-radius:6px;background:#EFF6FF;font-size:11px;cursor:pointer;font-family:inherit;color:var(--accent)" onclick="emSelectTop(5)">상위 5개만</button>
+          <button style="padding:4px 10px;border:1px solid #BFDBFE;border-radius:6px;background:#EFF6FF;font-size:11px;cursor:pointer;font-family:inherit;color:var(--accent)" onclick="emSelectTop(10)">상위 10개만</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="em-tbl">
+            <thead><tr><th style="width:36px;text-align:center">선정</th><th style="width:32px;text-align:center">순위</th><th>리스크명</th><th>팀</th><th>유형</th><th style="text-align:center">영향도</th><th style="text-align:center">가능성</th><th style="text-align:center">위험도</th></tr></thead>
+            <tbody id="em-risk-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="em-foot">
+      <button class="btn btn-ghost" onclick="closeExcelModal()">취소</button>
+      <button class="btn btn-primary" id="em-confirm-btn" style="display:none" onclick="confirmExcelImport()">✓ 선정 완료 · 등록하기</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ═══ DATA ═══ */
 const TEAMS_DATA=[
@@ -590,7 +733,7 @@ const RISKS=[
 ];
 const NAV_ADMIN=[
   {sec:"대시보드"},{id:"dash",icon:"▦",label:"전사 대시보드"},
-  {sec:"관리"},{id:"master",icon:"📋",label:"리스크 Master"},{id:"eval",icon:"⚖",label:"이행 달성율 평가",badge:5},
+  {sec:"관리"},{id:"master",icon:"📋",label:"리스크 Master"},{id:"selection",icon:"🎯",label:"점검대상 리스크 선정"},{id:"eval",icon:"⚖",label:"이행 달성율 평가",badge:5},
   {sec:"현황"},{id:"teams",icon:"👥",label:"팀 이행현황"},{id:"monthly",icon:"📝",label:"월간 현황 입력",badge:3},
 ];
 const NAV_USER=[
@@ -675,7 +818,7 @@ function buildNav(){
 }
 
 /* ═══ NAVIGATE ═══ */
-const PAGE_TITLES={dash:'전사 대시보드',monthly:'월간 현황 입력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',myteam:'내 팀 이행현황'};
+const PAGE_TITLES={dash:'전사 대시보드',monthly:'월간 현황 입력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황'};
 const SHOW_FILTER=['dash','teams','eval','master'];
 function navigateTo(id){
   curPage=id;
@@ -689,7 +832,8 @@ function navigateTo(id){
   if(id==='monthly')renderMonthly();
   if(id==='eval')renderEvalList();
   if(id==='teams')renderTeams();
-  if(id==='master')renderMaster(RISKS);
+  if(id==='master'){applyMaster();}
+  if(id==='selection')renderSelection();
   if(id==='myteam')renderMyTeam();
   if(id==='dash')runCounters();
   document.getElementById('content').scrollTop=0;
@@ -876,7 +1020,11 @@ function renderTeams(){
 
 /* ═══ MASTER ═══ */
 let masterQ='',masterTeam='전체';
-function masterFilter(f,btn){masterTeam=f;document.querySelectorAll('#master-filt .f-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');applyMaster();}
+function masterFilter(f,btn,sel){
+  masterTeam=f;
+  if(btn){document.querySelectorAll('#master-filt .f-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+  applyMaster();
+}
 function masterSearch(q){masterQ=q;applyMaster();}
 function applyMaster(){let d=RISKS;if(masterTeam!=='전체')d=d.filter(r=>r.team===masterTeam);if(masterQ)d=d.filter(r=>r.title.includes(masterQ)||r.id.includes(masterQ));renderMaster(d);}
 function renderMaster(data){
@@ -884,6 +1032,47 @@ function renderMaster(data){
     <tr><td class="tbl-id">${r.id}</td><td class="tbl-title" title="${r.title}">${r.title}</td><td class="tbl-muted">${r.team}</td><td><span class="cat-tag">${r.cat}</span></td><td><span class="${scClass(r.score)}">${r.score}</span></td><td class="tbl-muted">${r.owner}</td>
     <td>${r.status!=='미제출'?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:#94A3B8">미선정</span>'}</td>
     <td><button class="act-btn">수정</button></td></tr>`).join('');
+}
+
+/* ═══ SELECTION ═══ */
+function renderSelection(){
+  const sorted=[...RISKS].sort((a,b)=>b.score-a.score);
+  document.getElementById('sel-total-count').textContent=sorted.length;
+  document.getElementById('sel-selected-count').textContent=sorted.filter(r=>r.status!=='미선정'&&r.selected!==false).length;
+  document.getElementById('sel-tbody').innerHTML=sorted.map((r,i)=>{
+    const sc=scoreStyle(r.score);
+    const checked=r.selected!==false;
+    return`<tr>
+      <td style="text-align:center"><input type="checkbox" class="em-check" ${checked?'checked':''} onchange="toggleSelRisk('${r.id}',this.checked)"></td>
+      <td style="text-align:center;font-size:12px;font-weight:800;color:#94A3B8">${i+1}</td>
+      <td style="font-size:13px;font-weight:600">${r.title}</td>
+      <td style="font-size:12px;color:var(--muted)">${r.team}</td>
+      <td><span class="cat-tag">${r.cat}</span></td>
+      <td style="text-align:center;font-weight:700;font-size:13px">${r.impact||Math.ceil(r.score/5)}</td>
+      <td style="text-align:center;font-weight:700;font-size:13px">${r.likelihood||Math.floor(r.score/4)||1}</td>
+      <td style="text-align:center"><span class="em-score-badge" style="background:${sc.bg};color:${sc.col}">${r.score}</span></td>
+    </tr>`;
+  }).join('');
+}
+function toggleSelRisk(id,v){
+  const r=RISKS.find(x=>x.id===id);
+  if(r){r.selected=v;}
+  const cnt=RISKS.filter(r=>r.selected!==false).length;
+  document.getElementById('sel-selected-count').textContent=cnt;
+}
+function autoSelectTopRisks(){
+  const n=parseInt(document.getElementById('sel-topn').value)||15;
+  const sorted=[...RISKS].sort((a,b)=>b.score-a.score);
+  sorted.forEach((r,i)=>r.selected=i<n);
+  renderSelection();
+}
+function resetSelection(){
+  RISKS.forEach(r=>r.selected=true);
+  renderSelection();
+}
+function saveSelection(){
+  const cnt=RISKS.filter(r=>r.selected!==false).length;
+  alert(`✓ 점검대상 ${cnt}건이 저장되었습니다.\n선정된 리스크가 월간 현황 입력에 반영됩니다.`);
 }
 
 /* ═══ MY TEAM ═══ */
@@ -904,6 +1093,146 @@ window.addEventListener('resize',()=>{
   if(curPage==='dash')setTimeout(()=>drawChart('trend-canvas',TREND,TKEYS,TCOLORS,true),50);
   if(curPage==='teams')setTimeout(()=>drawChart('teams-canvas',TREND,TKEYS,TCOLORS,false),50);
 });
+
+/* ═══ EXCEL TEMPLATE DOWNLOAD ═══ */
+function downloadTemplate(){
+  if(typeof XLSX==='undefined'){alert('라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');return;}
+  const wb=XLSX.utils.book_new();
+  const headers=[['Year','Team','RiskCategory','RiskTitle','RiskDescription','ImprovementTask','ImpactScore','LikelihoodScore']];
+  const sample=[
+    [2025,'영업팀','계약','계약서 미검토 리스크','계약서를 검토하지 않아 불리한 조건으로 계약 체결 가능성','법무팀 사전 검토 프로세스 수립',4,3],
+    [2025,'생산팀','환경안전','화학물질 보관 기준 미준수','화학물질 법적 보관기준 미달 상태','보관시설 점검 및 기준 강화',5,3],
+    [2025,'구매팀','공정거래','하도급 서면 미교부','하도급 거래 시 서면 미교부로 법 위반 리스크','하도급 계약서 표준양식 도입',4,4],
+  ];
+  const ws=XLSX.utils.aoa_to_sheet([...headers,...sample]);
+  ws['!cols']=[{wch:6},{wch:14},{wch:14},{wch:30},{wch:40},{wch:30},{wch:12},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws,'RiskMaster');
+  XLSX.writeFile(wb,'RiskMaster_Template.xlsx');
+}
+
+/* ═══ EXCEL UPLOAD ═══ */
+let emParsedRisks=[];
+
+function handleExcelDrop(e){
+  const file=e.dataTransfer.files[0];
+  if(file) parseExcelFile(file);
+}
+function handleExcelUpload(e){
+  const file=e.target.files[0];
+  e.target.value='';
+  if(file){
+    openExcelModal();
+    parseExcelFile(file);
+  }
+}
+function openExcelModal(){
+  document.getElementById('excel-modal-overlay').classList.add('on');
+  document.getElementById('em-step-upload').style.display='block';
+  document.getElementById('em-step-select').style.display='none';
+  document.getElementById('em-confirm-btn').style.display='none';
+  document.getElementById('em-title').textContent='📤 리스크 마스터 등록';
+  document.getElementById('em-sub').textContent='엑셀 파일을 업로드하여 리스크를 일괄 등록하세요';
+}
+function closeExcelModal(){
+  document.getElementById('excel-modal-overlay').classList.remove('on');
+}
+
+function parseExcelFile(file){
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!rows.length){alert('데이터가 없습니다. 양식을 확인해주세요.');return;}
+      // Validate columns
+      const required=['RiskTitle','Team','ImpactScore','LikelihoodScore'];
+      const keys=Object.keys(rows[0]);
+      const missing=required.filter(k=>!keys.includes(k));
+      if(missing.length){alert(`양식 오류: ${missing.join(', ')} 컬럼이 없습니다.\n📥 양식 다운로드 버튼으로 올바른 양식을 받아주세요.`);return;}
+
+      // Parse & score
+      emParsedRisks=rows.map((r,i)=>{
+        const impact=parseInt(r.ImpactScore)||1;
+        const likelihood=parseInt(r.LikelihoodScore)||1;
+        const score=Math.min(5,Math.max(1,impact))*Math.min(5,Math.max(1,likelihood));
+        return{
+          id:'R'+(String(i+1).padStart(3,'0')),
+          title:String(r.RiskTitle||'').trim(),
+          team:String(r.Team||'').trim(),
+          cat:String(r.RiskCategory||'기타').trim(),
+          desc:String(r.RiskDescription||'').trim(),
+          task:String(r.ImprovementTask||'').trim(),
+          impact,likelihood,score,
+          status:'미제출',achieve:null,
+          owner:'-',
+          selected:score>=15 // auto-select high risk
+        };
+      }).filter(r=>r.title).sort((a,b)=>b.score-a.score);
+
+      showExcelSelectStep(file.name,rows.length);
+    }catch(err){
+      alert('파일 파싱 중 오류가 발생했습니다: '+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function showExcelSelectStep(filename,count){
+  document.getElementById('em-step-upload').style.display='none';
+  document.getElementById('em-step-select').style.display='block';
+  document.getElementById('em-confirm-btn').style.display='inline-flex';
+  document.getElementById('em-title').textContent='📋 리스크 선정';
+  document.getElementById('em-sub').textContent=`${filename} · ${count}건 파싱 완료 — 점수 높은 순 정렬`;
+  document.getElementById('em-parse-info').innerHTML=
+    `<strong>${filename}</strong>에서 <strong>${emParsedRisks.length}건</strong>의 리스크를 읽었습니다. `+
+    `위험도(영향도×가능성) 기준으로 정렬되었습니다. 이번 연도에 관리할 리스크를 선정해주세요.`;
+  renderEmTable();
+}
+
+function renderEmTable(){
+  const autoSel=emParsedRisks.filter(r=>r.selected).length;
+  document.getElementById('em-sel-count').textContent=autoSel;
+  document.getElementById('em-risk-tbody').innerHTML=emParsedRisks.map((r,i)=>{
+    const sc=scoreStyle(r.score);
+    return`<tr>
+      <td style="text-align:center"><input type="checkbox" class="em-check" ${r.selected?'checked':''} onchange="emToggle(${i},this.checked)"></td>
+      <td class="em-rank">${i+1}</td>
+      <td style="font-size:12px;font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.title}">${r.title}</td>
+      <td style="font-size:11px;color:var(--muted)">${r.team}</td>
+      <td><span class="cat-tag">${r.cat}</span></td>
+      <td style="text-align:center;font-weight:700">${r.impact}</td>
+      <td style="text-align:center;font-weight:700">${r.likelihood}</td>
+      <td style="text-align:center"><span class="em-score-badge" style="background:${sc.bg};color:${sc.col}">${r.score}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function scoreStyle(s){
+  if(s>=15)return{bg:'#FEF2F2',col:'var(--red)'};
+  if(s>=8)return{bg:'#FFFBEB',col:'var(--amber)'};
+  return{bg:'#ECFDF5',col:'var(--green)'};
+}
+function emToggle(i,v){
+  emParsedRisks[i].selected=v;
+  document.getElementById('em-sel-count').textContent=emParsedRisks.filter(r=>r.selected).length;
+}
+function emSelectAll(v){emParsedRisks.forEach(r=>r.selected=v);renderEmTable();}
+function emSelectTop(n){emParsedRisks.forEach((r,i)=>r.selected=i<n);renderEmTable();}
+
+function confirmExcelImport(){
+  const selected=emParsedRisks.filter(r=>r.selected);
+  if(!selected.length){alert('선정된 리스크가 없습니다.');return;}
+  // Replace RISKS with selected (keep existing non-uploaded if any? here full replace for annual reset)
+  RISKS.length=0;
+  selected.forEach((r,i)=>{r.id='R'+String(i+1).padStart(3,'0');RISKS.push(r);});
+  closeExcelModal();
+  applyMaster();
+  // Re-render dashboard tables too
+  renderDash&&renderDash();
+  alert(`✓ ${selected.length}건의 리스크가 등록되었습니다.\n리스크 Master 목록이 업데이트되었습니다.`);
+}
 </script>
 </body>
 </html>
