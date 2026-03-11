@@ -5,7 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Compliance RiskOps</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* ── 전역 에러 방어 (iOS Safari Script error 방지) ── */
+window.onerror=function(msg,src,line,col,err){
+  if(!src||src.indexOf(location.hostname)<0){return true;}
+  console.warn('JS Error:',msg,src,line);
+  return false;
+};
+window.onunhandledrejection=function(e){
+  console.warn('Unhandled promise rejection:',e.reason);
+  e.preventDefault();
+};
+/* ── CDN 라이브러리 lazy loader (버튼 클릭 시에만 호출) ── */
+function _loadLib(urls,done){
+  var i=0;
+  function next(){
+    if(i>=urls.length){done(false);return;}
+    var s=document.createElement('script');
+    s.src=urls[i++];
+    s.onload=function(){done(true);};
+    s.onerror=next;
+    document.head.appendChild(s);
+  }
+  next();
+}
+</script>
 <style>
 /* ═══════════════════════════════════════
    TOKENS & RESET
@@ -401,6 +425,8 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .upload-zone-txt{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
 .upload-zone-sub{font-size:12px;color:var(--muted)}
 #excel-file-input{display:none}
+/* Reports */
+#rpt-slide *{box-sizing:border-box}
 </style>
 </head>
 <body>
@@ -640,7 +666,126 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
         </div>
       </div>
 
+      <!-- ═ REPORTS ═ -->
+      <div class="view" id="view-reports">
+        <div style="margin-bottom:20px">
+          <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">📊 보고서 생성</div>
+          <div style="font-size:13px;color:var(--muted)">컴플라이언스 이행 현황 보고서를 PPT로 자동 생성합니다.</div>
+        </div>
+
+        <!-- 보고서 유형 탭 -->
+        <div style="display:flex;gap:8px;margin-bottom:18px">
+          <button id="rpt-tab-monthly" onclick="switchRptTab('monthly')"
+            style="padding:10px 24px;border-radius:10px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">
+            📅 월간 보고서
+          </button>
+          <button id="rpt-tab-annual" onclick="switchRptTab('annual')"
+            style="padding:10px 24px;border-radius:10px;border:2px solid var(--border);background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">
+            📆 연간 보고서
+          </button>
+        </div>
+
+        <!-- ── 월간 설정 ── -->
+        <div id="rpt-panel-monthly">
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-title" style="margin-bottom:16px">⚙ 월간 보고서 설정</div>
+            <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">연도</div>
+                <select id="rpt-year" class="fm-sel" style="min-width:90px">
+                  <option value="2024">2024년</option>
+                  <option value="2025" selected>2025년</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">월</div>
+                <select id="rpt-month" class="fm-sel" style="min-width:90px">
+                  <option>1월</option><option>2월</option><option selected>3월</option>
+                  <option>4월</option><option>5월</option><option>6월</option>
+                  <option>7월</option><option>8월</option><option>9월</option>
+                  <option>10월</option><option>11월</option><option>12월</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">총평 (선택)</div>
+                <input id="rpt-comment" type="text" placeholder="예: 전반적으로 양호, 구매팀 집중 관리 필요"
+                  style="width:300px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;color:var(--text)"
+                  onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+              </div>
+              <button class="btn btn-primary" style="padding:10px 22px;font-size:13px;white-space:nowrap" onclick="generatePPT()">
+                ⬇ PPT 생성
+              </button>
+            </div>
+          </div>
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <div class="card-title">👁 월간 보고서 미리보기</div>
+              <span style="font-size:11px;color:var(--muted);background:var(--light);padding:3px 10px;border-radius:99px">1 페이지 · 16:9</span>
+            </div>
+            <div style="background:#1E1E2E;border-radius:12px;padding:20px;display:flex;justify-content:center">
+              <div id="rpt-preview" style="width:100%;max-width:720px;aspect-ratio:16/9;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4)">
+                <div id="rpt-slide" style="width:100%;height:100%;font-family:'Apple SD Gothic Neo','맑은 고딕',sans-serif"></div>
+              </div>
+            </div>
+            <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--muted)">설정을 변경하면 미리보기가 자동 업데이트됩니다</div>
+          </div>
+        </div>
+
+        <!-- ── 연간 설정 ── -->
+        <div id="rpt-panel-annual" style="display:none">
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-title" style="margin-bottom:16px">⚙ 연간 보고서 설정</div>
+            <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">연도</div>
+                <select id="rpt-ann-year" class="fm-sel" style="min-width:90px">
+                  <option value="2024">2024년</option>
+                  <option value="2025" selected>2025년</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">연간 총평 (선택)</div>
+                <input id="rpt-ann-comment" type="text" placeholder="예: 전사 달성율 82% 달성, 지속적 개선 추세"
+                  style="width:300px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;color:var(--text)"
+                  onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+              </div>
+              <button class="btn btn-primary" style="padding:10px 22px;font-size:13px;white-space:nowrap" onclick="generateAnnualPPT()">
+                ⬇ 연간 PPT 생성
+              </button>
+            </div>
+          </div>
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <div class="card-title">👁 연간 보고서 미리보기</div>
+              <span style="font-size:11px;color:var(--muted);background:var(--light);padding:3px 10px;border-radius:99px">2 페이지 · 16:9</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <!-- 슬라이드 1 -->
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;padding-left:4px">슬라이드 1 — 연간 종합 현황</div>
+                <div style="background:#1E1E2E;border-radius:12px;padding:16px;display:flex;justify-content:center">
+                  <div style="width:100%;max-width:720px;aspect-ratio:16/9;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4)">
+                    <div id="rpt-ann-slide1" style="width:100%;height:100%;font-family:'Apple SD Gothic Neo','맑은 고딕',sans-serif"></div>
+                  </div>
+                </div>
+              </div>
+              <!-- 슬라이드 2 -->
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;padding-left:4px">슬라이드 2 — 팀별 상세 분석</div>
+                <div style="background:#1E1E2E;border-radius:12px;padding:16px;display:flex;justify-content:center">
+                  <div style="width:100%;max-width:720px;aspect-ratio:16/9;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4)">
+                    <div id="rpt-ann-slide2" style="width:100%;height:100%;font-family:'Apple SD Gothic Neo','맑은 고딕',sans-serif"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--muted)">설정을 변경하면 미리보기가 자동 업데이트됩니다</div>
+          </div>
+        </div>
+      </div>
+
       <!-- ═ MY TEAM ═ -->
+
       <div class="view" id="view-myteam">
         <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
           <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">📋</span></div><div class="kpi-num" data-t="4">0</div><div class="kpi-label">담당 리스크</div></div>
@@ -738,6 +883,18 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 </div>
 
 <script>
+/* ── 전역 에러 방어 (iOS Safari Script error 방지) ── */
+window.onerror=function(msg,src,line,col,err){
+  // 외부 라이브러리 로드 실패는 무시, 앱 실행 계속
+  if(!src||src.indexOf(location.hostname)<0){return true;}
+  console.warn('JS Error:',msg,src,line);
+  return false;
+};
+window.onunhandledrejection=function(e){
+  console.warn('Unhandled promise rejection:',e.reason);
+  e.preventDefault();
+};
+
 /* ═══ DATA ═══ */
 const TEAMS_DATA=[
   {team:"영업팀",avg:86,status:"정상",color:"#3B82F6",jan:85,feb:82,mar:90},
@@ -770,6 +927,7 @@ const NAV_ADMIN=[
   {sec:"대시보드"},{id:"dash",icon:"▦",label:"전사 대시보드"},
   {sec:"관리"},{id:"master",icon:"📋",label:"리스크 Master"},{id:"selection",icon:"🎯",label:"점검대상 리스크 선정"},{id:"eval",icon:"⚖",label:"이행 달성율 평가",badge:5},
   {sec:"현황"},{id:"teams",icon:"👥",label:"팀 이행현황"},{id:"monthly",icon:"📝",label:"월간 현황 입력",badge:3},
+  {sec:"보고서"},{id:"reports",icon:"📊",label:"보고서 생성"},
 ];
 const NAV_USER=[
   {sec:"업무"},{id:"monthly",icon:"📝",label:"월간 현황 입력",badge:3},
@@ -853,7 +1011,7 @@ function buildNav(){
 }
 
 /* ═══ NAVIGATE ═══ */
-const PAGE_TITLES={dash:'전사 대시보드',monthly:'월간 현황 입력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황'};
+const PAGE_TITLES={dash:'전사 대시보드',monthly:'월간 현황 입력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성'};
 const SHOW_FILTER=['dash','teams','eval','master'];
 function navigateTo(id){
   curPage=id;
@@ -871,6 +1029,7 @@ function navigateTo(id){
   if(id==='selection')renderSelection();
   if(id==='myteam')renderMyTeam();
   if(id==='dash')runCounters();
+  if(id==='reports')renderReports();
   document.getElementById('content').scrollTop=0;
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('collapsed')}
@@ -1271,14 +1430,476 @@ function renderMyTeam(){
   setTimeout(runCounters,100);
 }
 
-window.addEventListener('resize',()=>{
-  if(curPage==='dash')setTimeout(()=>drawChart('trend-canvas',TREND,TKEYS,TCOLORS,true),50);
-  if(curPage==='teams')setTimeout(()=>drawTeamsChart(),50);
+/* ═══════════════════════════════════════
+   REPORTS — 월간 / 연간 PPT 생성
+═══════════════════════════════════════ */
+var rptCurrentTab='monthly';
+
+function renderReports(){
+  switchRptTab(rptCurrentTab);
+}
+
+function switchRptTab(tab){
+  rptCurrentTab=tab;
+  var pm=document.getElementById('rpt-panel-monthly');
+  var pa=document.getElementById('rpt-panel-annual');
+  var bm=document.getElementById('rpt-tab-monthly');
+  var ba=document.getElementById('rpt-tab-annual');
+  if(!pm)return;
+  if(tab==='monthly'){
+    pm.style.display='block'; pa.style.display='none';
+    bm.style.background='var(--accent)';bm.style.color='#fff';bm.style.borderColor='var(--accent)';
+    ba.style.background='#fff';ba.style.color='var(--muted)';ba.style.borderColor='var(--border)';
+    var ry=document.getElementById('rpt-year');
+    var rm=document.getElementById('rpt-month');
+    var rc=document.getElementById('rpt-comment');
+    if(ry)ry.onchange=renderSlidePreview;
+    if(rm)rm.onchange=renderSlidePreview;
+    if(rc)rc.oninput=renderSlidePreview;
+    renderSlidePreview();
+  } else {
+    pm.style.display='none'; pa.style.display='block';
+    ba.style.background='var(--accent)';ba.style.color='#fff';ba.style.borderColor='var(--accent)';
+    bm.style.background='#fff';bm.style.color='var(--muted)';bm.style.borderColor='var(--border)';
+    var ay=document.getElementById('rpt-ann-year');
+    var ac=document.getElementById('rpt-ann-comment');
+    if(ay)ay.onchange=renderAnnualPreview;
+    if(ac)ac.oninput=renderAnnualPreview;
+    renderAnnualPreview();
+  }
+}
+
+function getReportData(){
+  var ye=document.getElementById('rpt-year');
+  var me=document.getElementById('rpt-month');
+  var ce=document.getElementById('rpt-comment');
+  var year=(ye&&ye.value)||'2025';
+  var month=(me&&me.value)||'3월';
+  var comment=(ce&&ce.value)||'전반적으로 양호한 수준이나, 일부 팀의 집중 관리가 요구됩니다.';
+  var total=RISKS.length;
+  var submitted=RISKS.filter(function(r){return r.status==='제출완료'||r.status==='평가완료';}).length;
+  var evaluated=RISKS.filter(function(r){return r.status==='평가완료';}).length;
+  var unsubmitted=RISKS.filter(function(r){return r.status==='미제출';}).length;
+  var achRisks=RISKS.filter(function(r){return r.achieve!=null;});
+  var overallAch=achRisks.length?Math.round(achRisks.reduce(function(s,r){return s+r.achieve;},0)/achRisks.length):0;
+  var teams=TEAMS_DATA.map(function(d,i){return {name:d.team,avg:d.avg,color:TCOLORS[i],status:d.status};});
+  var topRisks=RISKS.slice().sort(function(a,b){return b.score-a.score;}).slice(0,3);
+  var actions=RISKS.filter(function(r){return r.status==='미제출';}).slice(0,3);
+  return {year:year,month:month,comment:comment,total:total,submitted:submitted,
+          evaluated:evaluated,unsubmitted:unsubmitted,overallAch:overallAch,
+          teams:teams,topRisks:topRisks,actions:actions};
+}
+
+function getAnnualData(){
+  var ye=document.getElementById('rpt-ann-year');
+  var ce=document.getElementById('rpt-ann-comment');
+  var year=(ye&&ye.value)||'2025';
+  var comment=(ce&&ce.value)||'전사 컴플라이언스 달성율 지속 개선, 리스크 관리 체계 고도화 필요.';
+  var months=TREND.map(function(t){return t.month;});
+  var monthlyAch=TREND.map(function(t){
+    var vals=TKEYS.map(function(k){return t[k]||0;});
+    return Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length);
+  });
+  var total=RISKS.length;
+  var evaluated=RISKS.filter(function(r){return r.status==='평가완료';}).length;
+  var achRisks=RISKS.filter(function(r){return r.achieve!=null;});
+  var overallAch=achRisks.length?Math.round(achRisks.reduce(function(s,r){return s+r.achieve;},0)/achRisks.length):0;
+  var bestMonth=monthlyAch.length?months[monthlyAch.indexOf(Math.max.apply(null,monthlyAch))]:'-';
+  var teams=TEAMS_DATA.map(function(d,i){return {name:d.team,avg:d.avg,color:TCOLORS[i],status:d.status,jan:d.jan,feb:d.feb,mar:d.mar};});
+  var topRisks=RISKS.slice().sort(function(a,b){return b.score-a.score;}).slice(0,5);
+  var catMap={};
+  RISKS.forEach(function(r){catMap[r.cat]=(catMap[r.cat]||0)+1;});
+  var cats=Object.keys(catMap).map(function(k){return {name:k,count:catMap[k]};}).sort(function(a,b){return b.count-a.count;}).slice(0,5);
+  return {year:year,comment:comment,months:months,monthlyAch:monthlyAch,
+          total:total,evaluated:evaluated,overallAch:overallAch,
+          bestMonth:bestMonth,teams:teams,topRisks:topRisks,cats:cats};
+}
+
+/* ── 월간 미리보기 ── */
+function renderSlidePreview(){
+  var d=getReportData();
+  var slide=document.getElementById('rpt-slide');
+  if(!slide)return;
+  var ac=d.overallAch>=80?'#059669':d.overallAch>=65?'#D97706':'#DC2626';
+  var teamBars=d.teams.map(function(t){
+    return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
+      +'<div style="width:52px;font-size:8px;font-weight:700;color:#475569;flex-shrink:0;text-align:right">'+t.name+'</div>'
+      +'<div style="flex:1;height:10px;background:#EEF2F7;border-radius:99px;overflow:hidden">'
+        +'<div style="width:'+t.avg+'%;height:100%;background:'+t.color+';border-radius:99px"></div></div>'
+      +'<div style="width:28px;font-size:8px;font-weight:800;color:'+(t.avg>=80?'#059669':t.avg>=65?'#D97706':'#DC2626')+'">'+t.avg+'%</div></div>';
+  }).join('');
+  var riskRows=d.topRisks.map(function(r){
+    var sc=r.score;
+    return '<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #F1F5F9">'
+      +'<div style="width:14px;height:14px;background:'+(sc>=15?'#FEF2F2':sc>=8?'#FFFBEB':'#ECFDF5')+';border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:'+(sc>=15?'#DC2626':sc>=8?'#D97706':'#059669')+';flex-shrink:0">'+sc+'</div>'
+      +'<div style="font-size:8px;color:#0F172A;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.title+'</div>'
+      +'<div style="font-size:7px;background:#EFF6FF;color:#3B82F6;padding:1px 4px;border-radius:3px;flex-shrink:0">'+r.team+'</div></div>';
+  }).join('');
+  var actionRows=d.actions.length
+    ?d.actions.map(function(r){return '<div style="font-size:8px;color:#374151;padding:2px 0;border-bottom:1px solid #F1F5F9"><span style="color:#DC2626;font-weight:700">●</span> '+r.team+' · '+r.title+'</div>';}).join('')
+    :'<div style="font-size:8px;color:#059669;padding:4px 0">✓ 미제출 항목 없음</div>';
+  var kpiHtml=[
+    {label:'전사 달성율',val:d.overallAch+'%',color:ac,sub:'평가완료 기준'},
+    {label:'관리 리스크',val:d.total+'건',color:'#0F172A',sub:'이번 달 점검'},
+    {label:'제출 완료',val:d.submitted+'건',color:'#059669',sub:'미제출 '+d.unsubmitted+'건'},
+    {label:'평가 완료',val:d.evaluated+'건',color:'#3B82F6',sub:'달성율 확정'},
+  ].map(function(k){
+    return '<div style="background:#fff;border-radius:6px;padding:7px 9px;border:1px solid #E5EBF2">'
+      +'<div style="font-size:8px;color:#64748B;font-weight:700;margin-bottom:3px">'+k.label+'</div>'
+      +'<div style="font-size:18px;font-weight:800;color:'+k.color+';line-height:1">'+k.val+'</div>'
+      +'<div style="font-size:7px;color:#94A3B8;margin-top:2px">'+k.sub+'</div></div>';
+  }).join('');
+  slide.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column">'
+    +'<div style="background:linear-gradient(135deg,#0D1B2A,#1E3A5F);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'
+      +'<div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;background:#3B82F6;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px">⚖</div>'
+        +'<div><div style="font-size:9px;font-weight:800;color:#fff">Compliance RiskOps</div><div style="font-size:7px;color:#8BA3BC">SK Chemical 법무 컴플라이언스팀</div></div></div>'
+      +'<div style="text-align:right"><div style="font-size:10px;font-weight:800;color:#5EEAD4">'+d.year+'년 '+d.month+' 이행 현황</div><div style="font-size:7px;color:#8BA3BC">월간 보고서</div></div></div>'
+    +'<div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto 1fr auto;gap:6px;padding:8px;background:#F4F7FB;overflow:hidden">'
+      +'<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+kpiHtml+'</div>'
+      +'<div style="background:#fff;border-radius:6px;padding:8px 10px;border:1px solid #E5EBF2"><div style="font-size:8px;font-weight:800;color:#0F172A;margin-bottom:6px">팀별 이행 달성율</div>'+teamBars+'</div>'
+      +'<div style="background:#fff;border-radius:6px;padding:8px 10px;border:1px solid #E5EBF2"><div style="font-size:8px;font-weight:800;color:#0F172A;margin-bottom:5px">고위험 리스크 TOP 3</div>'+riskRows+'</div>'
+      +'<div style="background:#fff;border-radius:6px;padding:8px 10px;border:1px solid #E5EBF2"><div style="font-size:8px;font-weight:800;color:#DC2626;margin-bottom:5px">조치 필요 (미제출)</div>'+actionRows+'</div>'
+      +'<div style="grid-column:1/-1;background:linear-gradient(135deg,#0D1B2A,#1E3A5F);border-radius:6px;padding:7px 12px;display:flex;align-items:center;gap:8px">'
+        +'<div style="font-size:8px;font-weight:800;color:#5EEAD4;flex-shrink:0">총평</div>'
+        +'<div style="width:1px;height:14px;background:#2E5C9A;flex-shrink:0"></div>'
+        +'<div style="font-size:8px;color:#CBD5E1">'+d.comment+'</div>'
+        +'<div style="margin-left:auto;font-size:7px;color:#4A6280;flex-shrink:0">'+new Date().toLocaleDateString('ko-KR')+'</div></div>'
+    +'</div></div>';
+}
+
+/* ── 연간 미리보기 ── */
+function renderAnnualPreview(){
+  var d=getAnnualData();
+  renderAnnualSlide1(d);
+  renderAnnualSlide2(d);
+}
+function renderAnnualSlide1(d){
+  var el=document.getElementById('rpt-ann-slide1');
+  if(!el)return;
+  var ac=d.overallAch>=80?'#059669':d.overallAch>=65?'#D97706':'#DC2626';
+  var maxA=Math.max.apply(null,d.monthlyAch.concat([100]));
+  var trendBars=d.months.map(function(m,i){
+    var v=d.monthlyAch[i]||0;
+    var h=Math.round((v/maxA)*38);
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1">'
+      +'<div style="font-size:6px;font-weight:800;color:#3B82F6">'+v+'%</div>'
+      +'<div style="width:100%;background:#EEF2F7;border-radius:3px 3px 0 0;height:40px;display:flex;align-items:flex-end">'
+        +'<div style="width:100%;height:'+h+'px;background:linear-gradient(180deg,#60A5FA,#3B82F6);border-radius:3px 3px 0 0"></div></div>'
+      +'<div style="font-size:6px;color:#94A3B8">'+m+'</div></div>';
+  }).join('');
+  var catRows=d.cats.map(function(c){
+    return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
+      +'<div style="font-size:7.5px;color:#0F172A;flex:1">'+c.name+'</div>'
+      +'<div style="font-size:7.5px;font-weight:800;color:#3B82F6">'+c.count+'건</div></div>';
+  }).join('');
+  var kpiHtml=[
+    {label:'연간 관리 리스크',val:d.total+'건',color:'#0F172A',sub:'전체 점검 대상'},
+    {label:'평가 완료',val:d.evaluated+'건',color:'#059669',sub:'달성율 확정'},
+    {label:'전사 평균 달성율',val:d.overallAch+'%',color:ac,sub:'연간 종합'},
+    {label:'최고 달성 월',val:d.bestMonth,color:'#3B82F6',sub:'월별 평균 최고'},
+  ].map(function(k){
+    return '<div style="background:#fff;border-radius:6px;padding:7px 9px;border:1px solid #E5EBF2">'
+      +'<div style="font-size:7.5px;color:#64748B;font-weight:700;margin-bottom:3px">'+k.label+'</div>'
+      +'<div style="font-size:16px;font-weight:800;color:'+k.color+';line-height:1">'+k.val+'</div>'
+      +'<div style="font-size:7px;color:#94A3B8;margin-top:2px">'+k.sub+'</div></div>';
+  }).join('');
+  el.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column">'
+    +'<div style="background:linear-gradient(135deg,#0D1B2A,#1E3A5F);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'
+      +'<div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;background:#3B82F6;border-radius:5px;font-size:11px;display:flex;align-items:center;justify-content:center">⚖</div>'
+        +'<div><div style="font-size:9px;font-weight:800;color:#fff">Compliance RiskOps</div><div style="font-size:7px;color:#8BA3BC">SK Chemical 법무 컴플라이언스팀</div></div></div>'
+      +'<div style="text-align:right"><div style="font-size:10px;font-weight:800;color:#5EEAD4">'+d.year+'년 연간 이행 현황</div><div style="font-size:7px;color:#8BA3BC">연간 보고서 · 1/2 — 종합 현황</div></div></div>'
+    +'<div style="flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr auto;gap:6px;padding:8px;background:#F4F7FB;overflow:hidden">'
+      +'<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+kpiHtml+'</div>'
+      +'<div style="background:#fff;border-radius:6px;padding:8px 10px;border:1px solid #E5EBF2">'
+        +'<div style="font-size:8px;font-weight:800;color:#0F172A;margin-bottom:8px">월별 이행 달성율 추이</div>'
+        +'<div style="display:flex;gap:3px;align-items:flex-end;height:60px">'+trendBars+'</div></div>'
+      +'<div style="background:#fff;border-radius:6px;padding:8px 10px;border:1px solid #E5EBF2">'
+        +'<div style="font-size:8px;font-weight:800;color:#0F172A;margin-bottom:6px">리스크 카테고리 현황</div>'+catRows+'</div>'
+      +'<div style="grid-column:1/-1;background:linear-gradient(135deg,#0D1B2A,#1E3A5F);border-radius:6px;padding:7px 12px;display:flex;align-items:center;gap:8px">'
+        +'<div style="font-size:8px;font-weight:800;color:#5EEAD4;flex-shrink:0">연간 총평</div>'
+        +'<div style="width:1px;height:14px;background:#2E5C9A;flex-shrink:0"></div>'
+        +'<div style="font-size:8px;color:#CBD5E1">'+d.comment+'</div>'
+        +'<div style="margin-left:auto;font-size:7px;color:#4A6280;flex-shrink:0">'+new Date().toLocaleDateString('ko-KR')+'</div></div>'
+    +'</div></div>';
+}
+function renderAnnualSlide2(d){
+  var el=document.getElementById('rpt-ann-slide2');
+  if(!el)return;
+  var teamRows=d.teams.map(function(t){
+    var ac2=t.avg>=80?'#059669':t.avg>=65?'#D97706':'#DC2626';
+    var m3=[t.jan||0,t.feb||0,t.mar||0];
+    var bars3=m3.map(function(v,i){
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:1px">'
+        +'<div style="font-size:6px;font-weight:800;color:'+t.color+'">'+v+'%</div>'
+        +'<div style="width:18px;height:'+(Math.round(v/100*24)||1)+'px;background:'+t.color+';border-radius:2px 2px 0 0"></div>'
+        +'<div style="font-size:5.5px;color:#94A3B8">'+['1월','2월','3월'][i]+'</div></div>';
+    }).join('');
+    return '<tr style="border-bottom:1px solid #F1F5F9">'
+      +'<td style="padding:5px 8px;font-size:8px;font-weight:700;color:#0F172A">'+t.name+'</td>'
+      +'<td style="padding:5px 8px"><div style="display:flex;align-items:center;gap:4px">'
+        +'<div style="width:70px;height:8px;background:#EEF2F7;border-radius:99px;overflow:hidden">'
+          +'<div style="width:'+t.avg+'%;height:100%;background:'+t.color+';border-radius:99px"></div></div>'
+        +'<span style="font-size:8px;font-weight:800;color:'+ac2+'">'+t.avg+'%</span></div></td>'
+      +'<td style="padding:5px 8px"><div style="display:flex;gap:4px;align-items:flex-end;height:30px">'+bars3+'</div></td>'
+      +'<td style="padding:5px 8px;font-size:7.5px;color:'+(t.status==='우수'?'#059669':t.status==='주의'?'#D97706':'#DC2626')+';font-weight:700">'+t.status+'</td></tr>';
+  }).join('');
+  var top5Rows=d.topRisks.map(function(r,i){
+    var sc=r.score;
+    var scC=sc>=15?'#DC2626':sc>=8?'#D97706':'#059669';
+    var scB=sc>=15?'#FEF2F2':sc>=8?'#FFFBEB':'#ECFDF5';
+    return '<tr style="border-bottom:1px solid #F1F5F9">'
+      +'<td style="padding:4px 8px;font-size:8px;font-weight:700;color:#94A3B8">'+(i+1)+'</td>'
+      +'<td style="padding:4px 8px"><span style="background:#EFF6FF;color:#3B82F6;padding:1px 5px;border-radius:3px;font-size:7px">'+r.team+'</span></td>'
+      +'<td style="padding:4px 8px;font-size:8px;color:#0F172A">'+r.title+'</td>'
+      +'<td style="padding:4px 8px;text-align:center"><span style="background:'+scB+';color:'+scC+';padding:1px 6px;border-radius:3px;font-size:8px;font-weight:800">'+sc+'점</span></td></tr>';
+  }).join('');
+  el.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column">'
+    +'<div style="background:linear-gradient(135deg,#0D1B2A,#1E3A5F);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'
+      +'<div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;background:#3B82F6;border-radius:5px;font-size:11px;display:flex;align-items:center;justify-content:center">⚖</div>'
+        +'<div><div style="font-size:9px;font-weight:800;color:#fff">Compliance RiskOps</div><div style="font-size:7px;color:#8BA3BC">SK Chemical 법무 컴플라이언스팀</div></div></div>'
+      +'<div style="text-align:right"><div style="font-size:10px;font-weight:800;color:#5EEAD4">'+d.year+'년 연간 이행 현황</div><div style="font-size:7px;color:#8BA3BC">연간 보고서 · 2/2 — 팀별 상세 분석</div></div></div>'
+    +'<div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px;background:#F4F7FB;overflow:hidden">'
+      +'<div style="background:#fff;border-radius:6px;overflow:hidden;border:1px solid #E5EBF2">'
+        +'<div style="background:#1E3A5F;padding:5px 8px"><div style="font-size:8px;font-weight:800;color:#fff">팀별 연간 이행 현황</div></div>'
+        +'<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#F8FAFC">'
+          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">팀</th>'
+          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">달성율</th>'
+          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">분기추이</th>'
+          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">상태</th>'
+        +'</tr></thead><tbody>'+teamRows+'</tbody></table></div>'
+      +'<div style="background:#fff;border-radius:6px;overflow:hidden;border:1px solid #E5EBF2">'
+        +'<div style="background:#7F1D1D;padding:5px 8px"><div style="font-size:8px;font-weight:800;color:#fff">연간 고위험 리스크 TOP 5</div></div>'
+        +'<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#FEF2F2">'
+          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">순위</th>'
+          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">팀</th>'
+          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">리스크</th>'
+          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">위험도</th>'
+        +'</tr></thead><tbody>'+top5Rows+'</tbody></table></div>'
+    +'</div></div>';
+}
+
+/* ── 월간 PPT 생성 ── */
+function generatePPT(){
+  var btn=event&&event.target;
+  if(typeof PptxGenJS!=='undefined'){_doGeneratePPT();return;}
+  if(btn){btn.textContent='로딩 중...';btn.disabled=true;}
+  _loadLib([
+    'https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundle.js',
+    'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.11.0/pptxgen.bundle.js'
+  ],function(ok){
+    if(btn){btn.textContent='⬇ PPT 생성';btn.disabled=false;}
+    if(!ok){alert('PPT 라이브러리를 불러오지 못했습니다.\n네트워크 연결을 확인해주세요.');return;}
+    _doGeneratePPT();
+  });
+}
+async function _doGeneratePPT(){
+  try{
+  var d=getReportData();
+  var pptx=new PptxGenJS();
+  pptx.layout='LAYOUT_WIDE';
+  var slide=pptx.addSlide();
+  slide.background={color:'F4F7FB'};
+  var ac=d.overallAch>=80?'059669':d.overallAch>=65?'D97706':'DC2626';
+  slide.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:0.55,fill:{color:'0D1B2A'}});
+  slide.addText('⚖ Compliance RiskOps',{x:0.2,y:0.05,w:3,h:0.25,fontSize:11,bold:true,color:'FFFFFF',fontFace:'Arial'});
+  slide.addText('SK Chemical 법무 컴플라이언스팀',{x:0.2,y:0.28,w:3,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial'});
+  slide.addText(d.year+'년 '+d.month+' 컴플라이언스 이행 현황',{x:6,y:0.07,w:6.8,h:0.25,fontSize:13,bold:true,color:'5EEAD4',fontFace:'Arial',align:'right'});
+  slide.addText('월간 보고서',{x:6,y:0.3,w:6.8,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial',align:'right'});
+  var kpis=[
+    {label:'전사 달성율',val:d.overallAch+'%',color:ac,sub:'평가완료 기준'},
+    {label:'관리 리스크',val:d.total+'건',color:'0F172A',sub:'이번 달 점검'},
+    {label:'제출 완료',val:d.submitted+'건',color:'059669',sub:'미제출 '+d.unsubmitted+'건'},
+    {label:'평가 완료',val:d.evaluated+'건',color:'3B82F6',sub:'달성율 확정'},
+  ];
+  kpis.forEach(function(k,i){
+    var x=0.15+i*3.2;
+    slide.addShape(pptx.ShapeType.rect,{x:x,y:0.65,w:3.0,h:0.95,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
+    slide.addText(k.label,{x:x+0.12,y:0.72,w:2.8,h:0.18,fontSize:8,bold:true,color:'64748B',fontFace:'Arial'});
+    slide.addText(k.val,{x:x+0.12,y:0.88,w:2.8,h:0.4,fontSize:22,bold:true,color:k.color,fontFace:'Arial'});
+    slide.addText(k.sub,{x:x+0.12,y:1.3,w:2.8,h:0.18,fontSize:7,color:'94A3B8',fontFace:'Arial'});
+  });
+  slide.addShape(pptx.ShapeType.rect,{x:0.15,y:1.72,w:4.0,h:2.5,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
+  slide.addText('팀별 이행 달성율',{x:0.28,y:1.8,w:3.8,h:0.22,fontSize:9,bold:true,color:'0F172A',fontFace:'Arial'});
+  d.teams.forEach(function(t,i){
+    var ry=2.1+i*0.38;
+    var tc=t.color.replace('#','');
+    slide.addText(t.name,{x:0.18,y:ry,w:0.9,h:0.22,fontSize:7.5,bold:true,color:'475569',fontFace:'Arial',align:'right'});
+    slide.addShape(pptx.ShapeType.rect,{x:1.14,y:ry+0.04,w:2.5,h:0.16,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.08});
+    if(t.avg>0)slide.addShape(pptx.ShapeType.rect,{x:1.14,y:ry+0.04,w:2.5*(t.avg/100),h:0.16,fill:{color:tc},line:{color:tc,pt:0},rectRadius:0.08});
+    slide.addText(t.avg+'%',{x:3.7,y:ry,w:0.4,h:0.22,fontSize:8,bold:true,color:t.avg>=80?'059669':t.avg>=65?'D97706':'DC2626',fontFace:'Arial'});
+  });
+  slide.addShape(pptx.ShapeType.rect,{x:4.35,y:1.72,w:4.0,h:2.5,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
+  slide.addText('고위험 리스크 TOP 3',{x:4.48,y:1.8,w:3.8,h:0.22,fontSize:9,bold:true,color:'0F172A',fontFace:'Arial'});
+  d.topRisks.forEach(function(r,i){
+    var ry=2.12+i*0.62;
+    var sc=r.score;
+    var scC=sc>=15?'DC2626':sc>=8?'D97706':'059669';
+    var scB=sc>=15?'FEF2F2':sc>=8?'FFFBEB':'ECFDF5';
+    slide.addShape(pptx.ShapeType.rect,{x:4.48,y:ry,w:0.3,h:0.26,fill:{color:scB},line:{color:scB,pt:0},rectRadius:0.04});
+    slide.addText(''+sc,{x:4.48,y:ry+0.02,w:0.3,h:0.22,fontSize:8,bold:true,color:scC,fontFace:'Arial',align:'center'});
+    slide.addText(r.title,{x:4.85,y:ry,w:2.8,h:0.22,fontSize:8,bold:true,color:'0F172A',fontFace:'Arial'});
+    slide.addText(r.team+' · '+r.cat,{x:4.85,y:ry+0.22,w:2.8,h:0.18,fontSize:7,color:'94A3B8',fontFace:'Arial'});
+  });
+  slide.addShape(pptx.ShapeType.rect,{x:8.55,y:1.72,w:4.15,h:2.5,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
+  slide.addText('조치 필요 (미제출)',{x:8.68,y:1.8,w:3.9,h:0.22,fontSize:9,bold:true,color:'DC2626',fontFace:'Arial'});
+  if(d.actions.length){
+    d.actions.forEach(function(r,i){
+      var ay=2.12+i*0.62;
+      slide.addShape(pptx.ShapeType.rect,{x:8.68,y:ay,w:0.06,h:0.26,fill:{color:'DC2626'},line:{color:'DC2626',pt:0}});
+      slide.addText(r.team,{x:8.82,y:ay,w:3.7,h:0.22,fontSize:8,bold:true,color:'DC2626',fontFace:'Arial'});
+      slide.addText(r.title,{x:8.82,y:ay+0.22,w:3.7,h:0.18,fontSize:7.5,color:'374151',fontFace:'Arial'});
+    });
+  } else {
+    slide.addText('✓ 미제출 항목 없음',{x:8.68,y:2.5,w:3.9,h:0.3,fontSize:9,color:'059669',fontFace:'Arial'});
+  }
+  slide.addShape(pptx.ShapeType.rect,{x:0,y:4.32,w:'100%',h:0.6,fill:{color:'0D1B2A'}});
+  slide.addText('총평',{x:0.2,y:4.42,w:0.5,h:0.22,fontSize:9,bold:true,color:'5EEAD4',fontFace:'Arial'});
+  slide.addShape(pptx.ShapeType.rect,{x:0.75,y:4.46,w:0.02,h:0.18,fill:{color:'2E5C9A'},line:{color:'2E5C9A',pt:0}});
+  slide.addText(d.comment,{x:0.85,y:4.42,w:10,h:0.22,fontSize:9,color:'CBD5E1',fontFace:'Arial'});
+  slide.addText('작성일: '+new Date().toLocaleDateString('ko-KR'),{x:11.0,y:4.42,w:1.8,h:0.22,fontSize:7.5,color:'4A6280',fontFace:'Arial',align:'right'});
+  await pptx.writeFile({fileName:'[SK Chemical] 컴플라이언스_월간현황_'+d.year+'_'+d.month+'.pptx'});
+  }catch(e){console.error('PPT 오류:',e);alert('PPT 생성 오류: '+e.message);}
+}
+
+/* ── 연간 PPT 생성 ── */
+function generateAnnualPPT(){
+  var btn=event&&event.target;
+  if(typeof PptxGenJS!=='undefined'){_doGenerateAnnualPPT();return;}
+  if(btn){btn.textContent='로딩 중...';btn.disabled=true;}
+  _loadLib([
+    'https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundle.js',
+    'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.11.0/pptxgen.bundle.js'
+  ],function(ok){
+    if(btn){btn.textContent='⬇ 연간 PPT 생성';btn.disabled=false;}
+    if(!ok){alert('PPT 라이브러리를 불러오지 못했습니다.\n네트워크 연결을 확인해주세요.');return;}
+    _doGenerateAnnualPPT();
+  });
+}
+async function _doGenerateAnnualPPT(){
+  try{
+  var d=getAnnualData();
+  var pptx=new PptxGenJS();
+  pptx.layout='LAYOUT_WIDE';
+  var ac=d.overallAch>=80?'059669':d.overallAch>=65?'D97706':'DC2626';
+
+  /* ── 슬라이드 1: 연간 종합 ── */
+  var s1=pptx.addSlide();
+  s1.background={color:'F4F7FB'};
+  s1.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:0.55,fill:{color:'0D1B2A'}});
+  s1.addText('⚖ Compliance RiskOps',{x:0.2,y:0.06,w:3.5,h:0.22,fontSize:10,bold:true,color:'FFFFFF',fontFace:'Arial'});
+  s1.addText('SK Chemical 법무 컴플라이언스팀',{x:0.2,y:0.28,w:3.5,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial'});
+  s1.addText(d.year+'년 연간 컴플라이언스 이행 현황',{x:5,y:0.07,w:7.8,h:0.25,fontSize:13,bold:true,color:'5EEAD4',fontFace:'Arial',align:'right'});
+  s1.addText('연간 보고서 · 1/2 — 종합 현황',{x:5,y:0.3,w:7.8,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial',align:'right'});
+  var kpis1=[
+    {label:'연간 관리 리스크',val:d.total+'건',color:'0F172A',sub:'전체 점검'},
+    {label:'평가 완료',val:d.evaluated+'건',color:'059669',sub:'달성율 확정'},
+    {label:'전사 평균 달성율',val:d.overallAch+'%',color:ac,sub:'연간 종합'},
+    {label:'최고 달성 월',val:d.bestMonth,color:'3B82F6',sub:'월별 최고'},
+  ];
+  kpis1.forEach(function(k,i){
+    var x=0.15+i*3.2;
+    s1.addShape(pptx.ShapeType.rect,{x:x,y:0.65,w:3.0,h:0.9,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
+    s1.addText(k.label,{x:x+0.12,y:0.72,w:2.8,h:0.18,fontSize:7.5,bold:true,color:'64748B',fontFace:'Arial'});
+    s1.addText(k.val,{x:x+0.12,y:0.88,w:2.8,h:0.36,fontSize:20,bold:true,color:k.color,fontFace:'Arial'});
+    s1.addText(k.sub,{x:x+0.12,y:1.24,w:2.8,h:0.18,fontSize:7,color:'94A3B8',fontFace:'Arial'});
+  });
+  s1.addShape(pptx.ShapeType.rect,{x:0.15,y:1.65,w:6.3,h:1.85,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
+  s1.addText('월별 이행 달성율 추이',{x:0.28,y:1.73,w:6,h:0.2,fontSize:9,bold:true,color:'0F172A',fontFace:'Arial'});
+  var bw=0.4;
+  d.months.forEach(function(m,i){
+    var v=d.monthlyAch[i]||0;
+    var bx=0.35+i*(bw+0.05);
+    var bh=(v/100)*0.8;
+    s1.addShape(pptx.ShapeType.rect,{x:bx,y:2.07,w:bw,h:0.9,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.03});
+    if(bh>0)s1.addShape(pptx.ShapeType.rect,{x:bx,y:2.07+(0.9-bh*0.9),w:bw,h:bh*0.9,fill:{color:'3B82F6'},line:{color:'3B82F6',pt:0},rectRadius:0.03});
+    s1.addText(v+'%',{x:bx,y:1.91,w:bw,h:0.16,fontSize:6,bold:true,color:'3B82F6',fontFace:'Arial',align:'center'});
+    s1.addText(m,{x:bx,y:3.02,w:bw,h:0.16,fontSize:6,color:'94A3B8',fontFace:'Arial',align:'center'});
+  });
+  s1.addShape(pptx.ShapeType.rect,{x:6.65,y:1.65,w:6.1,h:1.85,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
+  s1.addText('리스크 카테고리 현황',{x:6.78,y:1.73,w:5.8,h:0.2,fontSize:9,bold:true,color:'0F172A',fontFace:'Arial'});
+  d.cats.forEach(function(c,i){
+    var cy=2.03+i*0.27;
+    s1.addText(c.name,{x:6.78,y:cy,w:4,h:0.22,fontSize:8,color:'0F172A',fontFace:'Arial'});
+    s1.addText(c.count+'건',{x:11.0,y:cy,w:1.5,h:0.22,fontSize:8,bold:true,color:'3B82F6',fontFace:'Arial',align:'right'});
+  });
+  s1.addShape(pptx.ShapeType.rect,{x:0,y:3.74,w:'100%',h:0.64,fill:{color:'0D1B2A'}});
+  s1.addText('연간 총평',{x:0.2,y:3.86,w:0.9,h:0.22,fontSize:9,bold:true,color:'5EEAD4',fontFace:'Arial'});
+  s1.addShape(pptx.ShapeType.rect,{x:1.15,y:3.9,w:0.02,h:0.18,fill:{color:'2E5C9A'},line:{color:'2E5C9A',pt:0}});
+  s1.addText(d.comment,{x:1.25,y:3.86,w:9.4,h:0.22,fontSize:9,color:'CBD5E1',fontFace:'Arial'});
+  s1.addText('작성일: '+new Date().toLocaleDateString('ko-KR'),{x:11.0,y:3.86,w:1.8,h:0.22,fontSize:7.5,color:'4A6280',fontFace:'Arial',align:'right'});
+
+  /* ── 슬라이드 2: 팀별 분석 ── */
+  var s2=pptx.addSlide();
+  s2.background={color:'F4F7FB'};
+  s2.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:0.55,fill:{color:'0D1B2A'}});
+  s2.addText('⚖ Compliance RiskOps',{x:0.2,y:0.06,w:3.5,h:0.22,fontSize:10,bold:true,color:'FFFFFF',fontFace:'Arial'});
+  s2.addText('SK Chemical 법무 컴플라이언스팀',{x:0.2,y:0.28,w:3.5,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial'});
+  s2.addText(d.year+'년 연간 컴플라이언스 이행 현황',{x:5,y:0.07,w:7.8,h:0.25,fontSize:13,bold:true,color:'5EEAD4',fontFace:'Arial',align:'right'});
+  s2.addText('연간 보고서 · 2/2 — 팀별 상세 분석',{x:5,y:0.3,w:7.8,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial',align:'right'});
+  s2.addShape(pptx.ShapeType.rect,{x:0.15,y:0.65,w:6.3,h:0.3,fill:{color:'1E3A5F'},line:{color:'1E3A5F',pt:0},rectRadius:0.05});
+  s2.addText('팀별 연간 이행 현황',{x:0.28,y:0.68,w:6,h:0.22,fontSize:9,bold:true,color:'FFFFFF',fontFace:'Arial'});
+  ['팀','연간 달성율','분기 추이','상태'].forEach(function(h,i){
+    s2.addText(h,{x:[0.28,1.6,3.2,5.4][i],y:1.02,w:1.2,h:0.18,fontSize:7.5,bold:true,color:'94A3B8',fontFace:'Arial'});
+  });
+  d.teams.forEach(function(t,i){
+    var ty=1.22+i*0.46;
+    var tc2=t.color.replace('#','');
+    var ac3=t.avg>=80?'059669':t.avg>=65?'D97706':'DC2626';
+    s2.addText(t.name,{x:0.28,y:ty,w:1.2,h:0.3,fontSize:8,bold:true,color:'0F172A',fontFace:'Arial'});
+    s2.addShape(pptx.ShapeType.rect,{x:1.6,y:ty+0.08,w:1.4,h:0.14,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.07});
+    if(t.avg>0)s2.addShape(pptx.ShapeType.rect,{x:1.6,y:ty+0.08,w:1.4*(t.avg/100),h:0.14,fill:{color:tc2},line:{color:tc2,pt:0},rectRadius:0.07});
+    s2.addText(t.avg+'%',{x:3.05,y:ty+0.06,w:0.4,h:0.18,fontSize:8,bold:true,color:ac3,fontFace:'Arial'});
+    [t.jan||0,t.feb||0,t.mar||0].forEach(function(v,mi){
+      var bx=3.2+mi*0.5;
+      var bh=(v/100)*0.28;
+      s2.addShape(pptx.ShapeType.rect,{x:bx,y:ty,w:0.36,h:0.3,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.03});
+      if(bh>0)s2.addShape(pptx.ShapeType.rect,{x:bx,y:ty+(0.3-bh),w:0.36,h:bh,fill:{color:tc2},line:{color:tc2,pt:0},rectRadius:0.03});
+    });
+    s2.addText(t.status,{x:5.4,y:ty+0.05,w:0.8,h:0.2,fontSize:8,bold:true,color:t.status==='우수'?'059669':t.status==='주의'?'D97706':'DC2626',fontFace:'Arial'});
+  });
+  s2.addShape(pptx.ShapeType.rect,{x:6.65,y:0.65,w:6.1,h:0.3,fill:{color:'7F1D1D'},line:{color:'7F1D1D',pt:0},rectRadius:0.05});
+  s2.addText('연간 고위험 리스크 TOP 5',{x:6.78,y:0.68,w:5.8,h:0.22,fontSize:9,bold:true,color:'FFFFFF',fontFace:'Arial'});
+  ['순위','팀','리스크 명','위험도'].forEach(function(h,i){
+    s2.addText(h,{x:[6.78,7.3,8.4,11.8][i],y:1.02,w:1,h:0.18,fontSize:7.5,bold:true,color:'94A3B8',fontFace:'Arial'});
+  });
+  d.topRisks.forEach(function(r,i){
+    var ry=1.22+i*0.5;
+    var sc=r.score;
+    var scC=sc>=15?'DC2626':sc>=8?'D97706':'059669';
+    var scB=sc>=15?'FEF2F2':sc>=8?'FFFBEB':'ECFDF5';
+    s2.addText(''+(i+1),{x:6.78,y:ry,w:0.4,h:0.3,fontSize:9,bold:true,color:'94A3B8',fontFace:'Arial',align:'center'});
+    s2.addShape(pptx.ShapeType.rect,{x:7.2,y:ry+0.04,w:0.8,h:0.2,fill:{color:'EFF6FF'},line:{color:'BFDBFE',pt:1},rectRadius:0.04});
+    s2.addText(r.team,{x:7.2,y:ry+0.04,w:0.8,h:0.2,fontSize:7,color:'3B82F6',fontFace:'Arial',align:'center'});
+    s2.addText(r.title,{x:8.1,y:ry,w:3.6,h:0.3,fontSize:8,color:'0F172A',fontFace:'Arial'});
+    s2.addShape(pptx.ShapeType.rect,{x:11.75,y:ry+0.04,w:0.8,h:0.2,fill:{color:scB},line:{color:scB,pt:0},rectRadius:0.04});
+    s2.addText(sc+'점',{x:11.75,y:ry+0.04,w:0.8,h:0.2,fontSize:8,bold:true,color:scC,fontFace:'Arial',align:'center'});
+  });
+  await pptx.writeFile({fileName:'[SK Chemical] 컴플라이언스_연간현황_'+d.year+'.pptx'});
+  }catch(e){console.error('연간 PPT 오류:',e);alert('PPT 생성 오류: '+e.message);}
+}
+
+
+window.addEventListener('resize',function(){
+  if(curPage==='dash')setTimeout(function(){drawChart('trend-canvas',TREND,TKEYS,TCOLORS,true);},50);
+  if(curPage==='teams')setTimeout(function(){drawTeamsChart();},50);
 });
 
 /* ═══ EXCEL TEMPLATE DOWNLOAD ═══ */
 function downloadTemplate(){
-  if(typeof XLSX==='undefined'){alert('라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');return;}
+  if(typeof XLSX!=='undefined'){_doDownloadTemplate();return;}
+  var btn=event.target;btn.textContent='로딩 중...';btn.disabled=true;
+  _loadLib([
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+  ],function(ok){
+    btn.textContent='📥 양식 다운로드';btn.disabled=false;
+    if(!ok){alert('네트워크 연결을 확인해주세요.');return;}
+    _doDownloadTemplate();
+  });
+}
+function _doDownloadTemplate(){
   const wb=XLSX.utils.book_new();
   const headers=[['Year','Team','RiskCategory','RiskTitle','RiskDescription','ImprovementTask','ImpactScore','LikelihoodScore']];
   const sample=[
@@ -1290,22 +1911,32 @@ function downloadTemplate(){
   ws['!cols']=[{wch:6},{wch:14},{wch:14},{wch:30},{wch:40},{wch:30},{wch:12},{wch:14}];
   XLSX.utils.book_append_sheet(wb,ws,'RiskMaster');
   XLSX.writeFile(wb,'RiskMaster_Template.xlsx');
-}
+}   // end _doDownloadTemplate
 
 /* ═══ EXCEL UPLOAD ═══ */
 let emParsedRisks=[];
 
 function handleExcelDrop(e){
   const file=e.dataTransfer.files[0];
-  if(file) parseExcelFile(file);
+  if(file) _loadXLSXThenParse(file);
 }
 function handleExcelUpload(e){
   const file=e.target.files[0];
   e.target.value='';
   if(file){
     openExcelModal();
-    parseExcelFile(file);
+    _loadXLSXThenParse(file);
   }
+}
+function _loadXLSXThenParse(file){
+  if(typeof XLSX!=='undefined'){parseExcelFile(file);return;}
+  _loadLib([
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+  ],function(ok){
+    if(!ok){alert('네트워크 연결을 확인해주세요.');return;}
+    parseExcelFile(file);
+  });
 }
 function openExcelModal(){
   document.getElementById('excel-modal-overlay').classList.add('on');
