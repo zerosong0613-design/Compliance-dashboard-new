@@ -100,15 +100,15 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
   #sidebar{
     width:var(--sb-w);background:var(--navy);height:100vh;
     display:flex;flex-direction:column;flex-shrink:0;
-    transition:width .25s cubic-bezier(.4,0,.2,1);overflow:hidden;
+    transition:width .25s cubic-bezier(.4,0,.2,1);overflow:visible;
     border-right:1px solid var(--navy2);
   }
-  #sidebar.collapsed{width:var(--sb-w-col)}
+  #sidebar.collapsed{width:var(--sb-w-col);overflow:hidden}
   .sb-logo{padding:18px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--navy2);cursor:pointer;flex-shrink:0}
   .sb-logo-icon{width:34px;height:34px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
   .sb-logo-text{font-size:13px;font-weight:800;color:#fff;line-height:1.3;white-space:nowrap}
   .sb-logo-text span{color:#5EEAD4;font-size:12px}
-  #sidebar-nav{flex:1;padding:10px 7px;overflow-y:auto}
+  #sidebar-nav{flex:1;min-height:0;padding:10px 7px;overflow-y:auto;overflow-x:hidden}
   .sb-section{font-size:11px;font-weight:700;color:#4A6280;text-transform:uppercase;letter-spacing:.5px;padding:8px 11px 4px;white-space:nowrap}
   .sb-btn{width:100%;display:flex;align-items:center;gap:9px;padding:10px 12px;background:transparent;border:1px solid transparent;border-radius:9px;cursor:pointer;margin-bottom:2px;transition:all .15s;font-family:inherit}
   .sb-btn:hover{background:var(--navy2)}
