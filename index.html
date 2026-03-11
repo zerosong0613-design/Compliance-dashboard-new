@@ -331,6 +331,25 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .team-big-name{font-size:14px;font-weight:800;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px}
 .team-big-bar{height:8px;background:#EEF2F7;border-radius:99px;overflow:hidden;margin-bottom:6px}
 .team-big-months{display:flex;gap:12px;font-size:11px;color:var(--muted)}
+
+/* ── Teams page redesign ── */
+.teams-stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:1100px){.teams-stat-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.teams-stat-row{grid-template-columns:1fr 1fr}}
+.team-stat-card{background:var(--surface);border-radius:12px;padding:14px 16px;border:2px solid var(--border);cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.team-stat-card.active{border-color:var(--tc);box-shadow:0 4px 16px rgba(0,0,0,.10)}
+.team-stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--tc)}
+.tsc-name{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.tsc-avg{font-size:28px;font-weight:800;color:var(--tc);line-height:1;margin-bottom:6px}
+.tsc-bar{height:5px;background:#EEF2F7;border-radius:99px;overflow:hidden;margin-bottom:6px}
+.tsc-bar-fill{height:100%;border-radius:99px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.tsc-months{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+.chart-filter-tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.cft-btn{padding:5px 14px;border-radius:99px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.cft-btn.on{border-color:var(--tc,var(--accent));background:var(--tc,var(--accent));color:#fff}
+.chart-wrap{position:relative;width:100%}
+.chart-tooltip{position:absolute;background:var(--navy);color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;pointer-events:none;display:none;z-index:10;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.25);line-height:1.7}
+
 .master-toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .search-wrap{flex:1;min-width:200px;position:relative}
 .search-input{width:100%;padding:9px 12px 9px 36px;border:1px solid var(--border);border-radius:10px;font-size:13px;outline:none;font-family:inherit;background:var(--surface)}
@@ -531,8 +550,24 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 
       <!-- ═ TEAMS ═ -->
       <div class="view" id="view-teams">
-        <div id="team-cards"></div>
-        <div class="card"><div class="card-title">전체 팀 추이</div><div class="card-sub">최근 6개월</div><canvas id="teams-canvas" height="200" style="width:100%"></canvas></div>
+        <!-- 팀 스탯 카드 행 -->
+        <div class="teams-stat-row" id="team-stat-row"></div>
+        <!-- 추이 차트 카드 -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+            <div>
+              <div class="card-title">전체 팀 추이</div>
+              <div class="card-sub">최근 6개월 · 팀 카드 클릭 시 해당 팀 하이라이트</div>
+            </div>
+            <div class="chart-filter-tabs" id="team-filter-tabs"></div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="teams-canvas" height="320" style="width:100%;display:block"></canvas>
+            <div class="chart-tooltip" id="teams-tooltip"></div>
+          </div>
+          <!-- 범례 -->
+          <div id="teams-legend" style="display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)"></div>
+        </div>
       </div>
 
       <!-- ═ MASTER ═ -->
@@ -1010,13 +1045,160 @@ function updateScore(v){const c=scoreCol(v);const d=document.getElementById('sco
 function setScore(v){const s=document.getElementById('eval-sl');if(s){s.value=v;updateScore(v);}}
 
 /* ═══ TEAMS ═══ */
+/* ── Teams highlight state ── */
+let teamsHighlight=null; // null = 전체, or team key string
+
 function renderTeams(){
-  document.getElementById('team-cards').innerHTML=TEAMS_DATA.map(d=>{
-    const c=statusSt(d.status);const col=d.avg>=80?'var(--green)':d.avg>=65?'var(--amber)':'var(--red)';
-    return`<div class="team-big-card"><div class="team-big-avg" style="color:${col}">${d.avg}%</div><div class="team-big-info"><div class="team-big-name">${d.team}<span class="stag" style="background:${c.bg};color:${c.tx}">${d.status}</span></div><div class="team-big-bar"><div style="width:${d.avg}%;height:100%;border-radius:99px;background:${barGrad(d.avg)};transition:width .9s cubic-bezier(.4,0,.2,1)"></div></div><div class="team-big-months"><span>1월 ${d.jan}%</span><span>2월 ${d.feb}%</span><span>3월 ${d.mar}%</span></div></div></div>`;
+  // 스탯 카드 행
+  const statRow=document.getElementById('team-stat-row');
+  statRow.innerHTML=TEAMS_DATA.map((d,i)=>{
+    const col=TCOLORS[i];
+    const isActive=teamsHighlight===d.team||teamsHighlight===null;
+    return`<div class="team-stat-card ${teamsHighlight===d.team?'active':''}"
+      style="--tc:${col};opacity:${teamsHighlight&&teamsHighlight!==d.team?'.45':'1'};transition:opacity .2s"
+      onclick="highlightTeam('${d.team}')">
+      <div class="tsc-name">${d.team}<span class="stag" style="background:${statusSt(d.status).bg};color:${statusSt(d.status).tx}">${d.status}</span></div>
+      <div class="tsc-avg">${d.avg}%</div>
+      <div class="tsc-bar"><div class="tsc-bar-fill" style="width:${d.avg}%;background:${col}"></div></div>
+      <div class="tsc-months"><span>1월 ${d.jan}%</span><span>2월 ${d.feb}%</span><span>3월 ${d.mar}%</span></div>
+    </div>`;
   }).join('');
-  setTimeout(()=>drawChart('teams-canvas',TREND,TKEYS,TCOLORS,false),100);
+
+  // 필터 탭
+  const tabs=document.getElementById('team-filter-tabs');
+  tabs.innerHTML=`<button class="cft-btn ${!teamsHighlight?'on':''}" style="--tc:var(--accent)" onclick="highlightTeam(null)">전체</button>`
+    +TEAMS_DATA.map((d,i)=>`<button class="cft-btn ${teamsHighlight===d.team?'on':''}" style="--tc:${TCOLORS[i]}" onclick="highlightTeam('${d.team}')">${d.team}</button>`).join('');
+
+  // 범례
+  document.getElementById('teams-legend').innerHTML=TEAMS_DATA.map((d,i)=>`
+    <div style="display:flex;align-items:center;gap:7px;opacity:${teamsHighlight&&teamsHighlight!==d.team?'.3':'1'};transition:opacity .2s">
+      <div style="width:24px;height:3px;border-radius:99px;background:${TCOLORS[i]}"></div>
+      <span style="font-size:12px;font-weight:600;color:var(--text)">${d.team}</span>
+      <span style="font-size:12px;font-weight:800;color:${TCOLORS[i]}">${d.avg}%</span>
+    </div>`).join('');
+
+  setTimeout(()=>drawTeamsChart(),100);
 }
+
+function highlightTeam(team){
+  teamsHighlight=team;
+  renderTeams();
+}
+
+function drawTeamsChart(){
+  const canvas=document.getElementById('teams-canvas');
+  if(!canvas)return;
+  const tooltip=document.getElementById('teams-tooltip');
+  const W=canvas.offsetWidth||600;
+  const H=+canvas.getAttribute('height')||320;
+  const dpr=devicePixelRatio||1;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+
+  const pad={t:16,r:20,b:36,l:40};
+  const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
+  const mn=40, mx=100;
+  const months=TREND.map(d=>d.month);
+  const xp=i=>pad.l+i*(cw/(months.length-1));
+  const yp=v=>pad.t+ch-(v-mn)/(mx-mn)*ch;
+
+  // grid lines
+  [40,55,70,85,100].forEach(v=>{
+    ctx.beginPath();
+    ctx.strokeStyle= v===100?'#CBD5E1':'#EEF2F7';
+    ctx.lineWidth=1;
+    ctx.setLineDash(v===100?[]:[4,4]);
+    ctx.moveTo(pad.l,yp(v)); ctx.lineTo(pad.l+cw,yp(v));
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#94A3B8'; ctx.font=`11px 'Apple SD Gothic Neo',sans-serif`;
+    ctx.textAlign='right'; ctx.fillText(v+'%',pad.l-6,yp(v)+4);
+  });
+
+  // x labels
+  ctx.fillStyle='#94A3B8'; ctx.textAlign='center'; ctx.font=`11px 'Apple SD Gothic Neo',sans-serif`;
+  months.forEach((m,i)=>ctx.fillText(m,xp(i),H-8));
+
+  // vertical guide lines (light)
+  months.forEach((_,i)=>{
+    ctx.beginPath(); ctx.strokeStyle='#F1F5F9'; ctx.lineWidth=1;
+    ctx.moveTo(xp(i),pad.t); ctx.lineTo(xp(i),pad.t+ch); ctx.stroke();
+  });
+
+  // draw each team
+  TEAMS_DATA.forEach((d,ki)=>{
+    const key=d.team; const color=TCOLORS[ki];
+    const vals=TREND.map(row=>row[key]||0);
+    const isHL=!teamsHighlight||teamsHighlight===key;
+    const alpha=isHL?1:.12;
+
+    // area gradient fill
+    const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+    grad.addColorStop(0,color+(isHL?'33':'11'));
+    grad.addColorStop(1,color+'00');
+    ctx.beginPath();
+    vals.forEach((v,i)=>i===0?ctx.moveTo(xp(i),yp(v)):ctx.lineTo(xp(i),yp(v)));
+    ctx.lineTo(xp(vals.length-1),pad.t+ch);
+    ctx.lineTo(xp(0),pad.t+ch);
+    ctx.closePath();
+    ctx.fillStyle=grad; ctx.globalAlpha=alpha; ctx.fill(); ctx.globalAlpha=1;
+
+    // line
+    ctx.beginPath();
+    ctx.strokeStyle=color;
+    ctx.lineWidth=isHL?(teamsHighlight?3:2):1.5;
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.globalAlpha=alpha;
+    vals.forEach((v,i)=>i===0?ctx.moveTo(xp(i),yp(v)):ctx.lineTo(xp(i),yp(v)));
+    ctx.stroke(); ctx.globalAlpha=1;
+
+    // dots
+    vals.forEach((v,i)=>{
+      ctx.beginPath();
+      ctx.arc(xp(i),yp(v),isHL?(teamsHighlight?5:4):3,0,Math.PI*2);
+      ctx.fillStyle=isHL?color:'#fff';
+      ctx.strokeStyle=color;
+      ctx.lineWidth=2;
+      ctx.globalAlpha=alpha;
+      if(isHL){ctx.fill();}
+      ctx.stroke();
+      ctx.globalAlpha=1;
+    });
+
+    // end-label (highlighted team only)
+    if(isHL&&teamsHighlight===key){
+      const last=vals[vals.length-1];
+      ctx.fillStyle=color;
+      ctx.font=`bold 12px 'Apple SD Gothic Neo',sans-serif`;
+      ctx.textAlign='left';
+      ctx.globalAlpha=1;
+      ctx.fillText(last+'%', xp(vals.length-1)+8, yp(last)+4);
+    }
+  });
+
+  // tooltip on hover
+  canvas.onmousemove=function(e){
+    const rect=canvas.getBoundingClientRect();
+    const mx2=(e.clientX-rect.left);
+    // find nearest month
+    let nearest=0, minD=Infinity;
+    months.forEach((_,i)=>{const d=Math.abs(xp(i)-mx2);if(d<minD){minD=d;nearest=i;}});
+    if(minD>40){tooltip.style.display='none';return;}
+    const row=TREND[nearest];
+    let html=`<div style="font-weight:700;margin-bottom:4px;color:#94A3B8">${row.month}</div>`;
+    const sorted=[...TEAMS_DATA].sort((a,b)=>(row[b.team]||0)-(row[a.team]||0));
+    sorted.forEach((d,i)=>{
+      const v=row[d.team]||0;
+      html+=`<div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:${TCOLORS[TEAMS_DATA.indexOf(d)]}"></div><span>${d.team}</span><strong style="margin-left:auto;padding-left:16px">${v}%</strong></div>`;
+    });
+    tooltip.innerHTML=html;
+    tooltip.style.display='block';
+    const tx=xp(nearest)+10; const ty=pad.t;
+    tooltip.style.left=(tx+120>W?tx-140:tx)+'px';
+    tooltip.style.top=ty+'px';
+  };
+  canvas.onmouseleave=function(){tooltip.style.display='none';};
+}
+
 
 /* ═══ MASTER ═══ */
 let masterQ='',masterTeam='전체';
@@ -1091,7 +1273,7 @@ function renderMyTeam(){
 
 window.addEventListener('resize',()=>{
   if(curPage==='dash')setTimeout(()=>drawChart('trend-canvas',TREND,TKEYS,TCOLORS,true),50);
-  if(curPage==='teams')setTimeout(()=>drawChart('teams-canvas',TREND,TKEYS,TCOLORS,false),50);
+  if(curPage==='teams')setTimeout(()=>drawTeamsChart(),50);
 });
 
 /* ═══ EXCEL TEMPLATE DOWNLOAD ═══ */
