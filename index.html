@@ -69,12 +69,12 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .login-brand-sub{font-size:12px;color:var(--muted);margin-top:2px}
 .login-section{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
 .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
-.role-card{padding:18px 12px;border:2px solid var(--border);border-radius:14px;background:#fff;cursor:pointer;text-align:center;transition:all .2s}
+.role-card{padding:18px 12px;border:2px solid var(--border);border-radius:14px;background:#fff;cursor:pointer;text-align:center;transition:all .2s;display:flex;flex-direction:column;align-items:center;min-height:130px}
 .role-card:hover{border-color:#93C5FD;background:var(--accent-l)}
 .role-card.on{border-color:var(--accent);background:var(--accent-l)}
-.role-icon{font-size:30px;margin-bottom:8px}
-.role-label{font-size:13px;font-weight:700;color:var(--text)}
-.role-desc{font-size:11px;color:var(--muted);margin-top:3px}
+.role-icon{font-size:30px;margin-bottom:8px;flex-shrink:0}
+.role-label{font-size:13px;font-weight:700;color:var(--text);flex:1;display:flex;align-items:center;justify-content:center;min-height:38px}
+.role-desc{font-size:11px;color:var(--muted);margin-top:4px;flex-shrink:0}
 #team-section{display:none;margin-bottom:22px}
 .team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .team-btn{padding:10px 6px;border:1.5px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;text-align:center;font-size:12px;font-weight:600;color:var(--muted);transition:all .2s;font-family:inherit}
@@ -100,17 +100,19 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
   #sidebar{
     width:var(--sb-w);background:var(--navy);height:100vh;
     display:flex;flex-direction:column;flex-shrink:0;
-    transition:width .25s cubic-bezier(.4,0,.2,1);overflow:visible;
+    transition:width .25s cubic-bezier(.4,0,.2,1);overflow:hidden;
     border-right:1px solid var(--navy2);
   }
-  #sidebar.collapsed{width:var(--sb-w-col);overflow:hidden}
-  .sb-logo{padding:18px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--navy2);cursor:pointer;flex-shrink:0}
+  #sidebar.collapsed{width:var(--sb-w-col)}
+  .sb-logo{padding:14px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--navy2);cursor:pointer;flex-shrink:0}
   .sb-logo-icon{width:34px;height:34px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
   .sb-logo-text{font-size:13px;font-weight:800;color:#fff;line-height:1.3;white-space:nowrap}
   .sb-logo-text span{color:#5EEAD4;font-size:12px}
-  #sidebar-nav{flex:1;min-height:0;padding:10px 7px;overflow-y:auto;overflow-x:hidden}
-  .sb-section{font-size:11px;font-weight:700;color:#4A6280;text-transform:uppercase;letter-spacing:.5px;padding:8px 11px 4px;white-space:nowrap}
-  .sb-btn{width:100%;display:flex;align-items:center;gap:9px;padding:10px 12px;background:transparent;border:1px solid transparent;border-radius:9px;cursor:pointer;margin-bottom:2px;transition:all .15s;font-family:inherit}
+  #sidebar-nav{flex:1;min-height:0;padding:6px 7px;overflow-y:auto;overflow-x:hidden}
+  #sidebar-nav::-webkit-scrollbar{width:3px}
+  #sidebar-nav::-webkit-scrollbar-thumb{background:#2E5C9A;border-radius:99px}
+  .sb-section{font-size:10px;font-weight:700;color:#4A6280;text-transform:uppercase;letter-spacing:.5px;padding:6px 11px 3px;white-space:nowrap}
+  .sb-btn{width:100%;display:flex;align-items:center;gap:9px;padding:8px 12px;background:transparent;border:1px solid transparent;border-radius:8px;cursor:pointer;margin-bottom:1px;transition:all .15s;font-family:inherit}
   .sb-btn:hover{background:var(--navy2)}
   .sb-btn.on{background:#1E3A5F;border-color:#2E5C9A}
   .sb-btn-icon{font-size:15px;color:#8BA3BC;flex-shrink:0;width:18px;text-align:center}
@@ -118,7 +120,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
   .sb-btn-label{font-size:13px;font-weight:500;color:#8BA3BC;flex:1;text-align:left;white-space:nowrap}
   .sb-btn.on .sb-btn-label{font-weight:700}
   .sb-badge{background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:99px;flex-shrink:0}
-  .sb-user{padding:12px 14px;border-top:1px solid var(--navy2);display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:pointer}
+  .sb-user{padding:10px 14px;border-top:1px solid var(--navy2);display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:pointer}
   .sb-user:hover .sb-logout{opacity:1}
   .sb-avatar{width:32px;height:32px;background:var(--navy2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
   .sb-uname{font-size:13px;font-weight:700;color:#fff}
@@ -146,7 +148,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
   #content{flex:1;overflow-y:auto;padding:28px 32px}
 
   /* hide mobile-only elements */
-  #mobile-topbar,#bottom-nav,#drawer-overlay,#drawer,#sheet-overlay,#bottom-sheet{display:none!important}
+  #mobile-topbar,#bottom-nav,#drawer-overlay,#drawer,#sheet-overlay,#bottom-sheet,#filter-bar{display:none!important}
 }
 
 /* ═══════════════════════════════════════
@@ -465,7 +467,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
       </div><br>
     </div>
     <button class="login-btn" id="login-btn" disabled onclick="doLogin()">접속하기 →</button>
-    <div style="margin-top:14px;text-align:center;font-size:11px;color:#94A3B8">SK Chemical 컴플라이언스 법무팀 · 데모</div>
+    <div style="margin-top:14px;text-align:center;font-size:11px;color:#94A3B8">SK Chemical 법무실 컴플라이언스팀 · 데모</div>
   </div>
 </div>
 
@@ -495,10 +497,11 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
       <div id="topbar-right">
         <button class="fy-btn" onclick="setYear('2024',this)">2024년</button>
         <button class="fy-btn on" onclick="setYear('2025',this)">2025년</button>
+        <button class="fy-btn" onclick="setYear('2026',this)">2026년</button>
         <div style="width:1px;height:20px;background:var(--border)"></div>
         <select class="fm-sel"><option>1월</option><option>2월</option><option selected>3월</option><option>4월</option><option>5월</option><option>6월</option><option>7월</option><option>8월</option><option>9월</option><option>10월</option><option>11월</option><option>12월</option></select>
       </div>
-      <button class="export-btn">⬇ 내보내기</button>
+      <button class="export-btn" onclick="exportRisksExcel()">⬇ 내보내기</button>
     </div>
 
     <!-- MOBILE TOP BAR -->
@@ -517,6 +520,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
     <div id="filter-bar">
       <button class="fy-btn" onclick="setYear('2024',this)">2024년</button>
       <button class="fy-btn on" onclick="setYear('2025',this)">2025년</button>
+      <button class="fy-btn" onclick="setYear('2026',this)">2026년</button>
       <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
       <select class="fm-sel"><option>1월</option><option>2월</option><option selected>3월</option><option>4월</option><option>5월</option><option>6월</option><option>7월</option><option>8월</option><option>9월</option><option>10월</option><option>11월</option><option>12월</option></select>
     </div>
@@ -694,7 +698,8 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
                 <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">연도</div>
                 <select id="rpt-year" class="fm-sel" style="min-width:90px">
                   <option value="2024">2024년</option>
-                  <option value="2025" selected>2025년</option>
+                  <option value="2025">2025년</option>
+                  <option value="2026" selected>2026년</option>
                 </select>
               </div>
               <div>
@@ -740,7 +745,8 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
                 <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">연도</div>
                 <select id="rpt-ann-year" class="fm-sel" style="min-width:90px">
                   <option value="2024">2024년</option>
-                  <option value="2025" selected>2025년</option>
+                  <option value="2025">2025년</option>
+                  <option value="2026" selected>2026년</option>
                 </select>
               </div>
               <div>
@@ -1013,6 +1019,7 @@ function buildNav(){
 /* ═══ NAVIGATE ═══ */
 const PAGE_TITLES={dash:'전사 대시보드',monthly:'월간 현황 입력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성'};
 const SHOW_FILTER=['dash','teams','eval','master'];
+const HIDE_TOPBAR_RIGHT=['reports','selection','myteam'];
 function navigateTo(id){
   curPage=id;
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
@@ -1021,6 +1028,11 @@ function navigateTo(id){
   document.getElementById('page-title').textContent=title;
   document.getElementById('mob-page-name').textContent=' · '+title;
   document.getElementById('filter-bar').classList.toggle('on',SHOW_FILTER.includes(id));
+  // topbar 우측 연도/월 필터 — reports 등에서 숨김
+  var tbr=document.getElementById('topbar-right');
+  var expBtn=document.querySelector('.export-btn');
+  if(tbr)tbr.style.display=HIDE_TOPBAR_RIGHT.includes(id)?'none':'flex';
+  if(expBtn)expBtn.style.display=HIDE_TOPBAR_RIGHT.includes(id)?'none':'block';
   document.querySelectorAll('.sb-btn,.bnav-btn,.dr-btn').forEach(b=>b.classList.toggle('on',b.dataset.id===id));
   if(id==='monthly')renderMonthly();
   if(id==='eval')renderEvalList();
@@ -1034,6 +1046,33 @@ function navigateTo(id){
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('collapsed')}
 function setYear(y,btn){document.querySelectorAll('.fy-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on')}
+
+/* ── 내보내기: 현재 RISKS 데이터를 Excel로 다운로드 ── */
+function exportRisksExcel(){
+  if(typeof XLSX!=='undefined'){_doExportRisks();return;}
+  var btn=event&&event.target;
+  if(btn){btn.textContent='로딩 중...';btn.disabled=true;}
+  _loadLib([
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+  ],function(ok){
+    if(btn){btn.textContent='⬇ 내보내기';btn.disabled=false;}
+    if(!ok){alert('Excel 라이브러리를 불러오지 못했습니다.');return;}
+    _doExportRisks();
+  });
+}
+function _doExportRisks(){
+  var rows=[['ID','리스크명','팀','카테고리','위험도','담당자','상태','달성율(%)','점검대상']];
+  RISKS.forEach(function(r){
+    rows.push([r.id,r.title,r.team,r.cat,r.score,r.owner,r.status,r.achieve!=null?r.achieve:'',r.selected?'O':'']);
+  });
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:8},{wch:28},{wch:12},{wch:12},{wch:8},{wch:10},{wch:10},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws,'리스크 현황');
+  var today=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,'[SK Chemical] 컴플라이언스_리스크현황_'+today+'.xlsx');
+}
 function openDrawer(){document.getElementById('drawer').classList.add('on');document.getElementById('drawer-overlay').classList.add('on')}
 function closeDrawer(){document.getElementById('drawer').classList.remove('on');document.getElementById('drawer-overlay').classList.remove('on')}
 function openSheet(id,title,body,footer){
