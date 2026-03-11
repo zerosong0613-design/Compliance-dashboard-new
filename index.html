@@ -538,7 +538,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
         </div>
         <div class="chart-row">
           <div class="card"><div class="card-title">팀별 이행 달성율</div><div class="card-sub">2025년 3월 기준</div><div id="team-bars"></div></div>
-          <div class="card"><div class="card-title">월별 달성율 추이</div><div class="card-sub">최근 6개월</div><canvas id="trend-canvas" height="200" style="width:100%"></canvas><div id="trend-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div></div>
+          <div class="card"><div class="card-title">월별 달성율 추이</div><div class="card-sub">최근 6개월</div><canvas id="trend-canvas" style="width:100%"></canvas><div id="trend-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div></div>
         </div>
         <div class="bottom-row">
           <div class="card"><div class="card-title">리스크 Heat Map</div><div class="card-sub">영향도 × 가능성</div><div id="heatmap"></div></div>
@@ -592,7 +592,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
             <div class="chart-filter-tabs" id="team-filter-tabs"></div>
           </div>
           <div class="chart-wrap">
-            <canvas id="teams-canvas" height="320" style="width:100%;display:block"></canvas>
+            <canvas id="teams-canvas" style="width:100%;display:block"></canvas>
             <div class="chart-tooltip" id="teams-tooltip"></div>
           </div>
           <!-- 범례 -->
@@ -1123,7 +1123,8 @@ function renderTeamBars(){
 }
 function drawChart(cid,data,keys,colors,legend){
   const canvas=document.getElementById(cid);if(!canvas)return;
-  const W=canvas.offsetWidth||400,H=+canvas.getAttribute('height')||200;
+  const W=canvas.offsetWidth||400;
+  const H=Math.round(W*0.38);
   canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
   const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
   const pad={t:8,r:8,b:28,l:34};
@@ -1294,7 +1295,7 @@ function drawTeamsChart(){
   if(!canvas)return;
   const tooltip=document.getElementById('teams-tooltip');
   const W=canvas.offsetWidth||600;
-  const H=+canvas.getAttribute('height')||320;
+  const H=Math.round(W*0.38);  // 약 2.6:1 비율
   const dpr=devicePixelRatio||1;
   canvas.width=W*dpr; canvas.height=H*dpr;
   const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
