@@ -889,1175 +889,1493 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 </div>
 
 <script>
-/* ── 전역 에러 방어 (iOS Safari Script error 방지) ── */
-window.onerror=function(msg,src,line,col,err){
-  // 외부 라이브러리 로드 실패는 무시, 앱 실행 계속
-  if(!src||src.indexOf(location.hostname)<0){return true;}
-  console.warn('JS Error:',msg,src,line);
+/* ═══════════════════════════════════════════════════════════
+   ⚙️  CONFIG — SharePoint 연동 설정
+   SharePoint 구성 완료 후 아래 4가지 값만 수정하면 됩니다.
+═══════════════════════════════════════════════════════════ */
+const CONFIG = {
+  SP_SITE_URL:        'https://YOUR_TENANT.sharepoint.com/sites/ComplianceRiskOps', // ← 수정
+  LIST_RISK_MASTER:   'RiskMaster',
+  LIST_MONTHLY:       'MonthlyReport',
+  LIST_EVALUATION:    'Evaluation',
+  FLOW_SUBMIT_URL:    '',   // ← F-01 Power Automate HTTP 트리거 URL 붙여넣기
+  FLOW_SAVE_URL:      '',   // ← F-06 Power Automate HTTP 트리거 URL 붙여넣기
+  /* 오프라인 모드: SP 미연결 시 샘플 데이터로 동작 (개발/데모용) */
+  OFFLINE_MODE: true,       // SP 연결 완료 후 false 로 변경
+};
+
+/* ═══════════════════════════════════════════════════════════
+   📊  샘플 데이터 (OFFLINE_MODE=true 일 때만 사용)
+═══════════════════════════════════════════════════════════ */
+const SAMPLE_RISKS = [
+  {id:'R001',title:'개인정보 수집·이용 동의 누락',team:'영업팀',cat:'개인정보',score:20,impact:4,likelihood:5,status:'제출완료',submitStatus:'제출완료',achieve:85,owner:'김지훈',selected:true,spId:1},
+  {id:'R002',title:'하도급 거래 서면 미교부',team:'구매팀',cat:'공정거래',score:16,impact:4,likelihood:4,status:'미제출',submitStatus:'미제출',achieve:null,owner:'박성민',selected:true,spId:2},
+  {id:'R003',title:'화학물질 보관 기준 미준수',team:'생산팀',cat:'환경안전',score:15,impact:5,likelihood:3,status:'제출완료',submitStatus:'제출완료',achieve:72,owner:'이현수',selected:true,spId:3},
+  {id:'R004',title:'영업비밀 보호협약 미체결',team:'연구개발팀',cat:'지식재산',score:12,impact:3,likelihood:4,status:'평가완료',submitStatus:'평가완료',achieve:92,owner:'최민준',selected:true,spId:4},
+  {id:'R005',title:'수출통제 분류 검토 누락',team:'영업팀',cat:'수출규제',score:20,impact:4,likelihood:5,status:'제출완료',submitStatus:'제출완료',achieve:78,owner:'김지훈',selected:true,spId:5},
+  {id:'R006',title:'반부패 교육 미이수',team:'품질팀',cat:'부패방지',score:9,impact:3,likelihood:3,status:'평가완료',submitStatus:'평가완료',achieve:95,owner:'정다은',selected:true,spId:6},
+  {id:'R007',title:'근로계약서 필수조항 누락',team:'생산팀',cat:'노무',score:12,impact:3,likelihood:4,status:'임시저장',submitStatus:'임시저장',achieve:null,owner:'이현수',selected:true,spId:7},
+  {id:'R008',title:'수입물품 관세분류 오류',team:'구매팀',cat:'수출규제',score:9,impact:3,likelihood:3,status:'미제출',submitStatus:'미제출',achieve:null,owner:'박성민',selected:true,spId:8},
+];
+const SAMPLE_TREND = [
+  {month:'10월',영업팀:80,생산팀:65,연구개발팀:88,구매팀:55,품질팀:82},
+  {month:'11월',영업팀:82,생산팀:70,연구개발팀:90,구매팀:60,품질팀:86},
+  {month:'12월',영업팀:78,생산팀:68,연구개발팀:85,구매팀:58,품질팀:84},
+  {month:'1월', 영업팀:85,생산팀:70,연구개발팀:92,구매팀:60,품질팀:88},
+  {month:'2월', 영업팀:82,생산팀:75,연구개발팀:95,구매팀:65,품질팀:90},
+  {month:'3월', 영업팀:90,생산팀:72,연구개발팀:88,구매팀:68,품질팀:93},
+];
+
+/* ═══════════════════════════════════════════════════════════
+   🔌  SharePoint REST API 헬퍼
+═══════════════════════════════════════════════════════════ */
+let _digestCache = null, _digestExpiry = 0;
+
+async function spGetDigest() {
+  if (_digestCache && Date.now() < _digestExpiry) return _digestCache;
+  const res = await fetch(`${CONFIG.SP_SITE_URL}/_api/contextinfo`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Length': '0' }
+  });
+  if (!res.ok) throw new Error(`Digest 조회 실패 (${res.status})`);
+  const data = await res.json();
+  _digestCache = data.FormDigestValue;
+  _digestExpiry = Date.now() + 25 * 60 * 1000; // 25분 캐시
+  return _digestCache;
+}
+
+async function spGet(listName, filter = '', select = '', orderby = '') {
+  let url = `${CONFIG.SP_SITE_URL}/_api/web/lists/getbytitle('${listName}')/items`;
+  const params = [`$top=500`];
+  if (filter)  params.push(`$filter=${filter}`);
+  if (select)  params.push(`$select=${select}`);
+  if (orderby) params.push(`$orderby=${orderby}`);
+  url += '?' + params.join('&');
+  const res = await fetch(url, {
+    method: 'GET', credentials: 'include',
+    headers: { 'Accept': 'application/json;odata=nometadata' }
+  });
+  if (!res.ok) throw new Error(`SP 조회 실패 (${res.status})`);
+  const data = await res.json();
+  return data.value;
+}
+
+async function spPost(listName, body) {
+  const digest = await spGetDigest();
+  const res = await fetch(`${CONFIG.SP_SITE_URL}/_api/web/lists/getbytitle('${listName}')/items`, {
+    method: 'POST', credentials: 'include',
+    headers: {
+      'Accept': 'application/json;odata=nometadata',
+      'Content-Type': 'application/json;odata=verbose',
+      'X-RequestDigest': digest
+    },
+    body: JSON.stringify({ __metadata: { type: `SP.Data.${listName}ListItem` }, ...body })
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`SP 저장 실패 (${res.status}): ${t}`); }
+  return await res.json();
+}
+
+async function spPatch(listName, itemId, body) {
+  const digest = await spGetDigest();
+  const res = await fetch(`${CONFIG.SP_SITE_URL}/_api/web/lists/getbytitle('${listName}')/items(${itemId})`, {
+    method: 'POST', credentials: 'include',
+    headers: {
+      'Accept': 'application/json;odata=nometadata',
+      'Content-Type': 'application/json;odata=verbose',
+      'X-RequestDigest': digest,
+      'IF-MATCH': '*',
+      'X-HTTP-Method': 'MERGE'
+    },
+    body: JSON.stringify({ __metadata: { type: `SP.Data.${listName}ListItem` }, ...body })
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`SP 수정 실패 (${res.status}): ${t}`); }
+  return true;
+}
+
+/* Flow HTTP 트리거 호출 */
+async function callFlow(url, body) {
+  if (!url) throw new Error('Flow URL이 설정되지 않았습니다. CONFIG.FLOW_SUBMIT_URL / FLOW_SAVE_URL 을 입력해주세요.');
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`Flow 호출 실패 (${res.status})`);
+  try { return await res.json(); } catch { return { success: true }; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   🍞  토스트 알림 (alert 대체)
+═══════════════════════════════════════════════════════════ */
+function toast(msg, type = 'success', duration = 3500) {
+  const existing = document.getElementById('toast-container');
+  if (!existing) {
+    const c = document.createElement('div');
+    c.id = 'toast-container';
+    c.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none';
+    document.body.appendChild(c);
+  }
+  const t = document.createElement('div');
+  const colors = { success: '#10B981', error: '#EF4444', warn: '#F59E0B', info: '#3B82F6' };
+  const icons  = { success: '✓', error: '✕', warn: '⚠', info: 'ℹ' };
+  t.style.cssText = `background:#fff;border-left:4px solid ${colors[type]};border-radius:10px;padding:12px 18px;font-size:13px;font-family:inherit;color:#0F172A;box-shadow:0 8px 24px rgba(0,0,0,.15);display:flex;align-items:center;gap:10px;min-width:220px;max-width:360px;animation:fadeIn .25s ease;pointer-events:auto`;
+  t.innerHTML = `<span style="color:${colors[type]};font-weight:800;font-size:16px">${icons[type]}</span><span style="flex:1;line-height:1.4">${msg}</span>`;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(20px)'; t.style.transition = 'all .3s'; setTimeout(() => t.remove(), 300); }, duration);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ⏳  로딩 오버레이
+═══════════════════════════════════════════════════════════ */
+function showLoading(msg = '데이터 불러오는 중...') {
+  let el = document.getElementById('sp-loading');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sp-loading';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;backdrop-filter:blur(2px)';
+    el.innerHTML = `<div style="width:40px;height:40px;border:4px solid #E5EBF2;border-top-color:#3B82F6;border-radius:50%;animation:spin .8s linear infinite"></div><div id="sp-loading-msg" style="font-size:14px;color:#64748B;font-weight:600"></div>`;
+    document.body.appendChild(el);
+    const st = document.createElement('style');
+    st.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(st);
+  }
+  document.getElementById('sp-loading-msg').textContent = msg;
+  el.style.display = 'flex';
+}
+function hideLoading() {
+  const el = document.getElementById('sp-loading');
+  if (el) el.style.display = 'none';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   📥  데이터 로딩 (SP ↔ 오프라인 분기)
+═══════════════════════════════════════════════════════════ */
+let RISKS = [], TEAMS_DATA = [], TREND = [];
+const TKEYS   = ['영업팀','생산팀','연구개발팀','구매팀','품질팀'];
+const TCOLORS = ['#3B82F6','#8B5CF6','#10B981','#F59E0B','#EC4899'];
+
+async function loadData(year, month) {
+  showLoading('리스크 데이터 불러오는 중...');
+  try {
+    if (CONFIG.OFFLINE_MODE) {
+      await _loadOfflineData(year, month);
+    } else {
+      await _loadSPData(year, month);
+    }
+  } catch (e) {
+    console.error('데이터 로드 오류:', e);
+    toast('데이터 로드 실패: ' + e.message, 'error', 5000);
+    await _loadOfflineData(year, month); // 폴백
+  } finally {
+    hideLoading();
+  }
+}
+
+async function _loadOfflineData(year, month) {
+  RISKS = SAMPLE_RISKS.map(r => ({ ...r }));
+  TREND = SAMPLE_TREND.map(d => ({ ...d }));
+  _computeTeamsData();
+}
+
+async function _loadSPData(year, month) {
+  // 1. RiskMaster 로드 (해당 연도, 점검대상)
+  const masters = await spGet(
+    CONFIG.LIST_RISK_MASTER,
+    `Year eq ${year} and IsSelected eq 1`,
+    'Id,Title,Team,RiskCategory,RiskDescription,ImprovementTask,ImpactScore,LikelihoodScore,RiskScore,IsSelected,Owner',
+    'RiskScore desc'
+  );
+
+  // 2. MonthlyReport 로드 (해당 연도·월)
+  const reports = await spGet(
+    CONFIG.LIST_MONTHLY,
+    `Year eq ${year} and Month eq ${month}`,
+    'Id,RiskId,Team,Status,SubmitStatus,Content,SpecialNote,AttachmentUrl,SubmittedBy'
+  );
+
+  // 3. Evaluation 로드 (해당 연도·월)
+  const evals = await spGet(
+    CONFIG.LIST_EVALUATION,
+    `Year eq ${year} and Month eq ${month}`,
+    'Id,RiskId,AchieveScore,EvalComment,EvaluatedAt'
+  );
+
+  // 4. 트렌드용 MonthlyReport (최근 6개월)
+  const trendYear = month <= 6 ? year - 1 : year;
+  const trendReports = await spGet(
+    CONFIG.LIST_MONTHLY,
+    `Year ge ${trendYear}`,
+    'RiskId,Team,Year,Month,SubmitStatus,AchieveScore'
+  );
+
+  // 리포트/평가 맵 생성
+  const reportMap = {};
+  reports.forEach(r => { reportMap[r.RiskId] = r; });
+  const evalMap = {};
+  evals.forEach(e => { evalMap[e.RiskId] = e; });
+
+  // RISKS 배열 구성
+  RISKS = masters.map((m, i) => {
+    const rpt = reportMap[m.Id] || {};
+    const ev  = evalMap[m.Id] || {};
+    const sc  = m.RiskScore || (m.ImpactScore * m.LikelihoodScore);
+    return {
+      spId: m.Id,
+      id: 'R' + String(i + 1).padStart(3, '0'),
+      title: m.Title,
+      team: m.Team,
+      cat: m.RiskCategory || '기타',
+      desc: m.RiskDescription || '',
+      task: m.ImprovementTask || '',
+      impact: m.ImpactScore,
+      likelihood: m.LikelihoodScore,
+      score: sc,
+      owner: m.Owner || '-',
+      selected: m.IsSelected,
+      // MonthlyReport 연동
+      reportSpId: rpt.Id || null,
+      status: rpt.SubmitStatus || '미제출',
+      submitStatus: rpt.SubmitStatus || '미제출',
+      content: rpt.Content || '',
+      specialNote: rpt.SpecialNote || '',
+      attachmentUrl: rpt.AttachmentUrl || '',
+      submittedBy: rpt.SubmittedBy || '',
+      // Evaluation 연동
+      achieve: ev.AchieveScore != null ? ev.AchieveScore : null,
+      evalComment: ev.EvalComment || '',
+    };
+  });
+
+  // TREND 계산 (최근 6개월)
+  _computeTrend(trendReports, year, month);
+  _computeTeamsData();
+}
+
+function _computeTeamsData() {
+  TEAMS_DATA = TKEYS.map((team, i) => {
+    const teamRisks = RISKS.filter(r => r.team === team && r.achieve != null);
+    const avg = teamRisks.length ? Math.round(teamRisks.reduce((s, r) => s + r.achieve, 0) / teamRisks.length) : 0;
+    const status = avg >= 85 ? '우수' : avg >= 70 ? '정상' : avg >= 60 ? '주의' : '위험';
+    return { team, avg, status, color: TCOLORS[i] };
+  });
+}
+
+function _computeTrend(trendReports, year, month) {
+  // 최근 6개월 슬롯 생성
+  const slots = [];
+  for (let i = 5; i >= 0; i--) {
+    let m = month - i; let y = year;
+    if (m <= 0) { m += 12; y--; }
+    slots.push({ year: y, month: m, label: m + '월' });
+  }
+  TREND = slots.map(slot => {
+    const row = { month: slot.label };
+    TKEYS.forEach(team => {
+      const items = trendReports.filter(r => r.Team === team && r.Year === slot.year && r.Month === slot.month && r.AchieveScore != null);
+      row[team] = items.length ? Math.round(items.reduce((s, r) => s + r.AchieveScore, 0) / items.length) : 70;
+    });
+    return row;
+  });
+}
+
+/* 점검대상 선정 저장 (SP 연동) */
+async function saveSelectionToSP() {
+  if (CONFIG.OFFLINE_MODE) {
+    const cnt = RISKS.filter(r => r.selected !== false).length;
+    toast(`✓ 점검대상 ${cnt}건이 저장되었습니다. (오프라인 모드)`, 'info');
+    return;
+  }
+  showLoading('선정 정보 저장 중...');
+  try {
+    const digest = await spGetDigest();
+    await Promise.all(RISKS.map(r =>
+      spPatch(CONFIG.LIST_RISK_MASTER, r.spId, { IsSelected: r.selected !== false })
+    ));
+    toast(`✓ 점검대상 ${RISKS.filter(r => r.selected !== false).length}건이 저장되었습니다.`, 'success');
+  } catch (e) {
+    toast('저장 실패: ' + e.message, 'error');
+  } finally { hideLoading(); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   🌐  전역 에러 방어
+═══════════════════════════════════════════════════════════ */
+window.onerror = function(msg, src, line, col, err) {
+  if (!src || src.indexOf(location.hostname) < 0) return true;
+  console.warn('JS Error:', msg, src, line);
   return false;
 };
-window.onunhandledrejection=function(e){
-  console.warn('Unhandled promise rejection:',e.reason);
+window.onunhandledrejection = function(e) {
+  console.warn('Unhandled rejection:', e.reason);
   e.preventDefault();
 };
 
-/* ═══ DATA ═══ */
-const TEAMS_DATA=[
-  {team:"영업팀",avg:86,status:"정상",color:"#3B82F6",jan:85,feb:82,mar:90},
-  {team:"생산팀",avg:72,status:"주의",color:"#8B5CF6",jan:70,feb:75,mar:72},
-  {team:"연구개발팀",avg:92,status:"우수",color:"#10B981",jan:92,feb:95,mar:88},
-  {team:"구매팀",avg:64,status:"위험",color:"#F59E0B",jan:60,feb:65,mar:68},
-  {team:"품질팀",avg:90,status:"우수",color:"#EC4899",jan:88,feb:90,mar:93},
-];
-const TREND=[
-  {month:"10월",영업팀:80,생산팀:65,연구개발팀:88,구매팀:55,품질팀:82},
-  {month:"11월",영업팀:82,생산팀:70,연구개발팀:90,구매팀:60,품질팀:86},
-  {month:"12월",영업팀:78,생산팀:68,연구개발팀:85,구매팀:58,품질팀:84},
-  {month:"1월", 영업팀:85,생산팀:70,연구개발팀:92,구매팀:60,품질팀:88},
-  {month:"2월", 영업팀:82,생산팀:75,연구개발팀:95,구매팀:65,품질팀:90},
-  {month:"3월", 영업팀:90,생산팀:72,연구개발팀:88,구매팀:68,품질팀:93},
-];
-const TKEYS=["영업팀","생산팀","연구개발팀","구매팀","품질팀"];
-const TCOLORS=["#3B82F6","#8B5CF6","#10B981","#F59E0B","#EC4899"];
-const RISKS=[
-  {id:"R001",title:"개인정보 수집·이용 동의 누락",team:"영업팀",cat:"개인정보",score:20,status:"제출완료",achieve:85,owner:"김지훈"},
-  {id:"R002",title:"하도급 거래 서면 미교부",team:"구매팀",cat:"공정거래",score:16,status:"미제출",achieve:null,owner:"박성민"},
-  {id:"R003",title:"화학물질 보관 기준 미준수",team:"생산팀",cat:"환경안전",score:15,status:"제출완료",achieve:72,owner:"이현수"},
-  {id:"R004",title:"영업비밀 보호협약 미체결",team:"연구개발팀",cat:"지식재산",score:12,status:"평가완료",achieve:92,owner:"최민준"},
-  {id:"R005",title:"수출통제 분류 검토 누락",team:"영업팀",cat:"수출규제",score:20,status:"제출완료",achieve:78,owner:"김지훈"},
-  {id:"R006",title:"반부패 교육 미이수",team:"품질팀",cat:"부패방지",score:9,status:"평가완료",achieve:95,owner:"정다은"},
-  {id:"R007",title:"근로계약서 필수조항 누락",team:"생산팀",cat:"노무",score:12,status:"임시저장",achieve:null,owner:"이현수"},
-  {id:"R008",title:"수입물품 관세분류 오류",team:"구매팀",cat:"수출규제",score:9,status:"미제출",achieve:null,owner:"박성민"},
-];
-const NAV_ADMIN=[
-  {sec:"대시보드"},{id:"dash",icon:"▦",label:"전사 대시보드"},
-  {sec:"관리"},{id:"master",icon:"📋",label:"리스크 Master"},{id:"selection",icon:"🎯",label:"점검대상 리스크 선정"},{id:"eval",icon:"⚖",label:"이행 달성율 평가",badge:5},
-  {sec:"현황"},{id:"teams",icon:"👥",label:"팀 이행현황"},{id:"monthly",icon:"📝",label:"월간 현황 입력",badge:3},
-  {sec:"보고서"},{id:"reports",icon:"📊",label:"보고서 생성"},
-];
-const NAV_USER=[
-  {sec:"업무"},{id:"monthly",icon:"📝",label:"월간 현황 입력",badge:3},
-  {sec:"현황"},{id:"myteam",icon:"📈",label:"내 팀 이행현황"},
-];
-const BNAV_ADMIN=[{id:"dash",icon:"▦",label:"대시보드"},{id:"monthly",icon:"📝",label:"입력",badge:true},{id:"eval",icon:"⚖",label:"평가",badge:true},{id:"teams",icon:"👥",label:"팀현황"},{id:"master",icon:"📋",label:"Master"}];
-const BNAV_USER=[{id:"monthly",icon:"📝",label:"현황 입력",badge:true},{id:"myteam",icon:"📈",label:"내 팀 현황"}];
-
-/* ═══ STATE ═══ */
-let appRole='',appTeam='',loginRole='',loginTeam='',curPage='',curYear='2025';
-let isMobile=()=>window.innerWidth<=768;
-
-/* ═══ LOGIN ═══ */
-function pickRole(r){
-  loginRole=r;loginTeam='';
-  document.getElementById('r-admin').classList.toggle('on',r==='admin');
-  document.getElementById('r-user').classList.toggle('on',r==='user');
-  document.getElementById('team-section').style.display=r==='user'?'block':'none';
-  document.querySelectorAll('.team-btn').forEach(b=>b.classList.remove('on'));
-  document.getElementById('login-btn').disabled=r==='user';
-  if(r==='admin')document.getElementById('login-btn').disabled=false;
+/* CDN 라이브러리 lazy loader */
+function _loadLib(urls, done) {
+  var i = 0;
+  function next() {
+    if (i >= urls.length) { done(false); return; }
+    var s = document.createElement('script');
+    s.src = urls[i++]; s.onload = function() { done(true); }; s.onerror = next;
+    document.head.appendChild(s);
+  }
+  next();
 }
-function pickTeam(t,el){loginTeam=t;document.querySelectorAll('.team-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');document.getElementById('login-btn').disabled=false;}
-function doLogin(){
-  appRole=loginRole;appTeam=loginRole==='admin'?'컴플라이언스팀':loginTeam;
+
+/* ═══════════════════════════════════════════════════════════
+   📊  공통 상수 & 상태
+═══════════════════════════════════════════════════════════ */
+const NAV_ADMIN = [
+  {sec:'대시보드'},{id:'dash',icon:'▦',label:'전사 대시보드'},
+  {sec:'관리'},{id:'master',icon:'📋',label:'리스크 Master'},{id:'selection',icon:'🎯',label:'점검대상 리스크 선정'},{id:'eval',icon:'⚖',label:'이행 달성율 평가',badge:0},
+  {sec:'현황'},{id:'teams',icon:'👥',label:'팀 이행현황'},{id:'monthly',icon:'📝',label:'월간 현황 입력',badge:0},
+  {sec:'보고서'},{id:'reports',icon:'📊',label:'보고서 생성'},
+];
+const NAV_USER = [
+  {sec:'업무'},{id:'monthly',icon:'📝',label:'월간 현황 입력',badge:0},
+  {sec:'현황'},{id:'myteam',icon:'📈',label:'내 팀 이행현황'},
+];
+const BNAV_ADMIN = [{id:'dash',icon:'▦',label:'대시보드'},{id:'monthly',icon:'📝',label:'입력',badge:true},{id:'eval',icon:'⚖',label:'평가',badge:true},{id:'teams',icon:'👥',label:'팀현황'},{id:'master',icon:'📋',label:'Master'}];
+const BNAV_USER  = [{id:'monthly',icon:'📝',label:'현황 입력',badge:true},{id:'myteam',icon:'📈',label:'내 팀 현황'}];
+const PAGE_TITLES = {dash:'전사 대시보드',monthly:'월간 현황 입력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성'};
+const SHOW_FILTER = ['dash','teams','eval','master'];
+const HIDE_TOPBAR_RIGHT = ['reports','selection','myteam'];
+
+let appRole = '', appTeam = '', loginRole = '', loginTeam = '', curPage = '', curYear = '2025', curMonth = 3;
+const isMobile = () => window.innerWidth <= 768;
+
+/* ═══════════════════════════════════════════════════════════
+   🔐  로그인 / 로그아웃
+═══════════════════════════════════════════════════════════ */
+function pickRole(r) {
+  loginRole = r; loginTeam = '';
+  document.getElementById('r-admin').classList.toggle('on', r === 'admin');
+  document.getElementById('r-user').classList.toggle('on', r === 'user');
+  document.getElementById('team-section').style.display = r === 'user' ? 'block' : 'none';
+  document.querySelectorAll('.team-btn').forEach(b => b.classList.remove('on'));
+  document.getElementById('login-btn').disabled = r === 'user';
+  if (r === 'admin') document.getElementById('login-btn').disabled = false;
+}
+function pickTeam(t, el) {
+  loginTeam = t;
+  document.querySelectorAll('.team-btn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('login-btn').disabled = false;
+}
+async function doLogin() {
+  appRole = loginRole;
+  appTeam = loginRole === 'admin' ? '컴플라이언스팀' : loginTeam;
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app').classList.add('on');
-  // PC elements
-  document.getElementById('sb-avatar').textContent=appRole==='admin'?'🛡':'👤';
-  document.getElementById('sb-uname').textContent=appTeam;
-  document.getElementById('sb-urole').textContent=appRole==='admin'?'컴플라이언스 관리자':'팀 담당자';
-  // Mobile elements
-  document.getElementById('mob-user-chip').textContent=appTeam;
-  document.getElementById('dr-avatar').textContent=appRole==='admin'?'🛡':'👤';
-  document.getElementById('dr-uname').textContent=appTeam;
-  document.getElementById('dr-urole').textContent=appRole==='admin'?'컴플라이언스 관리자':'팀 담당자';
+  ['sb-avatar','dr-avatar'].forEach(id => document.getElementById(id).textContent = appRole === 'admin' ? '🛡' : '👤');
+  ['sb-uname','dr-uname'].forEach(id => document.getElementById(id).textContent = appTeam);
+  ['sb-urole','dr-urole'].forEach(id => document.getElementById(id).textContent = appRole === 'admin' ? '컴플라이언스 관리자' : '팀 담당자');
+  document.getElementById('mob-user-chip').textContent = appTeam;
   buildNav();
-  navigateTo(appRole==='admin'?'dash':'monthly');
+
+  // 데이터 로드 후 화면 진입
+  const now = new Date();
+  curYear = String(now.getFullYear());
+  curMonth = now.getMonth() + 1;
+  await loadData(parseInt(curYear), curMonth);
+  updateBadges();
+  navigateTo(appRole === 'admin' ? 'dash' : 'monthly');
   initDash();
 }
-function doLogout(){
+function doLogout() {
   closeDrawer();
   document.getElementById('app').classList.remove('on');
   document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('r-admin').classList.remove('on');
-  document.getElementById('r-user').classList.remove('on');
-  document.getElementById('login-btn').disabled=true;
-  document.getElementById('team-section').style.display='none';
-  loginRole='';loginTeam='';
+  ['r-admin','r-user'].forEach(id => document.getElementById(id).classList.remove('on'));
+  document.getElementById('login-btn').disabled = true;
+  document.getElementById('team-section').style.display = 'none';
+  loginRole = ''; loginTeam = '';
 }
 
-/* ═══ NAV BUILD ═══ */
-function buildNav(){
-  const nav=appRole==='admin'?NAV_ADMIN:NAV_USER;
-  const tabs=appRole==='admin'?BNAV_ADMIN:BNAV_USER;
-  // PC sidebar
-  document.getElementById('sidebar-nav').innerHTML=nav.map(n=>{
-    if(n.sec)return`<div class="sb-section">${n.sec}</div>`;
-    return`<button class="sb-btn" data-id="${n.id}" onclick="navigateTo('${n.id}')">
+/* 배지 업데이트 */
+function updateBadges() {
+  const unsubmitted = RISKS.filter(r => r.submitStatus === '미제출' || r.submitStatus === '임시저장').length;
+  const pendingEval = RISKS.filter(r => r.submitStatus === '제출완료').length;
+  document.querySelectorAll('[data-id="monthly"] .sb-badge,[data-id="monthly"] .dr-badge').forEach(b => b.textContent = unsubmitted);
+  document.querySelectorAll('[data-id="eval"] .sb-badge,[data-id="eval"] .dr-badge').forEach(b => b.textContent = pendingEval);
+  document.querySelectorAll('.bnav-dot').forEach(d => d.style.display = unsubmitted > 0 ? 'block' : 'none');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   🗺  내비게이션
+═══════════════════════════════════════════════════════════ */
+function buildNav() {
+  const nav  = appRole === 'admin' ? NAV_ADMIN : NAV_USER;
+  const tabs = appRole === 'admin' ? BNAV_ADMIN : BNAV_USER;
+  document.getElementById('sidebar-nav').innerHTML = nav.map(n => {
+    if (n.sec) return `<div class="sb-section">${n.sec}</div>`;
+    return `<button class="sb-btn" data-id="${n.id}" onclick="navigateTo('${n.id}')">
       <span class="sb-btn-icon">${n.icon}</span>
       <span class="sb-btn-label">${n.label}</span>
-      ${n.badge?`<span class="sb-badge">${n.badge}</span>`:''}
+      ${n.badge != null ? `<span class="sb-badge">${n.badge}</span>` : ''}
     </button>`;
   }).join('');
-  // Mobile drawer
-  document.getElementById('drawer-nav').innerHTML=nav.map(n=>{
-    if(n.sec)return`<div class="dr-section">${n.sec}</div>`;
-    return`<button class="dr-btn" data-id="${n.id}" onclick="closeDrawer();navigateTo('${n.id}')">
+  document.getElementById('drawer-nav').innerHTML = nav.map(n => {
+    if (n.sec) return `<div class="dr-section">${n.sec}</div>`;
+    return `<button class="dr-btn" data-id="${n.id}" onclick="closeDrawer();navigateTo('${n.id}')">
       <span class="dr-btn-icon">${n.icon}</span>
       <span class="dr-btn-lbl">${n.label}</span>
-      ${n.badge?`<span class="dr-badge">${n.badge}</span>`:''}
+      ${n.badge != null ? `<span class="dr-badge">${n.badge}</span>` : ''}
     </button>`;
   }).join('');
-  // Mobile bottom nav
-  document.getElementById('bottom-nav').innerHTML=tabs.map(t=>`
+  document.getElementById('bottom-nav').innerHTML = tabs.map(t => `
     <button class="bnav-btn" data-id="${t.id}" onclick="navigateTo('${t.id}')">
-      ${t.badge?'<div class="bnav-dot"></div>':''}
+      ${t.badge ? '<div class="bnav-dot"></div>' : ''}
       <div class="bnav-icon">${t.icon}</div>
       <div class="bnav-label">${t.label}</div>
     </button>`).join('');
 }
 
-/* ═══ NAVIGATE ═══ */
-const PAGE_TITLES={dash:'전사 대시보드',monthly:'월간 현황 입력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성'};
-const SHOW_FILTER=['dash','teams','eval','master'];
-const HIDE_TOPBAR_RIGHT=['reports','selection','myteam'];
-function navigateTo(id){
-  curPage=id;
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
-  const v=document.getElementById('view-'+id);if(v)v.classList.add('on');
-  const title=PAGE_TITLES[id]||id;
-  document.getElementById('page-title').textContent=title;
-  document.getElementById('mob-page-name').textContent=' · '+title;
-  document.getElementById('filter-bar').classList.toggle('on',SHOW_FILTER.includes(id));
-  // topbar 우측 연도/월 필터 — reports 등에서 숨김
-  var tbr=document.getElementById('topbar-right');
-  var expBtn=document.querySelector('.export-btn');
-  if(tbr)tbr.style.display=HIDE_TOPBAR_RIGHT.includes(id)?'none':'flex';
-  if(expBtn)expBtn.style.display=HIDE_TOPBAR_RIGHT.includes(id)?'none':'block';
-  document.querySelectorAll('.sb-btn,.bnav-btn,.dr-btn').forEach(b=>b.classList.toggle('on',b.dataset.id===id));
-  if(id==='monthly')renderMonthly();
-  if(id==='eval')renderEvalList();
-  if(id==='teams')renderTeams();
-  if(id==='master'){applyMaster();}
-  if(id==='selection')renderSelection();
-  if(id==='myteam')renderMyTeam();
-  if(id==='dash')runCounters();
-  if(id==='reports')renderReports();
-  document.getElementById('content').scrollTop=0;
-}
-function toggleSidebar(){document.getElementById('sidebar').classList.toggle('collapsed')}
-function setYear(y){
-  var pc=document.getElementById('sel-year');
-  var mob=document.getElementById('sel-year-mob');
-  if(pc&&pc.value!==y)pc.value=y;
-  if(mob&&mob.value!==y)mob.value=y;
-  curYear=y;
+function navigateTo(id) {
+  curPage = id;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+  const v = document.getElementById('view-' + id); if (v) v.classList.add('on');
+  document.getElementById('page-title').textContent = PAGE_TITLES[id] || id;
+  document.getElementById('mob-page-name').textContent = ' · ' + (PAGE_TITLES[id] || id);
+  document.getElementById('filter-bar').classList.toggle('on', SHOW_FILTER.includes(id));
+  const tbr = document.getElementById('topbar-right');
+  const expBtn = document.querySelector('.export-btn');
+  if (tbr) tbr.style.display = HIDE_TOPBAR_RIGHT.includes(id) ? 'none' : 'flex';
+  if (expBtn) expBtn.style.display = HIDE_TOPBAR_RIGHT.includes(id) ? 'none' : 'block';
+  document.querySelectorAll('.sb-btn,.bnav-btn,.dr-btn').forEach(b => b.classList.toggle('on', b.dataset.id === id));
+  if (id === 'monthly')   renderMonthly();
+  if (id === 'eval')      renderEvalList();
+  if (id === 'teams')     renderTeams();
+  if (id === 'master')    applyMaster();
+  if (id === 'selection') renderSelection();
+  if (id === 'myteam')    renderMyTeam();
+  if (id === 'dash')      { initDash(); runCounters(); }
+  if (id === 'reports')   renderReports();
+  document.getElementById('content').scrollTop = 0;
 }
 
-/* ── 내보내기: 현재 RISKS 데이터를 Excel로 다운로드 ── */
-function exportRisksExcel(){
-  if(typeof XLSX!=='undefined'){_doExportRisks();return;}
-  var btn=event&&event.target;
-  if(btn){btn.textContent='로딩 중...';btn.disabled=true;}
-  _loadLib([
-    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
-    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
-  ],function(ok){
-    if(btn){btn.textContent='⬇ 내보내기';btn.disabled=false;}
-    if(!ok){alert('Excel 라이브러리를 불러오지 못했습니다.');return;}
-    _doExportRisks();
-  });
-}
-function _doExportRisks(){
-  var rows=[['ID','리스크명','팀','카테고리','위험도','담당자','상태','달성율(%)','점검대상']];
-  RISKS.forEach(function(r){
-    rows.push([r.id,r.title,r.team,r.cat,r.score,r.owner,r.status,r.achieve!=null?r.achieve:'',r.selected?'O':'']);
-  });
-  var wb=XLSX.utils.book_new();
-  var ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:8},{wch:28},{wch:12},{wch:12},{wch:8},{wch:10},{wch:10},{wch:10},{wch:10}];
-  XLSX.utils.book_append_sheet(wb,ws,'리스크 현황');
-  var today=new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb,'[SK Chemical] 컴플라이언스_리스크현황_'+today+'.xlsx');
-}
-function openDrawer(){document.getElementById('drawer').classList.add('on');document.getElementById('drawer-overlay').classList.add('on')}
-function closeDrawer(){document.getElementById('drawer').classList.remove('on');document.getElementById('drawer-overlay').classList.remove('on')}
-function openSheet(id,title,body,footer){
-  document.getElementById('sheet-id').textContent=id;
-  document.getElementById('sheet-title').textContent=title;
-  document.getElementById('sheet-body').innerHTML=body;
-  document.getElementById('sheet-footer').innerHTML=footer;
-  document.getElementById('sheet-overlay').classList.add('on');
-  document.getElementById('bottom-sheet').classList.add('on');
-}
-function closeSheet(){document.getElementById('sheet-overlay').classList.remove('on');document.getElementById('bottom-sheet').classList.remove('on')}
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
 
-/* ═══ HELPERS ═══ */
-const statusSt=s=>({우수:{bg:'#ECFDF5',tx:'#059669'},정상:{bg:'#EFF6FF',tx:'#2563EB'},주의:{bg:'#FFFBEB',tx:'#D97706'},위험:{bg:'#FEF2F2',tx:'#DC2626'}}[s]||{bg:'#F1F5F9',tx:'#64748B'});
-const stClass=s=>({제출완료:'s-sub',평가완료:'s-eval',미제출:'s-none',임시저장:'s-draft'}[s]||'');
-const scColor=v=>v>=15?'var(--red)':v>=10?'var(--amber)':'var(--green)';
-const scClass=v=>v>=15?'score-hi':v>=10?'score-md':'score-lo';
-const heatColor=v=>v>=20?'#EF4444':v>=15?'#F97316':v>=10?'#F59E0B':v>=5?'#84CC16':'#22C55E';
-const barGrad=avg=>`linear-gradient(90deg,#3B82F6,${avg>=80?'#10B981':avg>=65?'#F59E0B':'#EF4444'})`;
-const scoreCol=v=>+v>=80?'var(--green)':+v>=60?'var(--amber)':'var(--red)';
-
-/* ═══ INIT DASH ═══ */
-function initDash(){
-  renderTeamBars();renderHeatmap();renderRiskTable('전체');
-  setTimeout(()=>drawChart('trend-canvas',TREND,TKEYS,TCOLORS,true),80);
-  setTimeout(runCounters,100);
+async function setYear(y) {
+  const pc = document.getElementById('sel-year'); const mob = document.getElementById('sel-year-mob');
+  if (pc && pc.value !== y) pc.value = y;
+  if (mob && mob.value !== y) mob.value = y;
+  curYear = y;
+  await loadData(parseInt(curYear), curMonth);
+  updateBadges();
+  navigateTo(curPage);
 }
-function runCounters(){
-  document.querySelectorAll('.kpi-num[data-t]').forEach(el=>{
-    if(el.dataset.done)return;el.dataset.done=1;
-    const tgt=+el.dataset.t,pct=el.dataset.pct;let v=0;
-    const step=Math.ceil(tgt/20);
-    const t=setInterval(()=>{v=Math.min(v+step,tgt);el.textContent=v+(pct?'%':'');if(v>=tgt)clearInterval(t);},45);
+
+/* ═══════════════════════════════════════════════════════════
+   📊  헬퍼 함수
+═══════════════════════════════════════════════════════════ */
+const statusSt = s => ({우수:{bg:'#ECFDF5',tx:'#059669'},정상:{bg:'#EFF6FF',tx:'#2563EB'},주의:{bg:'#FFFBEB',tx:'#D97706'},위험:{bg:'#FEF2F2',tx:'#DC2626'}}[s] || {bg:'#F1F5F9',tx:'#64748B'});
+const stClass   = s => ({제출완료:'s-sub',평가완료:'s-eval',미제출:'s-none',임시저장:'s-draft'}[s] || '');
+const scClass   = v => v >= 15 ? 'score-hi' : v >= 10 ? 'score-md' : 'score-lo';
+const scColor   = v => v >= 15 ? 'var(--red)' : v >= 10 ? 'var(--amber)' : 'var(--green)';
+const heatColor = v => v >= 20 ? '#EF4444' : v >= 15 ? '#F97316' : v >= 10 ? '#F59E0B' : v >= 5 ? '#84CC16' : '#22C55E';
+const barGrad   = avg => `linear-gradient(90deg,#3B82F6,${avg >= 80 ? '#10B981' : avg >= 65 ? '#F59E0B' : '#EF4444'})`;
+const scoreCol  = v => +v >= 80 ? 'var(--green)' : +v >= 60 ? 'var(--amber)' : 'var(--red)';
+const scoreStyle = s => s >= 15 ? {bg:'#FEF2F2',col:'var(--red)'} : s >= 8 ? {bg:'#FFFBEB',col:'var(--amber)'} : {bg:'#ECFDF5',col:'var(--green)'};
+
+/* ═══════════════════════════════════════════════════════════
+   🏠  대시보드
+═══════════════════════════════════════════════════════════ */
+function initDash() {
+  // KPI 수치 실데이터 반영
+  const total = RISKS.length;
+  const submitted = RISKS.filter(r => r.submitStatus === '제출완료' || r.submitStatus === '평가완료').length;
+  const achRisks  = RISKS.filter(r => r.achieve != null);
+  const overallAch = achRisks.length ? Math.round(achRisks.reduce((s, r) => s + r.achieve, 0) / achRisks.length) : 0;
+  const pendingEval = RISKS.filter(r => r.submitStatus === '제출완료').length;
+
+  // KPI 카드 수치 업데이트
+  const kpiMap = {0: total, 1: submitted, 2: overallAch, 3: pendingEval};
+  document.querySelectorAll('.kpi-num[data-t]').forEach((el, i) => {
+    el.dataset.done = '';
+    el.dataset.t = kpiMap[i] != null ? kpiMap[i] : el.dataset.t;
+    if (i === 2) el.dataset.pct = '1';
+  });
+
+  renderTeamBars(); renderHeatmap(); renderRiskTable('전체');
+  renderMissingAlerts();
+  setTimeout(() => drawChart('trend-canvas', TREND, TKEYS, TCOLORS, true), 80);
+  setTimeout(runCounters, 100);
+}
+
+function runCounters() {
+  document.querySelectorAll('.kpi-num[data-t]').forEach(el => {
+    if (el.dataset.done) return; el.dataset.done = 1;
+    const tgt = +el.dataset.t, pct = el.dataset.pct; let v = 0;
+    const step = Math.ceil(tgt / 20);
+    const t = setInterval(() => { v = Math.min(v + step, tgt); el.textContent = v + (pct ? '%' : ''); if (v >= tgt) clearInterval(t); }, 45);
   });
 }
-function renderTeamBars(){
-  document.getElementById('team-bars').innerHTML=TEAMS_DATA.map(d=>{
-    const c=statusSt(d.status);
-    return`<div class="team-bar"><div class="team-name">${d.team}</div><div class="bar-track"><div class="bar-fill" data-w="${d.avg}" style="background:${barGrad(d.avg)}"></div></div><div class="team-pct">${d.avg}%</div><span class="stag" style="background:${c.bg};color:${c.tx}">${d.status}</span></div>`;
+
+function renderTeamBars() {
+  document.getElementById('team-bars').innerHTML = TEAMS_DATA.map(d => {
+    const c = statusSt(d.status);
+    return `<div class="team-bar"><div class="team-name">${d.team}</div><div class="bar-track"><div class="bar-fill" data-w="${d.avg}" style="background:${barGrad(d.avg)}"></div></div><div class="team-pct">${d.avg}%</div><span class="stag" style="background:${c.bg};color:${c.tx}">${d.status}</span></div>`;
   }).join('');
-  setTimeout(()=>document.querySelectorAll('.bar-fill').forEach(b=>b.style.width=b.dataset.w+'%'),100);
+  setTimeout(() => document.querySelectorAll('.bar-fill').forEach(b => b.style.width = b.dataset.w + '%'), 100);
 }
-function drawChart(cid,data,keys,colors,legend){
-  const canvas=document.getElementById(cid);if(!canvas)return;
-  const W=canvas.offsetWidth||400;
-  const H=Math.round(W*0.38);
-  canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
-  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
-  const pad={t:8,r:8,b:28,l:34};
-  const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
-  const mn=40,mx=100,months=data.map(d=>d.month);
-  const xp=i=>pad.l+i*(cw/(months.length-1));
-  const yp=v=>pad.t+ch-(v-mn)/(mx-mn)*ch;
-  ctx.strokeStyle='#E5EBF2';ctx.lineWidth=1;
-  [40,60,80,100].forEach(v=>{ctx.beginPath();ctx.moveTo(pad.l,yp(v));ctx.lineTo(pad.l+cw,yp(v));ctx.stroke();ctx.fillStyle='#94A3B8';ctx.font='10px sans-serif';ctx.textAlign='right';ctx.fillText(v+'%',pad.l-3,yp(v)+3);});
-  ctx.fillStyle='#94A3B8';ctx.textAlign='center';months.forEach((m,i)=>ctx.fillText(m,xp(i),H-6));
-  keys.forEach((key,ki)=>{
-    const vals=data.map(d=>d[key]||0);
-    ctx.beginPath();ctx.strokeStyle=colors[ki];ctx.lineWidth=2.5;ctx.lineJoin='round';
-    vals.forEach((v,i)=>i===0?ctx.moveTo(xp(i),yp(v)):ctx.lineTo(xp(i),yp(v)));ctx.stroke();
-    vals.forEach((v,i)=>{ctx.beginPath();ctx.arc(xp(i),yp(v),3.5,0,Math.PI*2);ctx.fillStyle=colors[ki];ctx.fill();});
-  });
-  if(legend){const el=document.getElementById('trend-legend');if(el)el.innerHTML=keys.map((k,i)=>`<div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:50%;background:${colors[i]}"></div><span style="font-size:11px;color:var(--muted)">${k}</span></div>`).join('');}
-}
-function renderHeatmap(){
-  let h='<div style="display:flex;gap:3px;margin-bottom:5px"><div style="width:24px"></div>';
-  for(let l=1;l<=5;l++)h+=`<div style="flex:1;text-align:center;font-size:9px;color:var(--muted);font-weight:600">L${l}</div>`;
-  h+='</div>';
-  for(let imp=5;imp>=1;imp--){h+=`<div class="hm-row"><div class="hm-lbl">${imp}</div>`;for(let li=1;li<=5;li++){const s=imp*li;h+=`<div class="hm-cell" style="background:${heatColor(s)}" title="${s}">${s}</div>`;}h+='</div>';}
-  h+='<div style="display:flex;gap:4px;margin-top:8px;align-items:center"><span style="font-size:9px;color:var(--muted)">낮음</span>';
-  ['#22C55E','#84CC16','#F59E0B','#F97316','#EF4444'].forEach(c=>h+=`<div style="width:14px;height:6px;border-radius:3px;background:${c}"></div>`);
-  h+='<span style="font-size:9px;color:var(--muted)">높음</span></div>';
-  document.getElementById('heatmap').innerHTML=h;
-}
-function renderRiskTable(filter){
-  const data=filter==='전체'?RISKS:RISKS.filter(r=>r.status===filter);
-  document.getElementById('risk-tbody').innerHTML=data.map(r=>{
-    const pb=r.achieve!=null?`<div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:${r.achieve}%;background:${r.achieve>=80?'var(--green)':r.achieve>=60?'var(--amber)':'var(--red)'}"></div></div><span style="font-weight:700">${r.achieve}%</span></div>`:'<span style="color:#94A3B8">미평가</span>';
-    return`<tr><td class="tbl-id">${r.id}</td><td class="tbl-title" title="${r.title}">${r.title}</td><td class="tbl-muted">${r.team}</td><td><span class="cat-tag">${r.cat}</span></td><td><span class="${scClass(r.score)}">${r.score}</span></td><td><span class="status-chip ${stClass(r.status)}">${r.status}</span></td><td>${pb}</td><td><button class="act-btn">상세</button></td></tr>`;
-  }).join('');
-}
-function filterTbl(f,btn){document.querySelectorAll('.table-header .f-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderRiskTable(f);}
 
-/* ═══ MONTHLY ═══ */
-let selMonthly=null;
-function renderMonthly(){
-  const base=appRole==='admin'?RISKS:RISKS.filter(r=>r.team===appTeam);
-  document.getElementById('monthly-psub').textContent=`2025년 3월 · ${appRole==='admin'?'전체':appTeam}`;
-  document.getElementById('monthly-list').innerHTML=base.map((r,i)=>`
-    <div class="r-item ${selMonthly===i?'on':''}" onclick="selectMonthly(${i})">
-      <div class="r-item-id">${r.id} · ${r.cat}</div>
-      <div class="r-item-name">${r.title}</div>
-      <span class="status-chip ${stClass(r.status)}" style="font-size:9px">${r.status}</span>
+function renderMissingAlerts() {
+  const alertEl = document.querySelector('#view-dash .alert-item-card')?.parentElement;
+  if (!alertEl) return;
+  const missing = {};
+  RISKS.filter(r => r.submitStatus === '미제출').forEach(r => {
+    if (!missing[r.team]) missing[r.team] = [];
+    missing[r.team].push(r);
+  });
+  const dday = (() => { const n = new Date(); const end = new Date(n.getFullYear(), n.getMonth() + 1, 0); return Math.ceil((end - n) / 86400000); })();
+  if (!Object.keys(missing).length) {
+    alertEl.innerHTML = '<div style="text-align:center;padding:24px;color:var(--green);font-weight:700">✓ 미제출 없음</div>';
+    return;
+  }
+  alertEl.innerHTML = Object.entries(missing).map(([team, risks]) => `
+    <div class="alert-item-card">
+      <div class="alert-head"><span class="alert-team">${team}</span><span class="alert-badge">${risks.length}건</span><span class="alert-days">D-${dday}</span></div>
+      ${risks.map(r => `<div class="alert-risk"><span style="color:var(--red)">•</span>${r.title}</div>`).join('')}
+      <button class="alert-send-btn" onclick="sendNudge('${team}',this)">독촉 메일 발송</button>
     </div>`).join('');
 }
-function selectMonthly(i){
-  selMonthly=i;
-  const r=RISKS[i];
-  const formBody=buildMonthlyFormBody(r);
-  const formFooter=`<button class="btn btn-ghost" onclick="">임시저장</button><button class="btn btn-danger" onclick="alert('이의신청 접수')">이의신청</button><button class="btn btn-primary" onclick="this.textContent='✓ 제출 완료';this.style.background='var(--green)'">제출하기 →</button>`;
-  if(isMobile()){
-    openSheet(r.id+' · '+r.cat,r.title,formBody,formFooter);
-  } else {
-    renderMonthly();
-    document.getElementById('monthly-form').innerHTML=`<div class="form-hd"><div class="form-hd-id">${r.id} · ${r.cat} · ${r.team}</div><div class="form-hd-title">${r.title}</div><div class="form-hd-sub">📌 개선과제: 정기 교육 실시 및 프로세스 표준화</div></div><div class="form-body">${formBody}</div><div class="form-footer">${formFooter}</div>`;
+
+async function sendNudge(team, btn) {
+  btn.textContent = '발송 중...'; btn.disabled = true;
+  try {
+    if (!CONFIG.OFFLINE_MODE && CONFIG.FLOW_SUBMIT_URL) {
+      // Power Automate 독촉 메일 Flow 연동 (F-04 수동 트리거 방식)
+      await callFlow(CONFIG.FLOW_SUBMIT_URL.replace('/F01/', '/nudge/'), { team, type: 'nudge' });
+    }
+    btn.textContent = '✓ 발송 완료'; btn.style.background = '#64748B';
+    toast(`${team}에 독촉 메일을 발송했습니다.`, 'success');
+  } catch (e) {
+    btn.textContent = '독촉 메일 발송'; btn.disabled = false;
+    toast('발송 실패: ' + e.message, 'error');
   }
 }
-function buildMonthlyFormBody(r){
-  return`
+
+function renderRiskTable(filter) {
+  const data = filter === '전체' ? RISKS : RISKS.filter(r => r.submitStatus === filter);
+  document.getElementById('risk-tbody').innerHTML = data.map(r => {
+    const pb = r.achieve != null
+      ? `<div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:${r.achieve}%;background:${r.achieve >= 80 ? 'var(--green)' : r.achieve >= 60 ? 'var(--amber)' : 'var(--red)'}"></div></div><span style="font-weight:700">${r.achieve}%</span></div>`
+      : '<span style="color:#94A3B8">미평가</span>';
+    return `<tr><td class="tbl-id">${r.id}</td><td class="tbl-title" title="${r.title}">${r.title}</td><td class="tbl-muted">${r.team}</td><td><span class="cat-tag">${r.cat}</span></td><td><span class="${scClass(r.score)}">${r.score}</span></td><td><span class="status-chip ${stClass(r.submitStatus)}">${r.submitStatus}</span></td><td>${pb}</td><td><button class="act-btn" onclick="showRiskDetail('${r.id}')">상세</button></td></tr>`;
+  }).join('');
+}
+function filterTbl(f, btn) {
+  document.querySelectorAll('.table-header .f-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on'); renderRiskTable(f);
+}
+function showRiskDetail(riskId) {
+  const r = RISKS.find(x => x.id === riskId); if (!r) return;
+  toast(`${r.id}: ${r.title} — 위험도 ${r.score}점`, 'info', 4000);
+}
+
+/* 차트 */
+function drawChart(cid, data, keys, colors, legend) {
+  const canvas = document.getElementById(cid); if (!canvas) return;
+  const W = canvas.offsetWidth || 400, H = Math.round(W * 0.38);
+  canvas.width = W * devicePixelRatio; canvas.height = H * devicePixelRatio;
+  const ctx = canvas.getContext('2d'); ctx.scale(devicePixelRatio, devicePixelRatio);
+  const pad = {t:8,r:8,b:28,l:34}, cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+  const mn = 40, mx = 100, months = data.map(d => d.month);
+  const xp = i => pad.l + i * (cw / (months.length - 1));
+  const yp = v => pad.t + ch - (v - mn) / (mx - mn) * ch;
+  ctx.strokeStyle = '#E5EBF2'; ctx.lineWidth = 1;
+  [40, 60, 80, 100].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, yp(v)); ctx.lineTo(pad.l + cw, yp(v)); ctx.stroke(); ctx.fillStyle = '#94A3B8'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right'; ctx.fillText(v + '%', pad.l - 3, yp(v) + 3); });
+  ctx.fillStyle = '#94A3B8'; ctx.textAlign = 'center'; months.forEach((m, i) => ctx.fillText(m, xp(i), H - 6));
+  keys.forEach((key, ki) => {
+    const vals = data.map(d => d[key] || 0);
+    ctx.beginPath(); ctx.strokeStyle = colors[ki]; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+    vals.forEach((v, i) => i === 0 ? ctx.moveTo(xp(i), yp(v)) : ctx.lineTo(xp(i), yp(v))); ctx.stroke();
+    vals.forEach((v, i) => { ctx.beginPath(); ctx.arc(xp(i), yp(v), 3.5, 0, Math.PI * 2); ctx.fillStyle = colors[ki]; ctx.fill(); });
+  });
+  if (legend) { const el = document.getElementById('trend-legend'); if (el) el.innerHTML = keys.map((k, i) => `<div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:50%;background:${colors[i]}"></div><span style="font-size:11px;color:var(--muted)">${k}</span></div>`).join(''); }
+}
+function renderHeatmap() {
+  let h = '<div style="display:flex;gap:3px;margin-bottom:5px"><div style="width:24px"></div>';
+  for (let l = 1; l <= 5; l++) h += `<div style="flex:1;text-align:center;font-size:9px;color:var(--muted);font-weight:600">L${l}</div>`;
+  h += '</div>';
+  for (let imp = 5; imp >= 1; imp--) { h += `<div class="hm-row"><div class="hm-lbl">${imp}</div>`; for (let li = 1; li <= 5; li++) { const s = imp * li; h += `<div class="hm-cell" style="background:${heatColor(s)}" title="${s}">${s}</div>`; } h += '</div>'; }
+  h += '<div style="display:flex;gap:4px;margin-top:8px;align-items:center"><span style="font-size:9px;color:var(--muted)">낮음</span>';
+  ['#22C55E','#84CC16','#F59E0B','#F97316','#EF4444'].forEach(c => h += `<div style="width:14px;height:6px;border-radius:3px;background:${c}"></div>`);
+  h += '<span style="font-size:9px;color:var(--muted)">높음</span></div>';
+  document.getElementById('heatmap').innerHTML = h;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   📝  월간 현황 입력 (실제 저장 연동)
+═══════════════════════════════════════════════════════════ */
+let selMonthly = null;
+function renderMonthly() {
+  const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam);
+  document.getElementById('monthly-psub').textContent = `${curYear}년 ${curMonth}월 · ${appRole === 'admin' ? '전체' : appTeam}`;
+  document.getElementById('monthly-list').innerHTML = base.map((r, i) => `
+    <div class="r-item ${selMonthly === i ? 'on' : ''}" onclick="selectMonthly(${i})">
+      <div class="r-item-id">${r.id} · ${r.cat}</div>
+      <div class="r-item-name">${r.title}</div>
+      <span class="status-chip ${stClass(r.submitStatus)}" style="font-size:9px">${r.submitStatus}</span>
+    </div>`).join('');
+}
+
+function selectMonthly(i) {
+  selMonthly = i;
+  const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam);
+  const r = base[i];
+  const formBody = buildMonthlyFormBody(r);
+  const formFooter = `
+    <button class="btn btn-ghost" onclick="saveDraft(${i})">임시저장</button>
+    <button class="btn btn-danger" onclick="requestRevision(${i})">이의신청</button>
+    <button class="btn btn-primary" id="submit-btn-${i}" onclick="submitMonthly(${i})">제출하기 →</button>`;
+  if (isMobile()) {
+    openSheet(r.id + ' · ' + r.cat, r.title, formBody, formFooter);
+  } else {
+    renderMonthly();
+    document.getElementById('monthly-form').innerHTML = `
+      <div class="form-hd">
+        <div class="form-hd-id">${r.id} · ${r.cat} · ${r.team}</div>
+        <div class="form-hd-title">${r.title}</div>
+        ${r.task ? `<div class="form-hd-sub">📌 개선과제: ${r.task}</div>` : ''}
+      </div>
+      <div class="form-body">${formBody}</div>
+      <div class="form-footer">${formFooter}</div>`;
+  }
+}
+
+function buildMonthlyFormBody(r) {
+  const statuses = ['이행완료','이행중','미이행','해당없음'];
+  return `
     <div class="form-group"><label class="form-label">이행 상태 <span style="color:var(--red)">*</span></label>
-      <div class="radio-row">${['이행완료','이행중','미이행','해당없음'].map(st=>`<div class="radio-chip ${r.status==='제출완료'&&st==='이행완료'?'on':''}" onclick="toggleChip(this)">${st}</div>`).join('')}</div>
+      <div class="radio-row" id="status-chips">${statuses.map(st => `<div class="radio-chip ${r.submitStatus === '제출완료' && st === '이행완료' ? 'on' : ''}" onclick="toggleChip(this)">${st}</div>`).join('')}</div>
     </div>
     <div class="form-group"><label class="form-label">이행 내용 <span style="color:var(--red)">*</span></label>
-      <textarea class="form-textarea" placeholder="이번 달 이행 내용을 구체적으로 작성하세요...">${r.status==='제출완료'?'3월 중 개선 조치를 완료하였습니다. 관련 교육을 전 담당자 대상으로 실시하였으며, 체크리스트 점검을 완료하였습니다.':''}</textarea>
+      <textarea class="form-textarea" id="monthly-content" placeholder="이번 달 이행 내용을 구체적으로 작성하세요...">${r.content || ''}</textarea>
     </div>
     <div class="form-group"><label class="form-label">증빙 파일</label>
-      <div class="dropzone"><div style="font-size:26px;margin-bottom:6px">📎</div><div style="font-size:13px;color:var(--muted)">파일을 드래그하거나 클릭하여 업로드</div><div style="font-size:11px;color:#94A3B8;margin-top:3px">PDF, Word, Excel, 이미지 (최대 10MB)</div>${r.status==='제출완료'?'<div class="file-chip">📄 교육완료확인서_3월.pdf</div>':''}</div>
+      <div class="dropzone" onclick="document.getElementById('attach-input').click()">
+        <div style="font-size:26px;margin-bottom:6px">📎</div>
+        <div style="font-size:13px;color:var(--muted)">파일을 드래그하거나 클릭하여 업로드</div>
+        <div style="font-size:11px;color:#94A3B8;margin-top:3px">PDF, Word, Excel, 이미지 (최대 10MB)</div>
+        ${r.attachmentUrl ? `<a class="file-chip" href="${r.attachmentUrl}" target="_blank">📄 첨부파일 보기</a>` : ''}
+      </div>
+      <input type="file" id="attach-input" style="display:none" accept=".pdf,.docx,.xlsx,.pptx,.jpg,.png" onchange="handleAttach(this)">
+      <div id="attach-status" style="font-size:12px;color:var(--muted);margin-top:6px"></div>
     </div>
     <div class="form-group"><label class="form-label">특이사항</label>
-      <textarea class="form-textarea" style="height:80px" placeholder="특이사항이 있으면 작성하세요 (선택)"></textarea>
+      <textarea class="form-textarea" id="monthly-note" style="height:80px" placeholder="특이사항이 있으면 작성하세요 (선택)">${r.specialNote || ''}</textarea>
     </div>`;
 }
-function toggleChip(el){el.closest('.radio-row').querySelectorAll('.radio-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
 
-/* ═══ EVAL ═══ */
-let selEval=null;
-function renderEvalList(){
-  const pending=RISKS.filter(r=>r.status==='제출완료');
-  document.getElementById('eval-psub').textContent=`${pending.length}건 검토 필요`;
-  document.getElementById('eval-list').innerHTML=pending.map((r,i)=>`
-    <div class="r-item ${selEval===i?'on':''}" onclick="selectEval(${i})">
+function toggleChip(el) {
+  el.closest('.radio-row').querySelectorAll('.radio-chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function getFormValues() {
+  const chip = document.querySelector('#status-chips .radio-chip.on');
+  const status = chip ? chip.textContent.trim() : '';
+  const content = document.getElementById('monthly-content')?.value.trim() || '';
+  const note = document.getElementById('monthly-note')?.value.trim() || '';
+  return { status, content, note };
+}
+
+async function submitMonthly(idx) {
+  const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam);
+  const r = base[idx];
+  const { status, content, note } = getFormValues();
+  if (!status) { toast('이행 상태를 선택해주세요.', 'warn'); return; }
+  if (!content) { toast('이행 내용을 입력해주세요.', 'warn'); return; }
+
+  const btn = document.getElementById(`submit-btn-${idx}`);
+  if (btn) { btn.textContent = '제출 중...'; btn.disabled = true; }
+
+  try {
+    const payload = {
+      riskId: String(r.spId), riskTitle: r.title, team: r.team,
+      year: parseInt(curYear), month: curMonth,
+      status, content, specialNote: note,
+      submittedBy: appTeam
+    };
+
+    if (CONFIG.OFFLINE_MODE) {
+      // 오프라인: 로컬 상태만 업데이트
+      r.submitStatus = '제출완료'; r.status = '제출완료';
+      r.content = content; r.specialNote = note;
+    } else {
+      // Power Automate F-01 호출 (저장 + 관리자 알림)
+      const result = await callFlow(CONFIG.FLOW_SUBMIT_URL, payload);
+      r.submitStatus = '제출완료'; r.status = '제출완료';
+      r.content = content; r.specialNote = note;
+      if (result.itemId) r.reportSpId = result.itemId;
+    }
+
+    if (btn) { btn.textContent = '✓ 제출 완료'; btn.style.background = 'var(--green)'; }
+    toast(`${r.id} 이행현황이 제출되었습니다.`, 'success');
+    updateBadges();
+    renderMonthly();
+  } catch (e) {
+    if (btn) { btn.textContent = '제출하기 →'; btn.disabled = false; }
+    toast('제출 실패: ' + e.message, 'error');
+  }
+}
+
+async function saveDraft(idx) {
+  const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam);
+  const r = base[idx];
+  const { status, content, note } = getFormValues();
+
+  try {
+    const payload = {
+      riskId: String(r.spId), riskTitle: r.title, team: r.team,
+      year: parseInt(curYear), month: curMonth,
+      status: status || '이행중', content, specialNote: note,
+      submittedBy: appTeam
+    };
+    if (!CONFIG.OFFLINE_MODE) {
+      await callFlow(CONFIG.FLOW_SAVE_URL, payload);
+    }
+    r.submitStatus = '임시저장'; r.content = content; r.specialNote = note;
+    toast('임시저장되었습니다.', 'info');
+    updateBadges(); renderMonthly();
+  } catch (e) {
+    toast('임시저장 실패: ' + e.message, 'error');
+  }
+}
+
+async function requestRevision(idx) {
+  const reason = prompt('이의신청 사유를 입력해주세요:');
+  if (!reason) return;
+  try {
+    if (!CONFIG.OFFLINE_MODE && CONFIG.FLOW_SUBMIT_URL) {
+      await callFlow(CONFIG.FLOW_SUBMIT_URL, { type: 'revision', team: appTeam, reason, riskId: RISKS[idx]?.spId });
+    }
+    toast('이의신청이 접수되었습니다.', 'success');
+  } catch (e) { toast('이의신청 실패: ' + e.message, 'error'); }
+}
+
+function handleAttach(input) {
+  const file = input.files[0]; if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { toast('10MB 이하 파일만 업로드 가능합니다.', 'warn'); return; }
+  const status = document.getElementById('attach-status');
+  if (status) status.textContent = `📎 ${file.name} (${(file.size / 1024).toFixed(0)}KB) — SharePoint 업로드는 운영 버전에서 활성화됩니다.`;
+  toast(`${file.name} 선택됨 (SP 연동 시 자동 업로드)`, 'info');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ⚖  이행 달성율 평가 (실제 저장 연동)
+═══════════════════════════════════════════════════════════ */
+let selEval = null;
+function renderEvalList() {
+  const pending = RISKS.filter(r => r.submitStatus === '제출완료');
+  document.getElementById('eval-psub').textContent = `${pending.length}건 검토 필요`;
+  document.getElementById('eval-list').innerHTML = pending.map((r, i) => `
+    <div class="r-item ${selEval === i ? 'on' : ''}" onclick="selectEval(${i})">
       <div class="r-item-id">${r.id} · ${r.team}</div>
       <div class="r-item-name">${r.title}</div>
       <span class="status-chip s-sub" style="font-size:9px">제출완료</span>
     </div>`).join('');
-}
-function selectEval(i){
-  selEval=i;
-  const pending=RISKS.filter(r=>r.status==='제출완료');
-  const r=pending[i];
-  const initScore=r.achieve||80;
-  const body=buildEvalBody(r,initScore);
-  const footer=`<button class="btn btn-danger" onclick="alert('수정 요청 전송')">수정 요청</button><button class="btn btn-success" onclick="this.textContent='✓ 평가 완료';this.disabled=true;this.style.background='#64748B'">평가 완료</button>`;
-  if(isMobile()){
-    openSheet(r.id+' · '+r.team,r.title,body,footer);
-  } else {
-    renderEvalList();
-    document.getElementById('eval-form').innerHTML=`<div class="form-hd"><div class="form-hd-id">${r.id} · ${r.team} · ${r.cat}</div><div class="form-hd-title">${r.title}</div></div><div class="form-body">${body}</div><div class="form-footer">${footer}</div>`;
+  if (!pending.length) {
+    document.getElementById('eval-list').innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">평가 대기 항목이 없습니다<br><span style="font-size:11px;color:#94A3B8">제출완료 건이 생기면 여기 표시됩니다</span></div>';
   }
 }
-function buildEvalBody(r,score){
-  const sc=scoreCol(score);
-  return`
-    <div class="submitted-box"><div class="submitted-lbl">📝 팀 제출 내용</div><div class="submitted-txt">3월 중 해당 리스크에 대한 개선 조치를 완료하였습니다. 관련 교육을 전 담당자 대상으로 실시하였으며, 체크리스트 점검을 완료하였습니다.</div><div class="file-chip">📄 교육완료확인서_3월.pdf</div></div>
+
+function selectEval(i) {
+  selEval = i;
+  const pending = RISKS.filter(r => r.submitStatus === '제출완료');
+  const r = pending[i];
+  const initScore = r.achieve || 80;
+  const body = buildEvalBody(r, initScore);
+  const footer = `
+    <button class="btn btn-danger" onclick="requestEdit(${i})">수정 요청</button>
+    <button class="btn btn-success" id="eval-complete-btn-${i}" onclick="completeEval(${i})">평가 완료</button>`;
+  if (isMobile()) { openSheet(r.id + ' · ' + r.team, r.title, body, footer); }
+  else {
+    renderEvalList();
+    document.getElementById('eval-form').innerHTML = `
+      <div class="form-hd"><div class="form-hd-id">${r.id} · ${r.team} · ${r.cat}</div><div class="form-hd-title">${r.title}</div></div>
+      <div class="form-body">${body}</div>
+      <div class="form-footer">${footer}</div>`;
+  }
+}
+
+function buildEvalBody(r, score) {
+  const sc = scoreCol(score);
+  return `
+    <div class="submitted-box">
+      <div class="submitted-lbl">📝 팀 제출 내용</div>
+      <div class="submitted-txt">${r.content || '(제출 내용 없음)'}</div>
+      ${r.specialNote ? `<div style="margin-top:8px;font-size:12px;color:var(--muted)">${r.specialNote}</div>` : ''}
+      ${r.attachmentUrl ? `<a class="file-chip" href="${r.attachmentUrl}" target="_blank">📄 첨부파일 보기</a>` : ''}
+    </div>
     <div class="form-group">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><label class="form-label" style="margin:0">이행 달성율 <span style="color:var(--red)">*</span></label><span class="score-display" id="score-disp" style="font-size:32px;padding:8px 16px;margin:0;color:${sc}">${score}%</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <label class="form-label" style="margin:0">이행 달성율 <span style="color:var(--red)">*</span></label>
+        <span class="score-display" id="score-disp" style="font-size:32px;padding:8px 16px;margin:0;color:${sc}">${score}%</span>
+      </div>
       <input type="range" min="0" max="100" value="${score}" class="eval-slider" id="eval-sl" style="accent-color:${sc}" oninput="updateScore(this.value)">
       <div class="slider-ticks"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
       <div class="qs-grid">
         <button class="qs-btn" style="border-color:#EF4444;color:#EF4444;background:#FEF2F2" onclick="setScore(20)">미달성 (0–40%)</button>
-        <button class="qs-btn" style="border-color:var(--amber);color:var(--amber);background:#FFFBEB" onclick="setScore(55)">부분달성 (40–70%)</button>
-        <button class="qs-btn" style="border-color:var(--accent);color:var(--accent);background:var(--accent-l)" onclick="setScore(82)">달성 (70–90%)</button>
-        <button class="qs-btn" style="border-color:var(--green);color:var(--green);background:#ECFDF5" onclick="setScore(95)">완전달성 (90%+)</button>
+        <button class="qs-btn" style="border-color:#F59E0B;color:#D97706;background:#FFFBEB" onclick="setScore(60)">부분달성 (40–80%)</button>
+        <button class="qs-btn" style="border-color:#3B82F6;color:#2563EB;background:#EFF6FF" onclick="setScore(85)">달성 (80–90%)</button>
+        <button class="qs-btn" style="border-color:#10B981;color:#059669;background:#ECFDF5" onclick="setScore(97)">우수 (90–100%)</button>
       </div>
     </div>
-    <div class="form-group"><label class="form-label">평가 코멘트</label><textarea class="form-textarea" style="height:90px" placeholder="평가 의견 및 개선 권고사항을 작성하세요..."></textarea></div>`;
+    <div class="form-group">
+      <label class="form-label">평가 의견</label>
+      <textarea class="form-textarea" id="eval-comment" style="height:80px" placeholder="평가 의견을 입력하세요 (선택)">${r.evalComment || ''}</textarea>
+    </div>`;
 }
-function updateScore(v){const c=scoreCol(v);const d=document.getElementById('score-disp');if(d){d.textContent=v+'%';d.style.color=c;}const s=document.getElementById('eval-sl');if(s)s.style.accentColor=c;}
-function setScore(v){const s=document.getElementById('eval-sl');if(s){s.value=v;updateScore(v);}}
 
-/* ═══ TEAMS ═══ */
-/* ── Teams highlight state ── */
-let teamsHighlight=null; // null = 전체, or team key string
+function updateScore(v) {
+  const sc = scoreCol(v);
+  const disp = document.getElementById('score-disp'); if (disp) { disp.textContent = v + '%'; disp.style.color = sc; }
+  const sl = document.getElementById('eval-sl'); if (sl) sl.style.accentColor = sc;
+}
+function setScore(v) {
+  const sl = document.getElementById('eval-sl'); if (sl) { sl.value = v; updateScore(v); }
+}
 
-function renderTeams(){
-  // 스탯 카드 행
-  const statRow=document.getElementById('team-stat-row');
-  statRow.innerHTML=TEAMS_DATA.map((d,i)=>{
-    const col=TCOLORS[i];
-    const isActive=teamsHighlight===d.team||teamsHighlight===null;
-    return`<div class="team-stat-card ${teamsHighlight===d.team?'active':''}"
-      style="--tc:${col};opacity:${teamsHighlight&&teamsHighlight!==d.team?'.45':'1'};transition:opacity .2s"
+async function completeEval(i) {
+  const pending = RISKS.filter(r => r.submitStatus === '제출완료');
+  const r = pending[i];
+  const score = parseInt(document.getElementById('eval-sl')?.value || 80);
+  const comment = document.getElementById('eval-comment')?.value || '';
+  const btn = document.getElementById(`eval-complete-btn-${i}`);
+  if (btn) { btn.textContent = '저장 중...'; btn.disabled = true; }
+
+  try {
+    if (CONFIG.OFFLINE_MODE) {
+      r.achieve = score; r.evalComment = comment; r.submitStatus = '평가완료';
+    } else {
+      await spPost(CONFIG.LIST_EVALUATION, {
+        Title: `EVAL-${r.id}-${curYear}-${String(curMonth).padStart(2,'0')}`,
+        ReportId: r.reportSpId || 0,
+        RiskId: String(r.spId),
+        Team: r.team,
+        Year: parseInt(curYear),
+        Month: curMonth,
+        AchieveScore: score,
+        EvalComment: comment,
+      });
+      if (r.reportSpId) {
+        await spPatch(CONFIG.LIST_MONTHLY, r.reportSpId, { SubmitStatus: '평가완료' });
+      }
+      r.achieve = score; r.evalComment = comment; r.submitStatus = '평가완료';
+    }
+    if (btn) { btn.textContent = '✓ 평가 완료'; btn.style.background = '#64748B'; }
+    toast(`${r.id} 평가 완료 (달성율 ${score}%)`, 'success');
+    updateBadges(); renderEvalList();
+    _computeTeamsData(); initDash();
+  } catch (e) {
+    if (btn) { btn.textContent = '평가 완료'; btn.disabled = false; }
+    toast('평가 저장 실패: ' + e.message, 'error');
+  }
+}
+
+async function requestEdit(i) {
+  const pending = RISKS.filter(r => r.submitStatus === '제출완료');
+  const r = pending[i];
+  const reason = prompt('수정 요청 사유를 입력하세요:'); if (!reason) return;
+  try {
+    if (!CONFIG.OFFLINE_MODE && r.reportSpId) {
+      await spPatch(CONFIG.LIST_MONTHLY, r.reportSpId, { RevisionRequested: true, RevisionNote: reason, SubmitStatus: '임시저장' });
+    }
+    r.submitStatus = '임시저장';
+    toast(`${r.team}에 수정 요청을 보냈습니다.`, 'success');
+    updateBadges(); renderEvalList();
+  } catch (e) { toast('수정 요청 실패: ' + e.message, 'error'); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   👥  팀 이행현황
+═══════════════════════════════════════════════════════════ */
+let teamsHighlight = null;
+function renderTeams() {
+  const statRow = document.getElementById('team-stat-row'); if (!statRow) return;
+  statRow.innerHTML = TEAMS_DATA.map((d, i) => {
+    const col = TCOLORS[i];
+    return `<div class="team-stat-card ${teamsHighlight === d.team ? 'active' : ''}"
+      style="--tc:${col};opacity:${teamsHighlight && teamsHighlight !== d.team ? '.45' : '1'};transition:opacity .2s"
       onclick="highlightTeam('${d.team}')">
       <div class="tsc-name">${d.team}<span class="stag" style="background:${statusSt(d.status).bg};color:${statusSt(d.status).tx}">${d.status}</span></div>
       <div class="tsc-avg">${d.avg}%</div>
       <div class="tsc-bar"><div class="tsc-bar-fill" style="width:${d.avg}%;background:${col}"></div></div>
-      <div class="tsc-months"><span>1월 ${d.jan}%</span><span>2월 ${d.feb}%</span><span>3월 ${d.mar}%</span></div>
     </div>`;
   }).join('');
-
-  // 필터 탭
-  const tabs=document.getElementById('team-filter-tabs');
-  tabs.innerHTML=`<button class="cft-btn ${!teamsHighlight?'on':''}" style="--tc:var(--accent)" onclick="highlightTeam(null)">전체</button>`
-    +TEAMS_DATA.map((d,i)=>`<button class="cft-btn ${teamsHighlight===d.team?'on':''}" style="--tc:${TCOLORS[i]}" onclick="highlightTeam('${d.team}')">${d.team}</button>`).join('');
-
-  // 범례
-  document.getElementById('teams-legend').innerHTML=TEAMS_DATA.map((d,i)=>`
-    <div style="display:flex;align-items:center;gap:7px;opacity:${teamsHighlight&&teamsHighlight!==d.team?'.3':'1'};transition:opacity .2s">
+  const tabs = document.getElementById('team-filter-tabs');
+  tabs.innerHTML = `<button class="cft-btn ${!teamsHighlight ? 'on' : ''}" style="--tc:var(--accent)" onclick="highlightTeam(null)">전체</button>`
+    + TEAMS_DATA.map((d, i) => `<button class="cft-btn ${teamsHighlight === d.team ? 'on' : ''}" style="--tc:${TCOLORS[i]}" onclick="highlightTeam('${d.team}')">${d.team}</button>`).join('');
+  document.getElementById('teams-legend').innerHTML = TEAMS_DATA.map((d, i) => `
+    <div style="display:flex;align-items:center;gap:7px;opacity:${teamsHighlight && teamsHighlight !== d.team ? '.3' : '1'};transition:opacity .2s">
       <div style="width:24px;height:3px;border-radius:99px;background:${TCOLORS[i]}"></div>
       <span style="font-size:12px;font-weight:600;color:var(--text)">${d.team}</span>
       <span style="font-size:12px;font-weight:800;color:${TCOLORS[i]}">${d.avg}%</span>
     </div>`).join('');
-
-  setTimeout(()=>drawTeamsChart(),100);
+  setTimeout(() => drawTeamsChart(), 100);
 }
 
-function highlightTeam(team){
-  teamsHighlight=team;
-  renderTeams();
+function highlightTeam(team) { teamsHighlight = team; renderTeams(); }
+
+function drawTeamsChart() {
+  const canvas = document.getElementById('teams-canvas'); if (!canvas) return;
+  const tooltip = document.getElementById('teams-tooltip');
+  const W = canvas.offsetWidth || 600, H = Math.round(W * 0.38), dpr = devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  const pad = {t:16,r:20,b:36,l:40}, cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+  const mn = 40, mx = 100, months = TREND.map(d => d.month);
+  const xp = i => pad.l + i * (cw / (months.length - 1));
+  const yp = v => pad.t + ch - (v - mn) / (mx - mn) * ch;
+  [40,55,70,85,100].forEach(v => {
+    ctx.beginPath(); ctx.strokeStyle = v === 100 ? '#CBD5E1' : '#EEF2F7'; ctx.lineWidth = 1;
+    ctx.setLineDash(v === 100 ? [] : [4,4]); ctx.moveTo(pad.l, yp(v)); ctx.lineTo(pad.l + cw, yp(v)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#94A3B8'; ctx.font = `11px 'Apple SD Gothic Neo',sans-serif`; ctx.textAlign = 'right'; ctx.fillText(v + '%', pad.l - 6, yp(v) + 4);
+  });
+  ctx.fillStyle = '#94A3B8'; ctx.textAlign = 'center'; ctx.font = `11px 'Apple SD Gothic Neo',sans-serif`;
+  months.forEach((m, i) => ctx.fillText(m, xp(i), H - 8));
+  TEAMS_DATA.forEach((d, ki) => {
+    const color = TCOLORS[ki], vals = TREND.map(row => row[d.team] || 0);
+    const isHL = !teamsHighlight || teamsHighlight === d.team, alpha = isHL ? 1 : .12;
+    const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ch);
+    grad.addColorStop(0, color + (isHL ? '33' : '11')); grad.addColorStop(1, color + '00');
+    ctx.beginPath(); vals.forEach((v, i) => i === 0 ? ctx.moveTo(xp(i), yp(v)) : ctx.lineTo(xp(i), yp(v)));
+    ctx.lineTo(xp(vals.length - 1), pad.t + ch); ctx.lineTo(xp(0), pad.t + ch); ctx.closePath();
+    ctx.fillStyle = grad; ctx.globalAlpha = alpha; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = isHL ? (teamsHighlight ? 3 : 2) : 1.5;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.globalAlpha = alpha;
+    vals.forEach((v, i) => i === 0 ? ctx.moveTo(xp(i), yp(v)) : ctx.lineTo(xp(i), yp(v))); ctx.stroke(); ctx.globalAlpha = 1;
+    vals.forEach((v, i) => { ctx.beginPath(); ctx.arc(xp(i), yp(v), isHL ? (teamsHighlight ? 5 : 4) : 3, 0, Math.PI * 2); ctx.fillStyle = isHL ? color : '#fff'; ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.globalAlpha = alpha; if (isHL) ctx.fill(); ctx.stroke(); ctx.globalAlpha = 1; });
+    if (isHL && teamsHighlight === d.team) { const last = vals[vals.length - 1]; ctx.fillStyle = color; ctx.font = `bold 12px 'Apple SD Gothic Neo',sans-serif`; ctx.textAlign = 'left'; ctx.globalAlpha = 1; ctx.fillText(last + '%', xp(vals.length - 1) + 8, yp(last) + 4); }
+  });
+  if (tooltip) {
+    canvas.onmousemove = function(e) {
+      const rect = canvas.getBoundingClientRect(), mx2 = e.clientX - rect.left;
+      let nearest = 0, minD = Infinity;
+      months.forEach((_, i) => { const d = Math.abs(xp(i) - mx2); if (d < minD) { minD = d; nearest = i; } });
+      if (minD > 40) { tooltip.style.display = 'none'; return; }
+      const row = TREND[nearest];
+      let html = `<div style="font-weight:700;margin-bottom:4px;color:#94A3B8">${row.month}</div>`;
+      [...TEAMS_DATA].sort((a, b) => (row[b.team] || 0) - (row[a.team] || 0)).forEach((d, i) => {
+        html += `<div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:${TCOLORS[TEAMS_DATA.indexOf(d)]}"></div><span>${d.team}</span><strong style="margin-left:auto;padding-left:16px">${row[d.team] || 0}%</strong></div>`;
+      });
+      tooltip.innerHTML = html; tooltip.style.display = 'block';
+      const tx = xp(nearest) + 10, ty = pad.t;
+      tooltip.style.left = (tx + 120 > W ? tx - 140 : tx) + 'px'; tooltip.style.top = ty + 'px';
+    };
+    canvas.onmouseleave = function() { tooltip.style.display = 'none'; };
+  }
 }
 
-function drawTeamsChart(){
-  const canvas=document.getElementById('teams-canvas');
-  if(!canvas)return;
-  const tooltip=document.getElementById('teams-tooltip');
-  const W=canvas.offsetWidth||600;
-  const H=Math.round(W*0.38);  // 약 2.6:1 비율
-  const dpr=devicePixelRatio||1;
-  canvas.width=W*dpr; canvas.height=H*dpr;
-  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+/* ═══════════════════════════════════════════════════════════
+   📋  리스크 Master
+═══════════════════════════════════════════════════════════ */
+let masterQ = '', masterTeam = '전체';
+function masterFilter(f, btn, sel) { masterTeam = f; if (btn) { document.querySelectorAll('#master-filt .f-btn').forEach(b => b.classList.remove('on')); btn.classList.add('on'); } applyMaster(); }
+function masterSearch(q) { masterQ = q; applyMaster(); }
+function applyMaster() {
+  let d = RISKS;
+  if (masterTeam !== '전체') d = d.filter(r => r.team === masterTeam);
+  if (masterQ) d = d.filter(r => r.title.includes(masterQ) || r.id.includes(masterQ));
+  renderMaster(d);
+}
+function renderMaster(data) {
+  document.getElementById('master-tbody').innerHTML = data.map(r => `
+    <tr>
+      <td class="tbl-id">${r.id}</td>
+      <td class="tbl-title" title="${r.title}">${r.title}</td>
+      <td class="tbl-muted">${r.team}</td>
+      <td><span class="cat-tag">${r.cat}</span></td>
+      <td><span class="${scClass(r.score)}">${r.score}</span></td>
+      <td class="tbl-muted">${r.owner}</td>
+      <td>${r.selected !== false ? '<span style="color:var(--green);font-weight:700">✓</span>' : '<span style="color:#94A3B8">미선정</span>'}</td>
+      <td><button class="act-btn" onclick="openRiskEditModal('${r.id}')">수정</button></td>
+    </tr>`).join('');
+}
+function openRiskEditModal(id) {
+  const r = RISKS.find(x => x.id === id); if (!r) return;
+  toast(`[${r.id}] 수정 기능은 SP 연결 후 활성화됩니다.`, 'info');
+}
 
-  const pad={t:16,r:20,b:36,l:40};
-  const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
-  const mn=40, mx=100;
-  const months=TREND.map(d=>d.month);
-  const xp=i=>pad.l+i*(cw/(months.length-1));
-  const yp=v=>pad.t+ch-(v-mn)/(mx-mn)*ch;
+/* 리스크 추가 모달 */
+function openAddRiskModal() {
+  const existing = document.getElementById('add-risk-modal');
+  if (existing) { existing.style.display = 'flex'; return; }
+  const modal = document.createElement('div');
+  modal.id = 'add-risk-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9990;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+      <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:20px">➕ 리스크 추가</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div><label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">리스크명 *</label><input id="new-risk-title" type="text" placeholder="리스크 제목" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div><label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">팀 *</label>
+            <select id="new-risk-team" class="fm-sel" style="width:100%"><option>영업팀</option><option>생산팀</option><option>연구개발팀</option><option>구매팀</option><option>품질팀</option></select></div>
+          <div><label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">유형 *</label>
+            <select id="new-risk-cat" class="fm-sel" style="width:100%"><option>개인정보</option><option>공정거래</option><option>환경안전</option><option>지식재산</option><option>수출규제</option><option>부패방지</option><option>노무</option><option>기타</option></select></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div><label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">영향도 (1~5) *</label><input id="new-risk-impact" type="number" min="1" max="5" value="3" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none"></div>
+          <div><label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">가능성 (1~5) *</label><input id="new-risk-likelihood" type="number" min="1" max="5" value="3" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none"></div>
+        </div>
+        <div><label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">담당자</label><input id="new-risk-owner" type="text" placeholder="담당자 이름" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+        <button class="btn btn-ghost" onclick="document.getElementById('add-risk-modal').style.display='none'">취소</button>
+        <button class="btn btn-primary" onclick="confirmAddRisk()">추가하기</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
 
-  // grid lines
-  [40,55,70,85,100].forEach(v=>{
-    ctx.beginPath();
-    ctx.strokeStyle= v===100?'#CBD5E1':'#EEF2F7';
-    ctx.lineWidth=1;
-    ctx.setLineDash(v===100?[]:[4,4]);
-    ctx.moveTo(pad.l,yp(v)); ctx.lineTo(pad.l+cw,yp(v));
-    ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle='#94A3B8'; ctx.font=`11px 'Apple SD Gothic Neo',sans-serif`;
-    ctx.textAlign='right'; ctx.fillText(v+'%',pad.l-6,yp(v)+4);
-  });
-
-  // x labels
-  ctx.fillStyle='#94A3B8'; ctx.textAlign='center'; ctx.font=`11px 'Apple SD Gothic Neo',sans-serif`;
-  months.forEach((m,i)=>ctx.fillText(m,xp(i),H-8));
-
-  // vertical guide lines (light)
-  months.forEach((_,i)=>{
-    ctx.beginPath(); ctx.strokeStyle='#F1F5F9'; ctx.lineWidth=1;
-    ctx.moveTo(xp(i),pad.t); ctx.lineTo(xp(i),pad.t+ch); ctx.stroke();
-  });
-
-  // draw each team
-  TEAMS_DATA.forEach((d,ki)=>{
-    const key=d.team; const color=TCOLORS[ki];
-    const vals=TREND.map(row=>row[key]||0);
-    const isHL=!teamsHighlight||teamsHighlight===key;
-    const alpha=isHL?1:.12;
-
-    // area gradient fill
-    const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
-    grad.addColorStop(0,color+(isHL?'33':'11'));
-    grad.addColorStop(1,color+'00');
-    ctx.beginPath();
-    vals.forEach((v,i)=>i===0?ctx.moveTo(xp(i),yp(v)):ctx.lineTo(xp(i),yp(v)));
-    ctx.lineTo(xp(vals.length-1),pad.t+ch);
-    ctx.lineTo(xp(0),pad.t+ch);
-    ctx.closePath();
-    ctx.fillStyle=grad; ctx.globalAlpha=alpha; ctx.fill(); ctx.globalAlpha=1;
-
-    // line
-    ctx.beginPath();
-    ctx.strokeStyle=color;
-    ctx.lineWidth=isHL?(teamsHighlight?3:2):1.5;
-    ctx.lineJoin='round'; ctx.lineCap='round';
-    ctx.globalAlpha=alpha;
-    vals.forEach((v,i)=>i===0?ctx.moveTo(xp(i),yp(v)):ctx.lineTo(xp(i),yp(v)));
-    ctx.stroke(); ctx.globalAlpha=1;
-
-    // dots
-    vals.forEach((v,i)=>{
-      ctx.beginPath();
-      ctx.arc(xp(i),yp(v),isHL?(teamsHighlight?5:4):3,0,Math.PI*2);
-      ctx.fillStyle=isHL?color:'#fff';
-      ctx.strokeStyle=color;
-      ctx.lineWidth=2;
-      ctx.globalAlpha=alpha;
-      if(isHL){ctx.fill();}
-      ctx.stroke();
-      ctx.globalAlpha=1;
-    });
-
-    // end-label (highlighted team only)
-    if(isHL&&teamsHighlight===key){
-      const last=vals[vals.length-1];
-      ctx.fillStyle=color;
-      ctx.font=`bold 12px 'Apple SD Gothic Neo',sans-serif`;
-      ctx.textAlign='left';
-      ctx.globalAlpha=1;
-      ctx.fillText(last+'%', xp(vals.length-1)+8, yp(last)+4);
+async function confirmAddRisk() {
+  const title = document.getElementById('new-risk-title')?.value.trim();
+  const team  = document.getElementById('new-risk-team')?.value;
+  const cat   = document.getElementById('new-risk-cat')?.value;
+  const impact = parseInt(document.getElementById('new-risk-impact')?.value) || 3;
+  const likelihood = parseInt(document.getElementById('new-risk-likelihood')?.value) || 3;
+  const owner = document.getElementById('new-risk-owner')?.value.trim() || '-';
+  if (!title) { toast('리스크명을 입력해주세요.', 'warn'); return; }
+  const score = impact * likelihood;
+  try {
+    if (!CONFIG.OFFLINE_MODE) {
+      await spPost(CONFIG.LIST_RISK_MASTER, {
+        Title: title, Team: team, RiskCategory: cat,
+        ImpactScore: impact, LikelihoodScore: likelihood, RiskScore: score,
+        IsSelected: true, Owner: owner, Year: parseInt(curYear)
+      });
+      await loadData(parseInt(curYear), curMonth);
+    } else {
+      const newId = 'R' + String(RISKS.length + 1).padStart(3, '0');
+      RISKS.push({ id: newId, title, team, cat, score, impact, likelihood, owner, selected: true, submitStatus: '미제출', achieve: null, spId: Date.now() });
     }
-  });
-
-  // tooltip on hover
-  canvas.onmousemove=function(e){
-    const rect=canvas.getBoundingClientRect();
-    const mx2=(e.clientX-rect.left);
-    // find nearest month
-    let nearest=0, minD=Infinity;
-    months.forEach((_,i)=>{const d=Math.abs(xp(i)-mx2);if(d<minD){minD=d;nearest=i;}});
-    if(minD>40){tooltip.style.display='none';return;}
-    const row=TREND[nearest];
-    let html=`<div style="font-weight:700;margin-bottom:4px;color:#94A3B8">${row.month}</div>`;
-    const sorted=[...TEAMS_DATA].sort((a,b)=>(row[b.team]||0)-(row[a.team]||0));
-    sorted.forEach((d,i)=>{
-      const v=row[d.team]||0;
-      html+=`<div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:${TCOLORS[TEAMS_DATA.indexOf(d)]}"></div><span>${d.team}</span><strong style="margin-left:auto;padding-left:16px">${v}%</strong></div>`;
-    });
-    tooltip.innerHTML=html;
-    tooltip.style.display='block';
-    const tx=xp(nearest)+10; const ty=pad.t;
-    tooltip.style.left=(tx+120>W?tx-140:tx)+'px';
-    tooltip.style.top=ty+'px';
-  };
-  canvas.onmouseleave=function(){tooltip.style.display='none';};
+    document.getElementById('add-risk-modal').style.display = 'none';
+    applyMaster();
+    toast(`리스크 "${title}"이 추가되었습니다.`, 'success');
+  } catch (e) { toast('추가 실패: ' + e.message, 'error'); }
 }
 
-
-/* ═══ MASTER ═══ */
-let masterQ='',masterTeam='전체';
-function masterFilter(f,btn,sel){
-  masterTeam=f;
-  if(btn){document.querySelectorAll('#master-filt .f-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
-  applyMaster();
-}
-function masterSearch(q){masterQ=q;applyMaster();}
-function applyMaster(){let d=RISKS;if(masterTeam!=='전체')d=d.filter(r=>r.team===masterTeam);if(masterQ)d=d.filter(r=>r.title.includes(masterQ)||r.id.includes(masterQ));renderMaster(d);}
-function renderMaster(data){
-  document.getElementById('master-tbody').innerHTML=data.map(r=>`
-    <tr><td class="tbl-id">${r.id}</td><td class="tbl-title" title="${r.title}">${r.title}</td><td class="tbl-muted">${r.team}</td><td><span class="cat-tag">${r.cat}</span></td><td><span class="${scClass(r.score)}">${r.score}</span></td><td class="tbl-muted">${r.owner}</td>
-    <td>${r.status!=='미제출'?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:#94A3B8">미선정</span>'}</td>
-    <td><button class="act-btn">수정</button></td></tr>`).join('');
-}
-
-/* ═══ SELECTION ═══ */
-function renderSelection(){
-  const sorted=[...RISKS].sort((a,b)=>b.score-a.score);
-  document.getElementById('sel-total-count').textContent=sorted.length;
-  document.getElementById('sel-selected-count').textContent=sorted.filter(r=>r.status!=='미선정'&&r.selected!==false).length;
-  document.getElementById('sel-tbody').innerHTML=sorted.map((r,i)=>{
-    const sc=scoreStyle(r.score);
-    const checked=r.selected!==false;
-    return`<tr>
-      <td style="text-align:center"><input type="checkbox" class="em-check" ${checked?'checked':''} onchange="toggleSelRisk('${r.id}',this.checked)"></td>
-      <td style="text-align:center;font-size:12px;font-weight:800;color:#94A3B8">${i+1}</td>
+/* ═══════════════════════════════════════════════════════════
+   🎯  점검대상 리스크 선정
+═══════════════════════════════════════════════════════════ */
+function renderSelection() {
+  const sorted = [...RISKS].sort((a, b) => b.score - a.score);
+  document.getElementById('sel-total-count').textContent = sorted.length;
+  document.getElementById('sel-selected-count').textContent = sorted.filter(r => r.selected !== false).length;
+  document.getElementById('sel-tbody').innerHTML = sorted.map((r, i) => {
+    const sc = scoreStyle(r.score); const checked = r.selected !== false;
+    return `<tr>
+      <td style="text-align:center"><input type="checkbox" class="em-check" ${checked ? 'checked' : ''} onchange="toggleSelRisk('${r.id}',this.checked)"></td>
+      <td style="text-align:center;font-size:12px;font-weight:800;color:#94A3B8">${i + 1}</td>
       <td style="font-size:13px;font-weight:600">${r.title}</td>
       <td style="font-size:12px;color:var(--muted)">${r.team}</td>
       <td><span class="cat-tag">${r.cat}</span></td>
-      <td style="text-align:center;font-weight:700;font-size:13px">${r.impact||Math.ceil(r.score/5)}</td>
-      <td style="text-align:center;font-weight:700;font-size:13px">${r.likelihood||Math.floor(r.score/4)||1}</td>
+      <td style="text-align:center;font-weight:700;font-size:13px">${r.impact || Math.ceil(r.score / 5)}</td>
+      <td style="text-align:center;font-weight:700;font-size:13px">${r.likelihood || Math.floor(r.score / 4) || 1}</td>
       <td style="text-align:center"><span class="em-score-badge" style="background:${sc.bg};color:${sc.col}">${r.score}</span></td>
     </tr>`;
   }).join('');
 }
-function toggleSelRisk(id,v){
-  const r=RISKS.find(x=>x.id===id);
-  if(r){r.selected=v;}
-  const cnt=RISKS.filter(r=>r.selected!==false).length;
-  document.getElementById('sel-selected-count').textContent=cnt;
+function toggleSelRisk(id, v) {
+  const r = RISKS.find(x => x.id === id); if (r) r.selected = v;
+  document.getElementById('sel-selected-count').textContent = RISKS.filter(r => r.selected !== false).length;
 }
-function autoSelectTopRisks(){
-  const n=parseInt(document.getElementById('sel-topn').value)||15;
-  const sorted=[...RISKS].sort((a,b)=>b.score-a.score);
-  sorted.forEach((r,i)=>r.selected=i<n);
+function autoSelectTopRisks() {
+  const n = parseInt(document.getElementById('sel-topn').value) || 15;
+  const sorted = [...RISKS].sort((a, b) => b.score - a.score);
+  sorted.forEach((r, i) => r.selected = i < n);
   renderSelection();
 }
-function resetSelection(){
-  RISKS.forEach(r=>r.selected=true);
-  renderSelection();
-}
-function saveSelection(){
-  const cnt=RISKS.filter(r=>r.selected!==false).length;
-  alert(`✓ 점검대상 ${cnt}건이 저장되었습니다.\n선정된 리스크가 월간 현황 입력에 반영됩니다.`);
-}
+function resetSelection() { RISKS.forEach(r => r.selected = true); renderSelection(); }
+function saveSelection() { saveSelectionToSP(); }
 
-/* ═══ MY TEAM ═══ */
-function renderMyTeam(){
-  const team=appTeam||'영업팀';
-  document.getElementById('myteam-csub').textContent=team;
-  const myTrend=TREND.map(d=>({month:d.month,[team]:d[team]||80}));
-  setTimeout(()=>drawChart('myteam-canvas',myTrend,[team],['#3B82F6'],false),100);
-  const myRisks=RISKS.filter(r=>r.team===team);
-  document.getElementById('myteam-risks').innerHTML=myRisks.length?myRisks.map(r=>{
-    const pb=r.achieve!=null?`<div class="progress-wrap"><div class="progress-track" style="width:50px"><div class="progress-fill" style="width:${r.achieve}%;background:${r.achieve>=80?'var(--green)':r.achieve>=60?'var(--amber)':'var(--red)'}"></div></div><span style="font-weight:700;font-size:12px">${r.achieve}%</span></div>`:'<span style="color:var(--red);font-size:12px;font-weight:700">미입력</span>';
-    return`<div class="my-risk-row"><div class="my-risk-id">${r.id}</div><div class="my-risk-name">${r.title}</div><span class="status-chip ${stClass(r.status)}" style="font-size:9px;flex-shrink:0">${r.status}</span>${pb}</div>`;
-  }).join(''):'<div style="text-align:center;color:var(--muted);padding:32px;font-size:13px">이번달 점검 리스크가 없습니다</div>';
-  setTimeout(runCounters,100);
-}
-
-/* ═══════════════════════════════════════
-   REPORTS — 월간 / 연간 PPT 생성
-═══════════════════════════════════════ */
-var rptCurrentTab='monthly';
-
-function renderReports(){
-  switchRptTab(rptCurrentTab);
+/* ═══════════════════════════════════════════════════════════
+   📈  내 팀 이행현황
+═══════════════════════════════════════════════════════════ */
+function renderMyTeam() {
+  const team = appTeam || '영업팀';
+  document.getElementById('myteam-csub').textContent = team;
+  const myRisks = RISKS.filter(r => r.team === team);
+  const achRisks = myRisks.filter(r => r.achieve != null);
+  const avgAch = achRisks.length ? Math.round(achRisks.reduce((s, r) => s + r.achieve, 0) / achRisks.length) : 0;
+  const notInput = myRisks.filter(r => r.submitStatus === '미제출' || r.submitStatus === '임시저장').length;
+  // KPI 수치
+  document.querySelectorAll('#view-myteam .kpi-num').forEach((el, i) => {
+    el.dataset.done = ''; el.dataset.t = [myRisks.length, avgAch, notInput][i];
+    if (i === 1) el.dataset.pct = '1';
+  });
+  const myTrend = TREND.map(d => ({ month: d.month, [team]: d[team] || 0 }));
+  setTimeout(() => drawChart('myteam-canvas', myTrend, [team], ['#3B82F6'], false), 100);
+  document.getElementById('myteam-risks').innerHTML = myRisks.length ? myRisks.map(r => {
+    const pb = r.achieve != null
+      ? `<div class="progress-wrap"><div class="progress-track" style="width:50px"><div class="progress-fill" style="width:${r.achieve}%;background:${r.achieve >= 80 ? 'var(--green)' : r.achieve >= 60 ? 'var(--amber)' : 'var(--red)'}"></div></div><span style="font-weight:700;font-size:12px">${r.achieve}%</span></div>`
+      : '<span style="color:var(--red);font-size:12px;font-weight:700">미입력</span>';
+    return `<div class="my-risk-row"><div class="my-risk-id">${r.id}</div><div class="my-risk-name">${r.title}</div><span class="status-chip ${stClass(r.submitStatus)}" style="font-size:9px;flex-shrink:0">${r.submitStatus}</span>${pb}</div>`;
+  }).join('') : '<div style="text-align:center;color:var(--muted);padding:32px;font-size:13px">이번달 점검 리스크가 없습니다</div>';
+  setTimeout(runCounters, 100);
 }
 
-function switchRptTab(tab){
-  rptCurrentTab=tab;
-  var pm=document.getElementById('rpt-panel-monthly');
-  var pa=document.getElementById('rpt-panel-annual');
-  var bm=document.getElementById('rpt-tab-monthly');
-  var ba=document.getElementById('rpt-tab-annual');
-  if(!pm)return;
-  if(tab==='monthly'){
-    pm.style.display='block'; pa.style.display='none';
-    bm.style.background='var(--accent)';bm.style.color='#fff';bm.style.borderColor='var(--accent)';
-    ba.style.background='#fff';ba.style.color='var(--muted)';ba.style.borderColor='var(--border)';
-    var ry=document.getElementById('rpt-year');
-    var rm=document.getElementById('rpt-month');
-    var rc=document.getElementById('rpt-comment');
-    if(ry)ry.onchange=renderSlidePreview;
-    if(rm)rm.onchange=renderSlidePreview;
-    if(rc)rc.oninput=renderSlidePreview;
+/* ═══════════════════════════════════════════════════════════
+   📊  보고서 생성 (PPT — 실데이터 연동)
+═══════════════════════════════════════════════════════════ */
+var rptCurrentTab = 'monthly';
+function renderReports() { switchRptTab(rptCurrentTab); }
+function switchRptTab(tab) {
+  rptCurrentTab = tab;
+  const pm = document.getElementById('rpt-panel-monthly'), pa = document.getElementById('rpt-panel-annual');
+  const bm = document.getElementById('rpt-tab-monthly'), ba = document.getElementById('rpt-tab-annual');
+  if (!pm) return;
+  if (tab === 'monthly') {
+    pm.style.display = 'block'; pa.style.display = 'none';
+    bm.style.cssText += 'background:var(--accent);color:#fff;border-color:var(--accent)';
+    ba.style.cssText += 'background:#fff;color:var(--muted);border-color:var(--border)';
+    ['rpt-year','rpt-month','rpt-comment'].forEach(id => { const el = document.getElementById(id); if (el) el.onchange = el.oninput = renderSlidePreview; });
     renderSlidePreview();
   } else {
-    pm.style.display='none'; pa.style.display='block';
-    ba.style.background='var(--accent)';ba.style.color='#fff';ba.style.borderColor='var(--accent)';
-    bm.style.background='#fff';bm.style.color='var(--muted)';bm.style.borderColor='var(--border)';
-    var ay=document.getElementById('rpt-ann-year');
-    var ac=document.getElementById('rpt-ann-comment');
-    if(ay)ay.onchange=renderAnnualPreview;
-    if(ac)ac.oninput=renderAnnualPreview;
+    pm.style.display = 'none'; pa.style.display = 'block';
+    ba.style.cssText += 'background:var(--accent);color:#fff;border-color:var(--accent)';
+    bm.style.cssText += 'background:#fff;color:var(--muted);border-color:var(--border)';
+    ['rpt-ann-year','rpt-ann-comment'].forEach(id => { const el = document.getElementById(id); if (el) el.onchange = el.oninput = renderAnnualPreview; });
     renderAnnualPreview();
   }
 }
 
-function getReportData(){
-  var ye=document.getElementById('rpt-year');
-  var me=document.getElementById('rpt-month');
-  var ce=document.getElementById('rpt-comment');
-  var year=(ye&&ye.value)||'2025';
-  var month=(me&&me.value)||'3월';
-  var comment=(ce&&ce.value)||'전반적으로 양호한 수준이나, 일부 팀의 집중 관리가 요구됩니다.';
-  var total=RISKS.length;
-  var submitted=RISKS.filter(function(r){return r.status==='제출완료'||r.status==='평가완료';}).length;
-  var evaluated=RISKS.filter(function(r){return r.status==='평가완료';}).length;
-  var unsubmitted=RISKS.filter(function(r){return r.status==='미제출';}).length;
-  var achRisks=RISKS.filter(function(r){return r.achieve!=null;});
-  var overallAch=achRisks.length?Math.round(achRisks.reduce(function(s,r){return s+r.achieve;},0)/achRisks.length):0;
-  var teams=TEAMS_DATA.map(function(d,i){return {name:d.team,avg:d.avg,color:TCOLORS[i],status:d.status};});
-  var topRisks=RISKS.slice().sort(function(a,b){return b.score-a.score;}).slice(0,3);
-  var actions=RISKS.filter(function(r){return r.status==='미제출';}).slice(0,3);
-  return {year:year,month:month,comment:comment,total:total,submitted:submitted,
-          evaluated:evaluated,unsubmitted:unsubmitted,overallAch:overallAch,
-          teams:teams,topRisks:topRisks,actions:actions};
+function getReportData() {
+  const year  = document.getElementById('rpt-year')?.value || curYear;
+  const month = document.getElementById('rpt-month')?.value || (curMonth + '월');
+  const comment = document.getElementById('rpt-comment')?.value || '전반적으로 양호한 수준이나, 일부 팀의 집중 관리가 요구됩니다.';
+  const total = RISKS.length;
+  const submitted  = RISKS.filter(r => r.submitStatus === '제출완료' || r.submitStatus === '평가완료').length;
+  const evaluated  = RISKS.filter(r => r.submitStatus === '평가완료').length;
+  const unsubmitted = RISKS.filter(r => r.submitStatus === '미제출').length;
+  const achRisks = RISKS.filter(r => r.achieve != null);
+  const overallAch = achRisks.length ? Math.round(achRisks.reduce((s, r) => s + r.achieve, 0) / achRisks.length) : 0;
+  const teams = TEAMS_DATA.map((d, i) => ({ name: d.team, avg: d.avg, color: TCOLORS[i], status: d.status, jan: TREND[3]?.[d.team] || 0, feb: TREND[4]?.[d.team] || 0, mar: TREND[5]?.[d.team] || 0 }));
+  const topRisks = RISKS.slice().sort((a, b) => b.score - a.score).slice(0, 3);
+  const actions  = RISKS.filter(r => r.submitStatus === '미제출').slice(0, 3);
+  return { year, month, comment, total, submitted, evaluated, unsubmitted, overallAch, teams, topRisks, actions };
 }
 
-function getAnnualData(){
-  var ye=document.getElementById('rpt-ann-year');
-  var ce=document.getElementById('rpt-ann-comment');
-  var year=(ye&&ye.value)||'2025';
-  var comment=(ce&&ce.value)||'전사 컴플라이언스 달성율 지속 개선, 리스크 관리 체계 고도화 필요.';
-  var months=TREND.map(function(t){return t.month;});
-  var monthlyAch=TREND.map(function(t){
-    var vals=TKEYS.map(function(k){return t[k]||0;});
-    return Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length);
+function getAnnualData() {
+  const year = document.getElementById('rpt-ann-year')?.value || curYear;
+  const comment = document.getElementById('rpt-ann-comment')?.value || '전사 달성율 지속 개선 추세.';
+  const achRisks = RISKS.filter(r => r.achieve != null);
+  const overallAch = achRisks.length ? Math.round(achRisks.reduce((s, r) => s + r.achieve, 0) / achRisks.length) : 0;
+  const months = TREND.map(d => d.month);
+  const monthlyAch = TREND.map(row => {
+    const vals = TKEYS.map(k => row[k] || 0).filter(v => v > 0);
+    return vals.length ? Math.round(vals.reduce((a, b) => a + b) / vals.length) : 0;
   });
-  var total=RISKS.length;
-  var evaluated=RISKS.filter(function(r){return r.status==='평가완료';}).length;
-  var achRisks=RISKS.filter(function(r){return r.achieve!=null;});
-  var overallAch=achRisks.length?Math.round(achRisks.reduce(function(s,r){return s+r.achieve;},0)/achRisks.length):0;
-  var bestMonth=monthlyAch.length?months[monthlyAch.indexOf(Math.max.apply(null,monthlyAch))]:'-';
-  var teams=TEAMS_DATA.map(function(d,i){return {name:d.team,avg:d.avg,color:TCOLORS[i],status:d.status,jan:d.jan,feb:d.feb,mar:d.mar};});
-  var topRisks=RISKS.slice().sort(function(a,b){return b.score-a.score;}).slice(0,5);
-  var catMap={};
-  RISKS.forEach(function(r){catMap[r.cat]=(catMap[r.cat]||0)+1;});
-  var cats=Object.keys(catMap).map(function(k){return {name:k,count:catMap[k]};}).sort(function(a,b){return b.count-a.count;}).slice(0,5);
-  return {year:year,comment:comment,months:months,monthlyAch:monthlyAch,
-          total:total,evaluated:evaluated,overallAch:overallAch,
-          bestMonth:bestMonth,teams:teams,topRisks:topRisks,cats:cats};
+  const bestMonthIdx = monthlyAch.indexOf(Math.max(...monthlyAch));
+  const cats = Object.entries(RISKS.reduce((acc, r) => { acc[r.cat] = (acc[r.cat] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1]);
+  return { year, comment, total: RISKS.length, evaluated: RISKS.filter(r => r.submitStatus === '평가완료').length, overallAch, months, monthlyAch, bestMonth: months[bestMonthIdx] || '-', cats: cats.map(([name, count]) => ({ name, count })), teams: TEAMS_DATA.map((d, i) => ({ ...d, color: TCOLORS[i], jan: TREND[3]?.[d.team] || 0, feb: TREND[4]?.[d.team] || 0, mar: TREND[5]?.[d.team] || 0 })), topRisks: RISKS.slice().sort((a, b) => b.score - a.score).slice(0, 5) };
 }
 
-/* ── 월간 미리보기 ── */
-function renderSlidePreview(){
-  var d=getReportData();
-  var slide=document.getElementById('rpt-slide');
-  if(!slide)return;
-  var ac=d.overallAch>=80?'#059669':d.overallAch>=65?'#D97706':'#DC2626';
-  var teamBars=d.teams.map(function(t){
-    return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
-      +'<div style="width:52px;font-size:8px;font-weight:700;color:#475569;flex-shrink:0;text-align:right">'+t.name+'</div>'
-      +'<div style="flex:1;height:10px;background:#EEF2F7;border-radius:99px;overflow:hidden">'
-        +'<div style="width:'+t.avg+'%;height:100%;background:'+t.color+';border-radius:99px"></div></div>'
-      +'<div style="width:28px;font-size:8px;font-weight:800;color:'+(t.avg>=80?'#059669':t.avg>=65?'#D97706':'#DC2626')+'">'+t.avg+'%</div></div>';
-  }).join('');
-  var riskRows=d.topRisks.map(function(r){
-    var sc=r.score;
-    return '<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #F1F5F9">'
-      +'<div style="width:14px;height:14px;background:'+(sc>=15?'#FEF2F2':sc>=8?'#FFFBEB':'#ECFDF5')+';border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:'+(sc>=15?'#DC2626':sc>=8?'#D97706':'#059669')+';flex-shrink:0">'+sc+'</div>'
-      +'<div style="font-size:8px;color:#0F172A;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.title+'</div>'
-      +'<div style="font-size:7px;background:#EFF6FF;color:#3B82F6;padding:1px 4px;border-radius:3px;flex-shrink:0">'+r.team+'</div></div>';
-  }).join('');
-  var actionRows=d.actions.length
-    ?d.actions.map(function(r){return '<div style="font-size:8px;color:#374151;padding:2px 0;border-bottom:1px solid #F1F5F9"><span style="color:#DC2626;font-weight:700">●</span> '+r.team+' · '+r.title+'</div>';}).join('')
-    :'<div style="font-size:8px;color:#059669;padding:4px 0">✓ 미제출 항목 없음</div>';
-  var kpiHtml=[
-    {label:'전사 달성율',val:d.overallAch+'%',color:ac,sub:'평가완료 기준'},
-    {label:'관리 리스크',val:d.total+'건',color:'#0F172A',sub:'이번 달 점검'},
-    {label:'제출 완료',val:d.submitted+'건',color:'#059669',sub:'미제출 '+d.unsubmitted+'건'},
-    {label:'평가 완료',val:d.evaluated+'건',color:'#3B82F6',sub:'달성율 확정'},
-  ].map(function(k){
-    return '<div style="background:#fff;border-radius:6px;padding:7px 9px;border:1px solid #E5EBF2">'
-      +'<div style="font-size:8px;color:#64748B;font-weight:700;margin-bottom:3px">'+k.label+'</div>'
-      +'<div style="font-size:18px;font-weight:800;color:'+k.color+';line-height:1">'+k.val+'</div>'
-      +'<div style="font-size:7px;color:#94A3B8;margin-top:2px">'+k.sub+'</div></div>';
-  }).join('');
-  slide.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column">'
-    +'<div style="background:linear-gradient(135deg,#0D1B2A,#1E3A5F);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'
-      +'<div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;background:#3B82F6;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px">⚖</div>'
-        +'<div><div style="font-size:9px;font-weight:800;color:#fff">Compliance RiskOps</div><div style="font-size:7px;color:#8BA3BC">SK Chemical 법무 컴플라이언스팀</div></div></div>'
-      +'<div style="text-align:right"><div style="font-size:10px;font-weight:800;color:#5EEAD4">'+d.year+'년 '+d.month+' 이행 현황</div><div style="font-size:7px;color:#8BA3BC">월간 보고서</div></div></div>'
-    +'<div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto 1fr auto;gap:6px;padding:8px;background:#F4F7FB;overflow:hidden">'
-      +'<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+kpiHtml+'</div>'
-      +'<div style="background:#fff;border-radius:6px;padding:8px 10px;border:1px solid #E5EBF2"><div style="font-size:8px;font-weight:800;color:#0F172A;margin-bottom:6px">팀별 이행 달성율</div>'+teamBars+'</div>'
-      +'<div style="background:#fff;border-radius:6px;padding:8px 10px;border:1px solid #E5EBF2"><div style="font-size:8px;font-weight:800;color:#0F172A;margin-bottom:5px">고위험 리스크 TOP 3</div>'+riskRows+'</div>'
-      +'<div style="background:#fff;border-radius:6px;padding:8px 10px;border:1px solid #E5EBF2"><div style="font-size:8px;font-weight:800;color:#DC2626;margin-bottom:5px">조치 필요 (미제출)</div>'+actionRows+'</div>'
-      +'<div style="grid-column:1/-1;background:linear-gradient(135deg,#0D1B2A,#1E3A5F);border-radius:6px;padding:7px 12px;display:flex;align-items:center;gap:8px">'
-        +'<div style="font-size:8px;font-weight:800;color:#5EEAD4;flex-shrink:0">총평</div>'
-        +'<div style="width:1px;height:14px;background:#2E5C9A;flex-shrink:0"></div>'
-        +'<div style="font-size:8px;color:#CBD5E1">'+d.comment+'</div>'
-        +'<div style="margin-left:auto;font-size:7px;color:#4A6280;flex-shrink:0">'+new Date().toLocaleDateString('ko-KR')+'</div></div>'
-    +'</div></div>';
+
+/* ── 슬라이드 미리보기 (HTML) ── */
+function renderSlidePreview() {
+  const d = getReportData();
+  const el = document.getElementById('rpt-slide'); if (!el) return;
+  const ac = d.overallAch >= 80 ? '#059669' : d.overallAch >= 65 ? '#D97706' : '#DC2626';
+  el.style.cssText = 'width:100%;height:100%;background:#F4F7FB;position:relative;overflow:hidden;font-family:"Apple SD Gothic Neo","맑은 고딕",sans-serif';
+  el.innerHTML = `
+    <div style="position:absolute;top:0;left:0;right:0;height:11%;background:#0D1B2A;display:flex;align-items:center;padding:0 2.5%">
+      <div style="font-size:1.6vh;font-weight:800;color:#fff">⚖ Compliance RiskOps</div>
+      <div style="margin-left:auto;font-size:1.3vh;font-weight:700;color:#5EEAD4">${d.year}년 ${d.month} 컴플라이언스 이행 현황</div>
+    </div>
+    <div style="position:absolute;top:12%;left:2%;right:2%;display:grid;grid-template-columns:repeat(4,1fr);gap:1%">
+      ${[['⚠️','관리 리스크',d.total+'건','#0F172A'],['✅','제출 완료',d.submitted+'건','#059669'],['📊','전사 달성율',d.overallAch+'%',ac],['⏳','평가 대기',d.unsubmitted+'건','#D97706']].map(([ic,lb,val,col])=>`
+      <div style="background:#fff;border-radius:4%;padding:5% 6%;border:1px solid #E5EBF2">
+        <div style="font-size:1.8vh">${ic}</div>
+        <div style="font-size:2.8vh;font-weight:800;color:${col};margin:1% 0">${val}</div>
+        <div style="font-size:1.1vh;font-weight:700;color:#64748B">${lb}</div>
+      </div>`).join('')}
+    </div>
+    <div style="position:absolute;top:42%;left:2%;right:2%;display:grid;grid-template-columns:1fr 1fr;gap:2%">
+      <div style="background:#fff;border-radius:4%;padding:4%;border:1px solid #E5EBF2">
+        <div style="font-size:1.2vh;font-weight:700;color:#0F172A;margin-bottom:3%">팀별 달성율</div>
+        ${d.teams.slice(0,5).map(t=>`<div style="display:flex;align-items:center;gap:2%;margin-bottom:2%">
+          <div style="width:18%;font-size:1vh;font-weight:600;color:#374151;white-space:nowrap">${t.name.replace('팀','')}</div>
+          <div style="flex:1;height:6px;background:#EEF2F7;border-radius:3px;overflow:hidden"><div style="width:${t.avg}%;height:100%;background:${t.color};border-radius:3px"></div></div>
+          <div style="width:10%;font-size:1vh;font-weight:800;color:${t.avg>=80?'#059669':t.avg>=65?'#D97706':'#DC2626'};text-align:right">${t.avg}%</div>
+        </div>`).join('')}
+      </div>
+      <div style="background:#fff;border-radius:4%;padding:4%;border:1px solid #E5EBF2">
+        <div style="font-size:1.2vh;font-weight:700;color:#0F172A;margin-bottom:3%">고위험 리스크 TOP 3</div>
+        ${d.topRisks.map((r,i)=>`<div style="display:flex;align-items:center;gap:2%;padding:2% 0;border-bottom:1px solid #F1F5F9">
+          <div style="font-size:1.2vh;font-weight:800;color:#94A3B8;width:4%">${i+1}</div>
+          <div style="flex:1;font-size:1vh;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.title}</div>
+          <div style="font-size:1vh;font-weight:800;color:${r.score>=15?'#DC2626':r.score>=8?'#D97706':'#059669'}">${r.score}점</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:9%;background:#0D1B2A;display:flex;align-items:center;padding:0 2.5%;gap:1%">
+      <div style="font-size:1.1vh;font-weight:700;color:#5EEAD4">총평</div>
+      <div style="width:1px;height:60%;background:#2E5C9A"></div>
+      <div style="font-size:1vh;color:#CBD5E1;flex:1">${d.comment}</div>
+      <div style="font-size:0.9vh;color:#4A6280">${new Date().toLocaleDateString('ko-KR')}</div>
+    </div>`;
 }
 
-/* ── 연간 미리보기 ── */
-function renderAnnualPreview(){
-  var d=getAnnualData();
-  renderAnnualSlide1(d);
-  renderAnnualSlide2(d);
-}
-function renderAnnualSlide1(d){
-  var el=document.getElementById('rpt-ann-slide1');
-  if(!el)return;
-  var ac=d.overallAch>=80?'#059669':d.overallAch>=65?'#D97706':'#DC2626';
-  var maxA=Math.max.apply(null,d.monthlyAch.concat([100]));
-  var trendBars=d.months.map(function(m,i){
-    var v=d.monthlyAch[i]||0;
-    var h=Math.round((v/maxA)*38);
-    return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1">'
-      +'<div style="font-size:6px;font-weight:800;color:#3B82F6">'+v+'%</div>'
-      +'<div style="width:100%;background:#EEF2F7;border-radius:3px 3px 0 0;height:40px;display:flex;align-items:flex-end">'
-        +'<div style="width:100%;height:'+h+'px;background:linear-gradient(180deg,#60A5FA,#3B82F6);border-radius:3px 3px 0 0"></div></div>'
-      +'<div style="font-size:6px;color:#94A3B8">'+m+'</div></div>';
-  }).join('');
-  var catRows=d.cats.map(function(c){
-    return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
-      +'<div style="font-size:7.5px;color:#0F172A;flex:1">'+c.name+'</div>'
-      +'<div style="font-size:7.5px;font-weight:800;color:#3B82F6">'+c.count+'건</div></div>';
-  }).join('');
-  var kpiHtml=[
-    {label:'연간 관리 리스크',val:d.total+'건',color:'#0F172A',sub:'전체 점검 대상'},
-    {label:'평가 완료',val:d.evaluated+'건',color:'#059669',sub:'달성율 확정'},
-    {label:'전사 평균 달성율',val:d.overallAch+'%',color:ac,sub:'연간 종합'},
-    {label:'최고 달성 월',val:d.bestMonth,color:'#3B82F6',sub:'월별 평균 최고'},
-  ].map(function(k){
-    return '<div style="background:#fff;border-radius:6px;padding:7px 9px;border:1px solid #E5EBF2">'
-      +'<div style="font-size:7.5px;color:#64748B;font-weight:700;margin-bottom:3px">'+k.label+'</div>'
-      +'<div style="font-size:16px;font-weight:800;color:'+k.color+';line-height:1">'+k.val+'</div>'
-      +'<div style="font-size:7px;color:#94A3B8;margin-top:2px">'+k.sub+'</div></div>';
-  }).join('');
-  el.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column">'
-    +'<div style="background:linear-gradient(135deg,#0D1B2A,#1E3A5F);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'
-      +'<div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;background:#3B82F6;border-radius:5px;font-size:11px;display:flex;align-items:center;justify-content:center">⚖</div>'
-        +'<div><div style="font-size:9px;font-weight:800;color:#fff">Compliance RiskOps</div><div style="font-size:7px;color:#8BA3BC">SK Chemical 법무 컴플라이언스팀</div></div></div>'
-      +'<div style="text-align:right"><div style="font-size:10px;font-weight:800;color:#5EEAD4">'+d.year+'년 연간 이행 현황</div><div style="font-size:7px;color:#8BA3BC">연간 보고서 · 1/2 — 종합 현황</div></div></div>'
-    +'<div style="flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr auto;gap:6px;padding:8px;background:#F4F7FB;overflow:hidden">'
-      +'<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+kpiHtml+'</div>'
-      +'<div style="background:#fff;border-radius:6px;padding:8px 10px;border:1px solid #E5EBF2">'
-        +'<div style="font-size:8px;font-weight:800;color:#0F172A;margin-bottom:8px">월별 이행 달성율 추이</div>'
-        +'<div style="display:flex;gap:3px;align-items:flex-end;height:60px">'+trendBars+'</div></div>'
-      +'<div style="background:#fff;border-radius:6px;padding:8px 10px;border:1px solid #E5EBF2">'
-        +'<div style="font-size:8px;font-weight:800;color:#0F172A;margin-bottom:6px">리스크 카테고리 현황</div>'+catRows+'</div>'
-      +'<div style="grid-column:1/-1;background:linear-gradient(135deg,#0D1B2A,#1E3A5F);border-radius:6px;padding:7px 12px;display:flex;align-items:center;gap:8px">'
-        +'<div style="font-size:8px;font-weight:800;color:#5EEAD4;flex-shrink:0">연간 총평</div>'
-        +'<div style="width:1px;height:14px;background:#2E5C9A;flex-shrink:0"></div>'
-        +'<div style="font-size:8px;color:#CBD5E1">'+d.comment+'</div>'
-        +'<div style="margin-left:auto;font-size:7px;color:#4A6280;flex-shrink:0">'+new Date().toLocaleDateString('ko-KR')+'</div></div>'
-    +'</div></div>';
-}
-function renderAnnualSlide2(d){
-  var el=document.getElementById('rpt-ann-slide2');
-  if(!el)return;
-  var teamRows=d.teams.map(function(t){
-    var ac2=t.avg>=80?'#059669':t.avg>=65?'#D97706':'#DC2626';
-    var m3=[t.jan||0,t.feb||0,t.mar||0];
-    var bars3=m3.map(function(v,i){
-      return '<div style="display:flex;flex-direction:column;align-items:center;gap:1px">'
-        +'<div style="font-size:6px;font-weight:800;color:'+t.color+'">'+v+'%</div>'
-        +'<div style="width:18px;height:'+(Math.round(v/100*24)||1)+'px;background:'+t.color+';border-radius:2px 2px 0 0"></div>'
-        +'<div style="font-size:5.5px;color:#94A3B8">'+['1월','2월','3월'][i]+'</div></div>';
-    }).join('');
-    return '<tr style="border-bottom:1px solid #F1F5F9">'
-      +'<td style="padding:5px 8px;font-size:8px;font-weight:700;color:#0F172A">'+t.name+'</td>'
-      +'<td style="padding:5px 8px"><div style="display:flex;align-items:center;gap:4px">'
-        +'<div style="width:70px;height:8px;background:#EEF2F7;border-radius:99px;overflow:hidden">'
-          +'<div style="width:'+t.avg+'%;height:100%;background:'+t.color+';border-radius:99px"></div></div>'
-        +'<span style="font-size:8px;font-weight:800;color:'+ac2+'">'+t.avg+'%</span></div></td>'
-      +'<td style="padding:5px 8px"><div style="display:flex;gap:4px;align-items:flex-end;height:30px">'+bars3+'</div></td>'
-      +'<td style="padding:5px 8px;font-size:7.5px;color:'+(t.status==='우수'?'#059669':t.status==='주의'?'#D97706':'#DC2626')+';font-weight:700">'+t.status+'</td></tr>';
-  }).join('');
-  var top5Rows=d.topRisks.map(function(r,i){
-    var sc=r.score;
-    var scC=sc>=15?'#DC2626':sc>=8?'#D97706':'#059669';
-    var scB=sc>=15?'#FEF2F2':sc>=8?'#FFFBEB':'#ECFDF5';
-    return '<tr style="border-bottom:1px solid #F1F5F9">'
-      +'<td style="padding:4px 8px;font-size:8px;font-weight:700;color:#94A3B8">'+(i+1)+'</td>'
-      +'<td style="padding:4px 8px"><span style="background:#EFF6FF;color:#3B82F6;padding:1px 5px;border-radius:3px;font-size:7px">'+r.team+'</span></td>'
-      +'<td style="padding:4px 8px;font-size:8px;color:#0F172A">'+r.title+'</td>'
-      +'<td style="padding:4px 8px;text-align:center"><span style="background:'+scB+';color:'+scC+';padding:1px 6px;border-radius:3px;font-size:8px;font-weight:800">'+sc+'점</span></td></tr>';
-  }).join('');
-  el.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column">'
-    +'<div style="background:linear-gradient(135deg,#0D1B2A,#1E3A5F);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'
-      +'<div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;background:#3B82F6;border-radius:5px;font-size:11px;display:flex;align-items:center;justify-content:center">⚖</div>'
-        +'<div><div style="font-size:9px;font-weight:800;color:#fff">Compliance RiskOps</div><div style="font-size:7px;color:#8BA3BC">SK Chemical 법무 컴플라이언스팀</div></div></div>'
-      +'<div style="text-align:right"><div style="font-size:10px;font-weight:800;color:#5EEAD4">'+d.year+'년 연간 이행 현황</div><div style="font-size:7px;color:#8BA3BC">연간 보고서 · 2/2 — 팀별 상세 분석</div></div></div>'
-    +'<div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px;background:#F4F7FB;overflow:hidden">'
-      +'<div style="background:#fff;border-radius:6px;overflow:hidden;border:1px solid #E5EBF2">'
-        +'<div style="background:#1E3A5F;padding:5px 8px"><div style="font-size:8px;font-weight:800;color:#fff">팀별 연간 이행 현황</div></div>'
-        +'<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#F8FAFC">'
-          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">팀</th>'
-          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">달성율</th>'
-          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">분기추이</th>'
-          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">상태</th>'
-        +'</tr></thead><tbody>'+teamRows+'</tbody></table></div>'
-      +'<div style="background:#fff;border-radius:6px;overflow:hidden;border:1px solid #E5EBF2">'
-        +'<div style="background:#7F1D1D;padding:5px 8px"><div style="font-size:8px;font-weight:800;color:#fff">연간 고위험 리스크 TOP 5</div></div>'
-        +'<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#FEF2F2">'
-          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">순위</th>'
-          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">팀</th>'
-          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">리스크</th>'
-          +'<th style="padding:4px 8px;font-size:7px;color:#94A3B8;font-weight:700;text-align:left">위험도</th>'
-        +'</tr></thead><tbody>'+top5Rows+'</tbody></table></div>'
-    +'</div></div>';
+function renderAnnualPreview() {
+  const d = getAnnualData();
+  const slide1 = document.getElementById('rpt-ann-slide1'); if (!slide1) return;
+  const ac = d.overallAch >= 80 ? '#059669' : d.overallAch >= 65 ? '#D97706' : '#DC2626';
+  slide1.style.cssText = 'width:100%;height:100%;background:#F4F7FB;position:relative;overflow:hidden;font-family:"Apple SD Gothic Neo","맑은 고딕",sans-serif';
+  slide1.innerHTML = `
+    <div style="position:absolute;top:0;left:0;right:0;height:11%;background:#0D1B2A;display:flex;align-items:center;padding:0 2.5%">
+      <div style="font-size:1.6vh;font-weight:800;color:#fff">⚖ Compliance RiskOps</div>
+      <div style="margin-left:auto;font-size:1.3vh;font-weight:700;color:#5EEAD4">${d.year}년 연간 종합 현황</div>
+    </div>
+    <div style="position:absolute;top:12%;left:2%;right:2%;display:grid;grid-template-columns:repeat(4,1fr);gap:1%">
+      ${[['관리 리스크',d.total+'건','#0F172A'],['평가 완료',d.evaluated+'건','#059669'],['전사 달성율',d.overallAch+'%',ac],['최고 달성 월',d.bestMonth,'#3B82F6']].map(([lb,val,col])=>`
+      <div style="background:#fff;border-radius:4%;padding:4% 5%;border:1px solid #E5EBF2">
+        <div style="font-size:2.8vh;font-weight:800;color:${col}">${val}</div>
+        <div style="font-size:1.1vh;font-weight:700;color:#64748B;margin-top:4px">${lb}</div>
+      </div>`).join('')}
+    </div>
+    <div style="position:absolute;top:42%;left:2%;right:2%;display:grid;grid-template-columns:1.4fr 1fr;gap:2%">
+      <div style="background:#fff;border-radius:4%;padding:4%;border:1px solid #E5EBF2">
+        <div style="font-size:1.2vh;font-weight:700;color:#0F172A;margin-bottom:3%">월별 달성율 추이</div>
+        <div style="display:flex;align-items:flex-end;gap:2%;height:60%">
+          ${d.monthlyAch.map((v,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px">
+            <div style="font-size:0.9vh;font-weight:700;color:#3B82F6">${v}%</div>
+            <div style="width:100%;background:#EEF2F7;border-radius:2px 2px 0 0;height:50px;position:relative"><div style="position:absolute;bottom:0;left:0;right:0;background:#3B82F6;border-radius:2px 2px 0 0;height:${v}%"></div></div>
+            <div style="font-size:0.8vh;color:#94A3B8">${d.months[i]}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:4%;padding:4%;border:1px solid #E5EBF2">
+        <div style="font-size:1.2vh;font-weight:700;color:#0F172A;margin-bottom:3%">리스크 카테고리</div>
+        ${d.cats.slice(0,5).map(c=>`<div style="display:flex;justify-content:space-between;padding:2% 0;border-bottom:1px solid #F1F5F9">
+          <span style="font-size:1vh;color:#374151">${c.name}</span>
+          <span style="font-size:1vh;font-weight:800;color:#3B82F6">${c.count}건</span>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:9%;background:#0D1B2A;display:flex;align-items:center;padding:0 2.5%;gap:1%">
+      <div style="font-size:1vh;font-weight:700;color:#5EEAD4">연간 총평</div>
+      <div style="width:1px;height:60%;background:#2E5C9A"></div>
+      <div style="font-size:1vh;color:#CBD5E1;flex:1">${d.comment}</div>
+    </div>`;
+  const slide2 = document.getElementById('rpt-ann-slide2'); if (!slide2) return;
+  slide2.style.cssText = slide1.style.cssText;
+  slide2.innerHTML = `
+    <div style="position:absolute;top:0;left:0;right:0;height:11%;background:#0D1B2A;display:flex;align-items:center;padding:0 2.5%">
+      <div style="font-size:1.6vh;font-weight:800;color:#fff">⚖ Compliance RiskOps</div>
+      <div style="margin-left:auto;font-size:1.3vh;font-weight:700;color:#5EEAD4">${d.year}년 팀별 상세 분석</div>
+    </div>
+    <div style="position:absolute;top:12%;left:2%;right:2%;display:grid;grid-template-columns:repeat(5,1fr);gap:1%">
+      ${d.teams.map((t,i)=>`<div style="background:#fff;border-radius:4%;padding:3% 4%;border:2px solid ${t.avg>=80?'#10B981':t.avg>=65?'#F59E0B':'#EF4444'}">
+        <div style="font-size:1.1vh;font-weight:800;color:#0F172A;margin-bottom:3%">${t.name}</div>
+        <div style="font-size:2.5vh;font-weight:800;color:${t.avg>=80?'#059669':t.avg>=65?'#D97706':'#DC2626'}">${t.avg}%</div>
+        <div style="height:4px;background:#EEF2F7;border-radius:2px;margin:4px 0;overflow:hidden"><div style="width:${t.avg}%;height:100%;background:${TCOLORS[i]};border-radius:2px"></div></div>
+        <div style="font-size:0.9vh;font-weight:700;color:${t.avg>=80?'#059669':t.avg>=65?'#D97706':'#DC2626'}">${t.avg>=80?'우수':t.avg>=70?'정상':t.avg>=60?'주의':'위험'}</div>
+      </div>`).join('')}
+    </div>
+    <div style="position:absolute;top:50%;left:2%;right:2%;background:#fff;border-radius:4%;padding:3%;border:1px solid #E5EBF2">
+      <div style="font-size:1.2vh;font-weight:700;color:#7F1D1D;margin-bottom:2%">🎯 연간 고위험 리스크 TOP 5</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1%">
+        ${d.topRisks.map((r,i)=>`<div style="background:${r.score>=15?'#FEF2F2':r.score>=8?'#FFFBEB':'#ECFDF5'};border-radius:3%;padding:3%;border:1px solid ${r.score>=15?'#FECACA':r.score>=8?'#FDE68A':'#A7F3D0'}">
+          <div style="font-size:0.8vh;font-weight:800;color:#94A3B8;margin-bottom:2px">#${i+1} ${r.team}</div>
+          <div style="font-size:0.9vh;color:#0F172A;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${r.title}</div>
+          <div style="font-size:1.3vh;font-weight:800;color:${r.score>=15?'#DC2626':r.score>=8?'#D97706':'#059669'};margin-top:4px">${r.score}점</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:7%;background:#0D1B2A;display:flex;align-items:center;padding:0 2.5%">
+      <div style="font-size:0.9vh;color:#4A6280">작성일: ${new Date().toLocaleDateString('ko-KR')} | SK Chemical 컴플라이언스팀</div>
+    </div>`;
 }
 
-/* ── 월간 PPT 생성 ── */
-function generatePPT(){
-  var btn=event&&event.target;
-  if(typeof PptxGenJS!=='undefined'){_doGeneratePPT();return;}
-  if(btn){btn.textContent='로딩 중...';btn.disabled=true;}
-  _loadLib([
-    'https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundle.js',
-    'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.11.0/pptxgen.bundle.js'
-  ],function(ok){
-    if(btn){btn.textContent='⬇ PPT 생성';btn.disabled=false;}
-    if(!ok){alert('PPT 라이브러리를 불러오지 못했습니다.\n네트워크 연결을 확인해주세요.');return;}
-    _doGeneratePPT();
-  });
+/* ── PPT 생성 (PptxGenJS) ── */
+function generatePPT() {
+  const btn = event && event.target;
+  if (typeof PptxGenJS !== 'undefined') { _doGeneratePPT(); return; }
+  if (btn) { btn.textContent = '로딩 중...'; btn.disabled = true; }
+  _loadLib(['https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundle.js','https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js'],
+    function(ok) { if (btn) { btn.textContent = '⬇ PPT 생성'; btn.disabled = false; } if (!ok) { toast('PPT 라이브러리 로드 실패', 'error'); return; } _doGeneratePPT(); });
 }
-async function _doGeneratePPT(){
-  try{
-  var d=getReportData();
-  var pptx=new PptxGenJS();
-  pptx.layout='LAYOUT_WIDE';
-  var slide=pptx.addSlide();
-  slide.background={color:'F4F7FB'};
-  var ac=d.overallAch>=80?'059669':d.overallAch>=65?'D97706':'DC2626';
-  slide.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:0.55,fill:{color:'0D1B2A'}});
-  slide.addText('⚖ Compliance RiskOps',{x:0.2,y:0.05,w:3,h:0.25,fontSize:11,bold:true,color:'FFFFFF',fontFace:'Arial'});
-  slide.addText('SK Chemical 법무 컴플라이언스팀',{x:0.2,y:0.28,w:3,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial'});
-  slide.addText(d.year+'년 '+d.month+' 컴플라이언스 이행 현황',{x:6,y:0.07,w:6.8,h:0.25,fontSize:13,bold:true,color:'5EEAD4',fontFace:'Arial',align:'right'});
-  slide.addText('월간 보고서',{x:6,y:0.3,w:6.8,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial',align:'right'});
-  var kpis=[
-    {label:'전사 달성율',val:d.overallAch+'%',color:ac,sub:'평가완료 기준'},
-    {label:'관리 리스크',val:d.total+'건',color:'0F172A',sub:'이번 달 점검'},
-    {label:'제출 완료',val:d.submitted+'건',color:'059669',sub:'미제출 '+d.unsubmitted+'건'},
-    {label:'평가 완료',val:d.evaluated+'건',color:'3B82F6',sub:'달성율 확정'},
-  ];
-  kpis.forEach(function(k,i){
-    var x=0.15+i*3.2;
-    slide.addShape(pptx.ShapeType.rect,{x:x,y:0.65,w:3.0,h:0.95,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
-    slide.addText(k.label,{x:x+0.12,y:0.72,w:2.8,h:0.18,fontSize:8,bold:true,color:'64748B',fontFace:'Arial'});
-    slide.addText(k.val,{x:x+0.12,y:0.88,w:2.8,h:0.4,fontSize:22,bold:true,color:k.color,fontFace:'Arial'});
-    slide.addText(k.sub,{x:x+0.12,y:1.3,w:2.8,h:0.18,fontSize:7,color:'94A3B8',fontFace:'Arial'});
-  });
-  slide.addShape(pptx.ShapeType.rect,{x:0.15,y:1.72,w:4.0,h:2.5,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
-  slide.addText('팀별 이행 달성율',{x:0.28,y:1.8,w:3.8,h:0.22,fontSize:9,bold:true,color:'0F172A',fontFace:'Arial'});
-  d.teams.forEach(function(t,i){
-    var ry=2.1+i*0.38;
-    var tc=t.color.replace('#','');
-    slide.addText(t.name,{x:0.18,y:ry,w:0.9,h:0.22,fontSize:7.5,bold:true,color:'475569',fontFace:'Arial',align:'right'});
-    slide.addShape(pptx.ShapeType.rect,{x:1.14,y:ry+0.04,w:2.5,h:0.16,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.08});
-    if(t.avg>0)slide.addShape(pptx.ShapeType.rect,{x:1.14,y:ry+0.04,w:2.5*(t.avg/100),h:0.16,fill:{color:tc},line:{color:tc,pt:0},rectRadius:0.08});
-    slide.addText(t.avg+'%',{x:3.7,y:ry,w:0.4,h:0.22,fontSize:8,bold:true,color:t.avg>=80?'059669':t.avg>=65?'D97706':'DC2626',fontFace:'Arial'});
-  });
-  slide.addShape(pptx.ShapeType.rect,{x:4.35,y:1.72,w:4.0,h:2.5,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
-  slide.addText('고위험 리스크 TOP 3',{x:4.48,y:1.8,w:3.8,h:0.22,fontSize:9,bold:true,color:'0F172A',fontFace:'Arial'});
-  d.topRisks.forEach(function(r,i){
-    var ry=2.12+i*0.62;
-    var sc=r.score;
-    var scC=sc>=15?'DC2626':sc>=8?'D97706':'059669';
-    var scB=sc>=15?'FEF2F2':sc>=8?'FFFBEB':'ECFDF5';
-    slide.addShape(pptx.ShapeType.rect,{x:4.48,y:ry,w:0.3,h:0.26,fill:{color:scB},line:{color:scB,pt:0},rectRadius:0.04});
-    slide.addText(''+sc,{x:4.48,y:ry+0.02,w:0.3,h:0.22,fontSize:8,bold:true,color:scC,fontFace:'Arial',align:'center'});
-    slide.addText(r.title,{x:4.85,y:ry,w:2.8,h:0.22,fontSize:8,bold:true,color:'0F172A',fontFace:'Arial'});
-    slide.addText(r.team+' · '+r.cat,{x:4.85,y:ry+0.22,w:2.8,h:0.18,fontSize:7,color:'94A3B8',fontFace:'Arial'});
-  });
-  slide.addShape(pptx.ShapeType.rect,{x:8.55,y:1.72,w:4.15,h:2.5,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
-  slide.addText('조치 필요 (미제출)',{x:8.68,y:1.8,w:3.9,h:0.22,fontSize:9,bold:true,color:'DC2626',fontFace:'Arial'});
-  if(d.actions.length){
-    d.actions.forEach(function(r,i){
-      var ay=2.12+i*0.62;
-      slide.addShape(pptx.ShapeType.rect,{x:8.68,y:ay,w:0.06,h:0.26,fill:{color:'DC2626'},line:{color:'DC2626',pt:0}});
-      slide.addText(r.team,{x:8.82,y:ay,w:3.7,h:0.22,fontSize:8,bold:true,color:'DC2626',fontFace:'Arial'});
-      slide.addText(r.title,{x:8.82,y:ay+0.22,w:3.7,h:0.18,fontSize:7.5,color:'374151',fontFace:'Arial'});
+async function _doGeneratePPT() {
+  try {
+    const d = getReportData(); const pptx = new PptxGenJS(); pptx.layout = 'LAYOUT_WIDE';
+    const slide = pptx.addSlide(); const ac = d.overallAch >= 80 ? '059669' : d.overallAch >= 65 ? 'D97706' : 'DC2626';
+    slide.background = { color: 'F4F7FB' };
+    slide.addShape(pptx.ShapeType.rect, {x:0,y:0,w:'100%',h:0.55,fill:{color:'0D1B2A'}});
+    slide.addText('⚖ Compliance RiskOps', {x:0.2,y:0.07,w:4,h:0.22,fontSize:10,bold:true,color:'FFFFFF',fontFace:'Arial'});
+    slide.addText('SK Chemical 법무 컴플라이언스팀', {x:0.2,y:0.29,w:4,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial'});
+    slide.addText(`${d.year}년 ${d.month} 컴플라이언스 이행 현황`, {x:5,y:0.07,w:7.8,h:0.25,fontSize:13,bold:true,color:'5EEAD4',fontFace:'Arial',align:'right'});
+    const kpis = [['⚠️','관리 리스크',d.total+'건','0F172A'],['✅','제출 완료',d.submitted+'건','059669'],['📊','전사 달성율',d.overallAch+'%',ac],['⏳','평가 대기',d.unsubmitted+'건','D97706']];
+    kpis.forEach((k,i) => {
+      const x = 0.15 + i * 3.2;
+      slide.addShape(pptx.ShapeType.rect, {x,y:0.65,w:3.0,h:0.9,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
+      slide.addText(k[0]+' '+k[1], {x:x+0.12,y:0.7,w:2.8,h:0.2,fontSize:8,bold:true,color:'64748B',fontFace:'Arial'});
+      slide.addText(k[2], {x:x+0.12,y:0.88,w:2.8,h:0.36,fontSize:22,bold:true,color:k[3],fontFace:'Arial'});
     });
-  } else {
-    slide.addText('✓ 미제출 항목 없음',{x:8.68,y:2.5,w:3.9,h:0.3,fontSize:9,color:'059669',fontFace:'Arial'});
-  }
-  slide.addShape(pptx.ShapeType.rect,{x:0,y:4.32,w:'100%',h:0.6,fill:{color:'0D1B2A'}});
-  slide.addText('총평',{x:0.2,y:4.42,w:0.5,h:0.22,fontSize:9,bold:true,color:'5EEAD4',fontFace:'Arial'});
-  slide.addShape(pptx.ShapeType.rect,{x:0.75,y:4.46,w:0.02,h:0.18,fill:{color:'2E5C9A'},line:{color:'2E5C9A',pt:0}});
-  slide.addText(d.comment,{x:0.85,y:4.42,w:10,h:0.22,fontSize:9,color:'CBD5E1',fontFace:'Arial'});
-  slide.addText('작성일: '+new Date().toLocaleDateString('ko-KR'),{x:11.0,y:4.42,w:1.8,h:0.22,fontSize:7.5,color:'4A6280',fontFace:'Arial',align:'right'});
-  await pptx.writeFile({fileName:'[SK Chemical] 컴플라이언스_월간현황_'+d.year+'_'+d.month+'.pptx'});
-  }catch(e){console.error('PPT 오류:',e);alert('PPT 생성 오류: '+e.message);}
-}
-
-/* ── 연간 PPT 생성 ── */
-function generateAnnualPPT(){
-  var btn=event&&event.target;
-  if(typeof PptxGenJS!=='undefined'){_doGenerateAnnualPPT();return;}
-  if(btn){btn.textContent='로딩 중...';btn.disabled=true;}
-  _loadLib([
-    'https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundle.js',
-    'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.11.0/pptxgen.bundle.js'
-  ],function(ok){
-    if(btn){btn.textContent='⬇ 연간 PPT 생성';btn.disabled=false;}
-    if(!ok){alert('PPT 라이브러리를 불러오지 못했습니다.\n네트워크 연결을 확인해주세요.');return;}
-    _doGenerateAnnualPPT();
-  });
-}
-async function _doGenerateAnnualPPT(){
-  try{
-  var d=getAnnualData();
-  var pptx=new PptxGenJS();
-  pptx.layout='LAYOUT_WIDE';
-  var ac=d.overallAch>=80?'059669':d.overallAch>=65?'D97706':'DC2626';
-
-  /* ── 슬라이드 1: 연간 종합 ── */
-  var s1=pptx.addSlide();
-  s1.background={color:'F4F7FB'};
-  s1.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:0.55,fill:{color:'0D1B2A'}});
-  s1.addText('⚖ Compliance RiskOps',{x:0.2,y:0.06,w:3.5,h:0.22,fontSize:10,bold:true,color:'FFFFFF',fontFace:'Arial'});
-  s1.addText('SK Chemical 법무 컴플라이언스팀',{x:0.2,y:0.28,w:3.5,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial'});
-  s1.addText(d.year+'년 연간 컴플라이언스 이행 현황',{x:5,y:0.07,w:7.8,h:0.25,fontSize:13,bold:true,color:'5EEAD4',fontFace:'Arial',align:'right'});
-  s1.addText('연간 보고서 · 1/2 — 종합 현황',{x:5,y:0.3,w:7.8,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial',align:'right'});
-  var kpis1=[
-    {label:'연간 관리 리스크',val:d.total+'건',color:'0F172A',sub:'전체 점검'},
-    {label:'평가 완료',val:d.evaluated+'건',color:'059669',sub:'달성율 확정'},
-    {label:'전사 평균 달성율',val:d.overallAch+'%',color:ac,sub:'연간 종합'},
-    {label:'최고 달성 월',val:d.bestMonth,color:'3B82F6',sub:'월별 최고'},
-  ];
-  kpis1.forEach(function(k,i){
-    var x=0.15+i*3.2;
-    s1.addShape(pptx.ShapeType.rect,{x:x,y:0.65,w:3.0,h:0.9,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
-    s1.addText(k.label,{x:x+0.12,y:0.72,w:2.8,h:0.18,fontSize:7.5,bold:true,color:'64748B',fontFace:'Arial'});
-    s1.addText(k.val,{x:x+0.12,y:0.88,w:2.8,h:0.36,fontSize:20,bold:true,color:k.color,fontFace:'Arial'});
-    s1.addText(k.sub,{x:x+0.12,y:1.24,w:2.8,h:0.18,fontSize:7,color:'94A3B8',fontFace:'Arial'});
-  });
-  s1.addShape(pptx.ShapeType.rect,{x:0.15,y:1.65,w:6.3,h:1.85,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
-  s1.addText('월별 이행 달성율 추이',{x:0.28,y:1.73,w:6,h:0.2,fontSize:9,bold:true,color:'0F172A',fontFace:'Arial'});
-  var bw=0.4;
-  d.months.forEach(function(m,i){
-    var v=d.monthlyAch[i]||0;
-    var bx=0.35+i*(bw+0.05);
-    var bh=(v/100)*0.8;
-    s1.addShape(pptx.ShapeType.rect,{x:bx,y:2.07,w:bw,h:0.9,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.03});
-    if(bh>0)s1.addShape(pptx.ShapeType.rect,{x:bx,y:2.07+(0.9-bh*0.9),w:bw,h:bh*0.9,fill:{color:'3B82F6'},line:{color:'3B82F6',pt:0},rectRadius:0.03});
-    s1.addText(v+'%',{x:bx,y:1.91,w:bw,h:0.16,fontSize:6,bold:true,color:'3B82F6',fontFace:'Arial',align:'center'});
-    s1.addText(m,{x:bx,y:3.02,w:bw,h:0.16,fontSize:6,color:'94A3B8',fontFace:'Arial',align:'center'});
-  });
-  s1.addShape(pptx.ShapeType.rect,{x:6.65,y:1.65,w:6.1,h:1.85,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
-  s1.addText('리스크 카테고리 현황',{x:6.78,y:1.73,w:5.8,h:0.2,fontSize:9,bold:true,color:'0F172A',fontFace:'Arial'});
-  d.cats.forEach(function(c,i){
-    var cy=2.03+i*0.27;
-    s1.addText(c.name,{x:6.78,y:cy,w:4,h:0.22,fontSize:8,color:'0F172A',fontFace:'Arial'});
-    s1.addText(c.count+'건',{x:11.0,y:cy,w:1.5,h:0.22,fontSize:8,bold:true,color:'3B82F6',fontFace:'Arial',align:'right'});
-  });
-  s1.addShape(pptx.ShapeType.rect,{x:0,y:3.74,w:'100%',h:0.64,fill:{color:'0D1B2A'}});
-  s1.addText('연간 총평',{x:0.2,y:3.86,w:0.9,h:0.22,fontSize:9,bold:true,color:'5EEAD4',fontFace:'Arial'});
-  s1.addShape(pptx.ShapeType.rect,{x:1.15,y:3.9,w:0.02,h:0.18,fill:{color:'2E5C9A'},line:{color:'2E5C9A',pt:0}});
-  s1.addText(d.comment,{x:1.25,y:3.86,w:9.4,h:0.22,fontSize:9,color:'CBD5E1',fontFace:'Arial'});
-  s1.addText('작성일: '+new Date().toLocaleDateString('ko-KR'),{x:11.0,y:3.86,w:1.8,h:0.22,fontSize:7.5,color:'4A6280',fontFace:'Arial',align:'right'});
-
-  /* ── 슬라이드 2: 팀별 분석 ── */
-  var s2=pptx.addSlide();
-  s2.background={color:'F4F7FB'};
-  s2.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:0.55,fill:{color:'0D1B2A'}});
-  s2.addText('⚖ Compliance RiskOps',{x:0.2,y:0.06,w:3.5,h:0.22,fontSize:10,bold:true,color:'FFFFFF',fontFace:'Arial'});
-  s2.addText('SK Chemical 법무 컴플라이언스팀',{x:0.2,y:0.28,w:3.5,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial'});
-  s2.addText(d.year+'년 연간 컴플라이언스 이행 현황',{x:5,y:0.07,w:7.8,h:0.25,fontSize:13,bold:true,color:'5EEAD4',fontFace:'Arial',align:'right'});
-  s2.addText('연간 보고서 · 2/2 — 팀별 상세 분석',{x:5,y:0.3,w:7.8,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial',align:'right'});
-  s2.addShape(pptx.ShapeType.rect,{x:0.15,y:0.65,w:6.3,h:0.3,fill:{color:'1E3A5F'},line:{color:'1E3A5F',pt:0},rectRadius:0.05});
-  s2.addText('팀별 연간 이행 현황',{x:0.28,y:0.68,w:6,h:0.22,fontSize:9,bold:true,color:'FFFFFF',fontFace:'Arial'});
-  ['팀','연간 달성율','분기 추이','상태'].forEach(function(h,i){
-    s2.addText(h,{x:[0.28,1.6,3.2,5.4][i],y:1.02,w:1.2,h:0.18,fontSize:7.5,bold:true,color:'94A3B8',fontFace:'Arial'});
-  });
-  d.teams.forEach(function(t,i){
-    var ty=1.22+i*0.46;
-    var tc2=t.color.replace('#','');
-    var ac3=t.avg>=80?'059669':t.avg>=65?'D97706':'DC2626';
-    s2.addText(t.name,{x:0.28,y:ty,w:1.2,h:0.3,fontSize:8,bold:true,color:'0F172A',fontFace:'Arial'});
-    s2.addShape(pptx.ShapeType.rect,{x:1.6,y:ty+0.08,w:1.4,h:0.14,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.07});
-    if(t.avg>0)s2.addShape(pptx.ShapeType.rect,{x:1.6,y:ty+0.08,w:1.4*(t.avg/100),h:0.14,fill:{color:tc2},line:{color:tc2,pt:0},rectRadius:0.07});
-    s2.addText(t.avg+'%',{x:3.05,y:ty+0.06,w:0.4,h:0.18,fontSize:8,bold:true,color:ac3,fontFace:'Arial'});
-    [t.jan||0,t.feb||0,t.mar||0].forEach(function(v,mi){
-      var bx=3.2+mi*0.5;
-      var bh=(v/100)*0.28;
-      s2.addShape(pptx.ShapeType.rect,{x:bx,y:ty,w:0.36,h:0.3,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.03});
-      if(bh>0)s2.addShape(pptx.ShapeType.rect,{x:bx,y:ty+(0.3-bh),w:0.36,h:bh,fill:{color:tc2},line:{color:tc2,pt:0},rectRadius:0.03});
+    d.teams.forEach((t,i) => {
+      const y = 1.7 + i * 0.38; const tc = t.color.replace('#','');
+      slide.addText(t.name, {x:0.2,y:y+0.08,w:1.2,h:0.22,fontSize:8,bold:true,color:'0F172A',fontFace:'Arial'});
+      slide.addShape(pptx.ShapeType.rect, {x:1.5,y:y+0.12,w:2.5,h:0.12,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.06});
+      if (t.avg>0) slide.addShape(pptx.ShapeType.rect, {x:1.5,y:y+0.12,w:2.5*(t.avg/100),h:0.12,fill:{color:tc},line:{color:tc,pt:0},rectRadius:0.06});
+      slide.addText(t.avg+'%', {x:4.1,y:y+0.08,w:0.5,h:0.22,fontSize:8,bold:true,color:t.avg>=80?'059669':t.avg>=65?'D97706':'DC2626',fontFace:'Arial'});
+      slide.addText(t.status, {x:4.7,y:y+0.08,w:0.7,h:0.22,fontSize:7,color:t.avg>=80?'059669':t.avg>=65?'D97706':'DC2626',fontFace:'Arial'});
     });
-    s2.addText(t.status,{x:5.4,y:ty+0.05,w:0.8,h:0.2,fontSize:8,bold:true,color:t.status==='우수'?'059669':t.status==='주의'?'D97706':'DC2626',fontFace:'Arial'});
-  });
-  s2.addShape(pptx.ShapeType.rect,{x:6.65,y:0.65,w:6.1,h:0.3,fill:{color:'7F1D1D'},line:{color:'7F1D1D',pt:0},rectRadius:0.05});
-  s2.addText('연간 고위험 리스크 TOP 5',{x:6.78,y:0.68,w:5.8,h:0.22,fontSize:9,bold:true,color:'FFFFFF',fontFace:'Arial'});
-  ['순위','팀','리스크 명','위험도'].forEach(function(h,i){
-    s2.addText(h,{x:[6.78,7.3,8.4,11.8][i],y:1.02,w:1,h:0.18,fontSize:7.5,bold:true,color:'94A3B8',fontFace:'Arial'});
-  });
-  d.topRisks.forEach(function(r,i){
-    var ry=1.22+i*0.5;
-    var sc=r.score;
-    var scC=sc>=15?'DC2626':sc>=8?'D97706':'059669';
-    var scB=sc>=15?'FEF2F2':sc>=8?'FFFBEB':'ECFDF5';
-    s2.addText(''+(i+1),{x:6.78,y:ry,w:0.4,h:0.3,fontSize:9,bold:true,color:'94A3B8',fontFace:'Arial',align:'center'});
-    s2.addShape(pptx.ShapeType.rect,{x:7.2,y:ry+0.04,w:0.8,h:0.2,fill:{color:'EFF6FF'},line:{color:'BFDBFE',pt:1},rectRadius:0.04});
-    s2.addText(r.team,{x:7.2,y:ry+0.04,w:0.8,h:0.2,fontSize:7,color:'3B82F6',fontFace:'Arial',align:'center'});
-    s2.addText(r.title,{x:8.1,y:ry,w:3.6,h:0.3,fontSize:8,color:'0F172A',fontFace:'Arial'});
-    s2.addShape(pptx.ShapeType.rect,{x:11.75,y:ry+0.04,w:0.8,h:0.2,fill:{color:scB},line:{color:scB,pt:0},rectRadius:0.04});
-    s2.addText(sc+'점',{x:11.75,y:ry+0.04,w:0.8,h:0.2,fontSize:8,bold:true,color:scC,fontFace:'Arial',align:'center'});
-  });
-  await pptx.writeFile({fileName:'[SK Chemical] 컴플라이언스_연간현황_'+d.year+'.pptx'});
-  }catch(e){console.error('연간 PPT 오류:',e);alert('PPT 생성 오류: '+e.message);}
+    d.topRisks.forEach((r,i) => {
+      const y = 1.72 + i * 0.52; const sc = r.score; const scC = sc>=15?'DC2626':sc>=8?'D97706':'059669'; const scB = sc>=15?'FEF2F2':sc>=8?'FFFBEB':'ECFDF5';
+      slide.addText(''+(i+1), {x:5.8,y,w:0.4,h:0.32,fontSize:9,bold:true,color:'94A3B8',fontFace:'Arial',align:'center'});
+      slide.addShape(pptx.ShapeType.rect, {x:6.2,y:y+0.04,w:0.9,h:0.22,fill:{color:'EFF6FF'},line:{color:'BFDBFE',pt:1},rectRadius:0.04});
+      slide.addText(r.team, {x:6.2,y:y+0.04,w:0.9,h:0.22,fontSize:7,color:'3B82F6',fontFace:'Arial',align:'center'});
+      slide.addText(r.title, {x:7.2,y,w:4.2,h:0.32,fontSize:8,color:'0F172A',fontFace:'Arial'});
+      slide.addShape(pptx.ShapeType.rect, {x:11.4,y:y+0.04,w:0.8,h:0.22,fill:{color:scB},line:{color:scB,pt:0},rectRadius:0.04});
+      slide.addText(sc+'점', {x:11.4,y:y+0.04,w:0.8,h:0.22,fontSize:8,bold:true,color:scC,fontFace:'Arial',align:'center'});
+    });
+    slide.addShape(pptx.ShapeType.rect, {x:0,y:4.32,w:'100%',h:0.6,fill:{color:'0D1B2A'}});
+    slide.addText('총평', {x:0.2,y:4.42,w:0.5,h:0.22,fontSize:9,bold:true,color:'5EEAD4',fontFace:'Arial'});
+    slide.addText(d.comment, {x:0.85,y:4.42,w:10,h:0.22,fontSize:9,color:'CBD5E1',fontFace:'Arial'});
+    slide.addText('작성일: '+new Date().toLocaleDateString('ko-KR'), {x:11.0,y:4.42,w:1.8,h:0.22,fontSize:7.5,color:'4A6280',fontFace:'Arial',align:'right'});
+    await pptx.writeFile({fileName:`[SK Chemical] 컴플라이언스_월간현황_${d.year}_${d.month}.pptx`});
+    toast('PPT 생성 완료!', 'success');
+  } catch (e) { console.error('PPT 오류:', e); toast('PPT 생성 실패: ' + e.message, 'error'); }
 }
 
-
-window.addEventListener('resize',function(){
-  if(curPage==='dash')setTimeout(function(){drawChart('trend-canvas',TREND,TKEYS,TCOLORS,true);},50);
-  if(curPage==='teams')setTimeout(function(){drawTeamsChart();},50);
-});
-
-/* ═══ EXCEL TEMPLATE DOWNLOAD ═══ */
-function downloadTemplate(){
-  if(typeof XLSX!=='undefined'){_doDownloadTemplate();return;}
-  var btn=event.target;btn.textContent='로딩 중...';btn.disabled=true;
-  _loadLib([
-    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
-    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
-  ],function(ok){
-    btn.textContent='📥 양식 다운로드';btn.disabled=false;
-    if(!ok){alert('네트워크 연결을 확인해주세요.');return;}
-    _doDownloadTemplate();
-  });
+function generateAnnualPPT() {
+  const btn = event && event.target;
+  if (typeof PptxGenJS !== 'undefined') { _doGenerateAnnualPPT(); return; }
+  if (btn) { btn.textContent = '로딩 중...'; btn.disabled = true; }
+  _loadLib(['https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundle.js','https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js'],
+    function(ok) { if (btn) { btn.textContent = '⬇ 연간 PPT 생성'; btn.disabled = false; } if (!ok) { toast('PPT 라이브러리 로드 실패', 'error'); return; } _doGenerateAnnualPPT(); });
 }
-function _doDownloadTemplate(){
-  const wb=XLSX.utils.book_new();
-  const headers=[['Year','Team','RiskCategory','RiskTitle','RiskDescription','ImprovementTask','ImpactScore','LikelihoodScore']];
-  const sample=[
+async function _doGenerateAnnualPPT() {
+  try {
+    const d = getAnnualData(); const pptx = new PptxGenJS(); pptx.layout = 'LAYOUT_WIDE';
+    const ac = d.overallAch >= 80 ? '059669' : d.overallAch >= 65 ? 'D97706' : 'DC2626';
+    const hdr = (slide, sub) => {
+      slide.background = { color: 'F4F7FB' };
+      slide.addShape(pptx.ShapeType.rect, {x:0,y:0,w:'100%',h:0.55,fill:{color:'0D1B2A'}});
+      slide.addText('⚖ Compliance RiskOps', {x:0.2,y:0.07,w:3.5,h:0.22,fontSize:10,bold:true,color:'FFFFFF',fontFace:'Arial'});
+      slide.addText('SK Chemical 법무 컴플라이언스팀', {x:0.2,y:0.28,w:3.5,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial'});
+      slide.addText(d.year+'년 연간 컴플라이언스 이행 현황', {x:5,y:0.07,w:7.8,h:0.25,fontSize:13,bold:true,color:'5EEAD4',fontFace:'Arial',align:'right'});
+      slide.addText(sub, {x:5,y:0.3,w:7.8,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial',align:'right'});
+    };
+    const s1 = pptx.addSlide(); hdr(s1, '연간 보고서 · 1/2 — 종합 현황');
+    const kpis1 = [['관리 리스크',d.total+'건','0F172A'],['평가 완료',d.evaluated+'건','059669'],['전사 달성율',d.overallAch+'%',ac],['최고 달성 월',d.bestMonth,'3B82F6']];
+    kpis1.forEach((k,i) => {
+      const x = 0.15+i*3.2;
+      s1.addShape(pptx.ShapeType.rect, {x,y:0.65,w:3.0,h:0.9,fill:{color:'FFFFFF'},line:{color:'E5EBF2',pt:1},rectRadius:0.05});
+      s1.addText(k[2], {x:x+0.12,y:0.75,w:2.8,h:0.4,fontSize:22,bold:true,color:k[3],fontFace:'Arial'});
+      s1.addText(k[0], {x:x+0.12,y:1.2,w:2.8,h:0.2,fontSize:7.5,bold:true,color:'64748B',fontFace:'Arial'});
+    });
+    const bw = 0.42; d.monthlyAch.forEach((v,i) => { const bx=0.3+i*(bw+0.04); const bh=(v/100)*0.9; s1.addShape(pptx.ShapeType.rect,{x:bx,y:2.05,w:bw,h:0.9,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.02}); if(bh>0)s1.addShape(pptx.ShapeType.rect,{x:bx,y:2.05+(0.9-bh*0.9),w:bw,h:bh*0.9,fill:{color:'3B82F6'},line:{color:'3B82F6',pt:0},rectRadius:0.02}); s1.addText(v+'%',{x:bx,y:1.89,w:bw,h:0.16,fontSize:6,bold:true,color:'3B82F6',fontFace:'Arial',align:'center'}); s1.addText(d.months[i],{x:bx,y:3.0,w:bw,h:0.14,fontSize:6,color:'94A3B8',fontFace:'Arial',align:'center'}); });
+    s1.addShape(pptx.ShapeType.rect,{x:0,y:3.74,w:'100%',h:0.64,fill:{color:'0D1B2A'}});
+    s1.addText('연간 총평',{x:0.2,y:3.86,w:0.9,h:0.22,fontSize:9,bold:true,color:'5EEAD4',fontFace:'Arial'});
+    s1.addText(d.comment,{x:1.25,y:3.86,w:9.4,h:0.22,fontSize:9,color:'CBD5E1',fontFace:'Arial'});
+    s1.addText('작성일: '+new Date().toLocaleDateString('ko-KR'),{x:11.0,y:3.86,w:1.8,h:0.22,fontSize:7.5,color:'4A6280',fontFace:'Arial',align:'right'});
+    const s2 = pptx.addSlide(); hdr(s2, '연간 보고서 · 2/2 — 팀별 상세 분석');
+    d.teams.forEach((t,i) => { const y=0.7+i*0.52; const tc=t.color.replace('#',''); const ac2=t.avg>=80?'059669':t.avg>=65?'D97706':'DC2626'; s2.addText(t.name,{x:0.2,y,w:1.3,h:0.32,fontSize:8,bold:true,color:'0F172A',fontFace:'Arial'}); s2.addShape(pptx.ShapeType.rect,{x:1.6,y:y+0.09,w:2.0,h:0.14,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.07}); if(t.avg>0)s2.addShape(pptx.ShapeType.rect,{x:1.6,y:y+0.09,w:2.0*(t.avg/100),h:0.14,fill:{color:tc},line:{color:tc,pt:0},rectRadius:0.07}); s2.addText(t.avg+'%',{x:3.7,y,w:0.5,h:0.32,fontSize:9,bold:true,color:ac2,fontFace:'Arial'}); s2.addText(t.status,{x:4.3,y:y+0.05,w:0.8,h:0.22,fontSize:7,color:ac2,fontFace:'Arial'}); });
+    d.topRisks.forEach((r,i) => { const y=0.72+i*0.58; const sc=r.score; const scC=sc>=15?'DC2626':sc>=8?'D97706':'059669'; const scB=sc>=15?'FEF2F2':sc>=8?'FFFBEB':'ECFDF5'; s2.addText(''+(i+1),{x:5.9,y,w:0.4,h:0.32,fontSize:9,bold:true,color:'94A3B8',fontFace:'Arial',align:'center'}); s2.addShape(pptx.ShapeType.rect,{x:6.3,y:y+0.04,w:0.9,h:0.22,fill:{color:'EFF6FF'},line:{color:'BFDBFE',pt:1},rectRadius:0.04}); s2.addText(r.team,{x:6.3,y:y+0.04,w:0.9,h:0.22,fontSize:7,color:'3B82F6',fontFace:'Arial',align:'center'}); s2.addText(r.title,{x:7.3,y,w:3.8,h:0.32,fontSize:8,color:'0F172A',fontFace:'Arial'}); s2.addShape(pptx.ShapeType.rect,{x:11.1,y:y+0.04,w:0.9,h:0.22,fill:{color:scB},line:{color:scB,pt:0},rectRadius:0.04}); s2.addText(sc+'점',{x:11.1,y:y+0.04,w:0.9,h:0.22,fontSize:8,bold:true,color:scC,fontFace:'Arial',align:'center'}); });
+    await pptx.writeFile({fileName:`[SK Chemical] 컴플라이언스_연간현황_${d.year}.pptx`});
+    toast('연간 PPT 생성 완료!', 'success');
+  } catch(e) { console.error('연간 PPT 오류:', e); toast('PPT 생성 실패: ' + e.message, 'error'); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   📥  Excel 내보내기 / 업로드
+═══════════════════════════════════════════════════════════ */
+function exportRisksExcel() {
+  if (typeof XLSX !== 'undefined') { _doExportRisks(); return; }
+  const btn = event && event.target; if (btn) { btn.textContent = '로딩 중...'; btn.disabled = true; }
+  _loadLib(['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'],
+    function(ok) { if (btn) { btn.textContent = '⬇ 내보내기'; btn.disabled = false; } if (!ok) { toast('Excel 라이브러리 로드 실패', 'error'); return; } _doExportRisks(); });
+}
+function _doExportRisks() {
+  const rows = [['ID','리스크명','팀','카테고리','위험도','담당자','제출상태','달성율(%)','점검대상']];
+  RISKS.forEach(r => rows.push([r.id, r.title, r.team, r.cat, r.score, r.owner, r.submitStatus, r.achieve != null ? r.achieve : '', r.selected !== false ? 'O' : '']));
+  const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:8},{wch:28},{wch:12},{wch:12},{wch:8},{wch:10},{wch:10},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws, '리스크 현황');
+  XLSX.writeFile(wb, `[SK Chemical] 컴플라이언스_리스크현황_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('Excel 파일이 다운로드되었습니다.', 'success');
+}
+
+function downloadTemplate() {
+  if (typeof XLSX !== 'undefined') { _doDownloadTemplate(); return; }
+  const btn = event.target; btn.textContent = '로딩 중...'; btn.disabled = true;
+  _loadLib(['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'],
+    function(ok) { btn.textContent = '📥 양식 다운로드'; btn.disabled = false; if (!ok) { toast('Excel 라이브러리 로드 실패', 'error'); return; } _doDownloadTemplate(); });
+}
+function _doDownloadTemplate() {
+  const wb = XLSX.utils.book_new();
+  const headers = [['Year','Team','RiskCategory','RiskTitle','RiskDescription','ImprovementTask','ImpactScore','LikelihoodScore']];
+  const sample = [
     [2025,'영업팀','계약','계약서 미검토 리스크','계약서를 검토하지 않아 불리한 조건으로 계약 체결 가능성','법무팀 사전 검토 프로세스 수립',4,3],
     [2025,'생산팀','환경안전','화학물질 보관 기준 미준수','화학물질 법적 보관기준 미달 상태','보관시설 점검 및 기준 강화',5,3],
     [2025,'구매팀','공정거래','하도급 서면 미교부','하도급 거래 시 서면 미교부로 법 위반 리스크','하도급 계약서 표준양식 도입',4,4],
   ];
-  const ws=XLSX.utils.aoa_to_sheet([...headers,...sample]);
-  ws['!cols']=[{wch:6},{wch:14},{wch:14},{wch:30},{wch:40},{wch:30},{wch:12},{wch:14}];
-  XLSX.utils.book_append_sheet(wb,ws,'RiskMaster');
-  XLSX.writeFile(wb,'RiskMaster_Template.xlsx');
-}   // end _doDownloadTemplate
+  const ws = XLSX.utils.aoa_to_sheet([...headers, ...sample]);
+  ws['!cols'] = [{wch:6},{wch:14},{wch:14},{wch:30},{wch:40},{wch:30},{wch:12},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws, 'RiskMaster');
+  XLSX.writeFile(wb, 'RiskMaster_Template.xlsx');
+}
 
-/* ═══ EXCEL UPLOAD ═══ */
-let emParsedRisks=[];
-
-function handleExcelDrop(e){
-  const file=e.dataTransfer.files[0];
-  if(file) _loadXLSXThenParse(file);
+/* Excel 업로드 처리 */
+let emParsedRisks = [];
+function handleExcelDrop(e) { const file = e.dataTransfer.files[0]; if (file) _loadXLSXThenParse(file); }
+function handleExcelUpload(e) { const file = e.target.files[0]; e.target.value = ''; if (file) { openExcelModal(); _loadXLSXThenParse(file); } }
+function _loadXLSXThenParse(file) {
+  if (typeof XLSX !== 'undefined') { parseExcelFile(file); return; }
+  _loadLib(['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'],
+    function(ok) { if (!ok) { toast('Excel 라이브러리 로드 실패', 'error'); return; } parseExcelFile(file); });
 }
-function handleExcelUpload(e){
-  const file=e.target.files[0];
-  e.target.value='';
-  if(file){
-    openExcelModal();
-    _loadXLSXThenParse(file);
-  }
-}
-function _loadXLSXThenParse(file){
-  if(typeof XLSX!=='undefined'){parseExcelFile(file);return;}
-  _loadLib([
-    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
-    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
-  ],function(ok){
-    if(!ok){alert('네트워크 연결을 확인해주세요.');return;}
-    parseExcelFile(file);
-  });
-}
-function openExcelModal(){
+function openExcelModal() {
   document.getElementById('excel-modal-overlay').classList.add('on');
-  document.getElementById('em-step-upload').style.display='block';
-  document.getElementById('em-step-select').style.display='none';
-  document.getElementById('em-confirm-btn').style.display='none';
-  document.getElementById('em-title').textContent='📤 리스크 마스터 등록';
-  document.getElementById('em-sub').textContent='엑셀 파일을 업로드하여 리스크를 일괄 등록하세요';
+  document.getElementById('em-step-upload').style.display = 'block';
+  document.getElementById('em-step-select').style.display = 'none';
+  document.getElementById('em-confirm-btn').style.display = 'none';
+  document.getElementById('em-title').textContent = '📤 리스크 마스터 등록';
+  document.getElementById('em-sub').textContent = '엑셀 파일을 업로드하여 리스크를 일괄 등록하세요';
 }
-function closeExcelModal(){
-  document.getElementById('excel-modal-overlay').classList.remove('on');
-}
-
-function parseExcelFile(file){
-  const reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      const data=new Uint8Array(e.target.result);
-      const wb=XLSX.read(data,{type:'array'});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
-      if(!rows.length){alert('데이터가 없습니다. 양식을 확인해주세요.');return;}
-      // Validate columns
-      const required=['RiskTitle','Team','ImpactScore','LikelihoodScore'];
-      const keys=Object.keys(rows[0]);
-      const missing=required.filter(k=>!keys.includes(k));
-      if(missing.length){alert(`양식 오류: ${missing.join(', ')} 컬럼이 없습니다.\n📥 양식 다운로드 버튼으로 올바른 양식을 받아주세요.`);return;}
-
-      // Parse & score
-      emParsedRisks=rows.map((r,i)=>{
-        const impact=parseInt(r.ImpactScore)||1;
-        const likelihood=parseInt(r.LikelihoodScore)||1;
-        const score=Math.min(5,Math.max(1,impact))*Math.min(5,Math.max(1,likelihood));
-        return{
-          id:'R'+(String(i+1).padStart(3,'0')),
-          title:String(r.RiskTitle||'').trim(),
-          team:String(r.Team||'').trim(),
-          cat:String(r.RiskCategory||'기타').trim(),
-          desc:String(r.RiskDescription||'').trim(),
-          task:String(r.ImprovementTask||'').trim(),
-          impact,likelihood,score,
-          status:'미제출',achieve:null,
-          owner:'-',
-          selected:score>=15 // auto-select high risk
-        };
-      }).filter(r=>r.title).sort((a,b)=>b.score-a.score);
-
-      showExcelSelectStep(file.name,rows.length);
-    }catch(err){
-      alert('파일 파싱 중 오류가 발생했습니다: '+err.message);
-    }
+function closeExcelModal() { document.getElementById('excel-modal-overlay').classList.remove('on'); }
+function parseExcelFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' }); const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!rows.length) { toast('데이터가 없습니다. 양식을 확인해주세요.', 'warn'); return; }
+      const required = ['RiskTitle','Team','ImpactScore','LikelihoodScore'];
+      const missing = required.filter(k => !Object.keys(rows[0]).includes(k));
+      if (missing.length) { toast(`양식 오류: ${missing.join(', ')} 컬럼이 없습니다.`, 'error'); return; }
+      emParsedRisks = rows.map((r, i) => {
+        const impact = parseInt(r.ImpactScore) || 1, likelihood = parseInt(r.LikelihoodScore) || 1;
+        const score = Math.min(5, Math.max(1, impact)) * Math.min(5, Math.max(1, likelihood));
+        return { id: 'R' + String(i + 1).padStart(3, '0'), title: String(r.RiskTitle || '').trim(), team: String(r.Team || '').trim(), cat: String(r.RiskCategory || '기타').trim(), desc: String(r.RiskDescription || '').trim(), task: String(r.ImprovementTask || '').trim(), impact, likelihood, score, status: '미제출', submitStatus: '미제출', achieve: null, owner: '-', selected: score >= 15, spId: null };
+      }).filter(r => r.title).sort((a, b) => b.score - a.score);
+      showExcelSelectStep(file.name, rows.length);
+    } catch (err) { toast('파싱 오류: ' + err.message, 'error'); }
   };
   reader.readAsArrayBuffer(file);
 }
-
-function showExcelSelectStep(filename,count){
-  document.getElementById('em-step-upload').style.display='none';
-  document.getElementById('em-step-select').style.display='block';
-  document.getElementById('em-confirm-btn').style.display='inline-flex';
-  document.getElementById('em-title').textContent='📋 리스크 선정';
-  document.getElementById('em-sub').textContent=`${filename} · ${count}건 파싱 완료 — 점수 높은 순 정렬`;
-  document.getElementById('em-parse-info').innerHTML=
-    `<strong>${filename}</strong>에서 <strong>${emParsedRisks.length}건</strong>의 리스크를 읽었습니다. `+
-    `위험도(영향도×가능성) 기준으로 정렬되었습니다. 이번 연도에 관리할 리스크를 선정해주세요.`;
+function showExcelSelectStep(filename, count) {
+  document.getElementById('em-step-upload').style.display = 'none';
+  document.getElementById('em-step-select').style.display = 'block';
+  document.getElementById('em-confirm-btn').style.display = 'inline-flex';
+  document.getElementById('em-title').textContent = '📋 리스크 선정';
+  document.getElementById('em-sub').textContent = `${filename} · ${count}건 파싱 완료 — 위험도 순 정렬`;
+  document.getElementById('em-parse-info').innerHTML = `<strong>${filename}</strong>에서 <strong>${emParsedRisks.length}건</strong>의 리스크를 읽었습니다.`;
   renderEmTable();
 }
-
-function renderEmTable(){
-  const autoSel=emParsedRisks.filter(r=>r.selected).length;
-  document.getElementById('em-sel-count').textContent=autoSel;
-  document.getElementById('em-risk-tbody').innerHTML=emParsedRisks.map((r,i)=>{
-    const sc=scoreStyle(r.score);
-    return`<tr>
-      <td style="text-align:center"><input type="checkbox" class="em-check" ${r.selected?'checked':''} onchange="emToggle(${i},this.checked)"></td>
-      <td class="em-rank">${i+1}</td>
+function renderEmTable() {
+  document.getElementById('em-sel-count').textContent = emParsedRisks.filter(r => r.selected).length;
+  document.getElementById('em-risk-tbody').innerHTML = emParsedRisks.map((r, i) => {
+    const sc = scoreStyle(r.score);
+    return `<tr>
+      <td style="text-align:center"><input type="checkbox" class="em-check" ${r.selected ? 'checked' : ''} onchange="emToggle(${i},this.checked)"></td>
+      <td class="em-rank">${i + 1}</td>
       <td style="font-size:12px;font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.title}">${r.title}</td>
       <td style="font-size:11px;color:var(--muted)">${r.team}</td>
       <td><span class="cat-tag">${r.cat}</span></td>
@@ -2067,31 +2385,70 @@ function renderEmTable(){
     </tr>`;
   }).join('');
 }
+function emToggle(i, v) { emParsedRisks[i].selected = v; document.getElementById('em-sel-count').textContent = emParsedRisks.filter(r => r.selected).length; }
+function emSelectAll(v) { emParsedRisks.forEach(r => r.selected = v); renderEmTable(); }
+function emSelectTop(n) { emParsedRisks.forEach((r, i) => r.selected = i < n); renderEmTable(); }
+async function confirmExcelImport() {
+  const selected = emParsedRisks.filter(r => r.selected);
+  if (!selected.length) { toast('선정된 리스크가 없습니다.', 'warn'); return; }
+  showLoading('리스크 등록 중...');
+  try {
+    if (!CONFIG.OFFLINE_MODE) {
+      for (const r of selected) {
+        await spPost(CONFIG.LIST_RISK_MASTER, {
+          Title: r.title, Team: r.team, RiskCategory: r.cat,
+          RiskDescription: r.desc, ImprovementTask: r.task,
+          ImpactScore: r.impact, LikelihoodScore: r.likelihood, RiskScore: r.score,
+          IsSelected: true, Year: parseInt(curYear)
+        });
+      }
+      await loadData(parseInt(curYear), curMonth);
+    } else {
+      RISKS.length = 0;
+      selected.forEach((r, i) => { r.id = 'R' + String(i + 1).padStart(3, '0'); RISKS.push(r); });
+    }
+    closeExcelModal();
+    applyMaster();
+    renderDash && renderDash();
+    toast(`✓ ${selected.length}건의 리스크가 등록되었습니다.`, 'success');
+  } catch (e) { toast('등록 실패: ' + e.message, 'error'); } finally { hideLoading(); }
+}
+function renderDash() { initDash(); }
 
-function scoreStyle(s){
-  if(s>=15)return{bg:'#FEF2F2',col:'var(--red)'};
-  if(s>=8)return{bg:'#FFFBEB',col:'var(--amber)'};
-  return{bg:'#ECFDF5',col:'var(--green)'};
+/* ═══════════════════════════════════════════════════════════
+   🪟  모바일 UI
+═══════════════════════════════════════════════════════════ */
+function openDrawer()  { document.getElementById('drawer').classList.add('on'); document.getElementById('drawer-overlay').classList.add('on'); }
+function closeDrawer() { document.getElementById('drawer').classList.remove('on'); document.getElementById('drawer-overlay').classList.remove('on'); }
+function openSheet(id, title, body, footer) {
+  document.getElementById('sheet-id').textContent = id;
+  document.getElementById('sheet-title').textContent = title;
+  document.getElementById('sheet-body').innerHTML = body;
+  document.getElementById('sheet-footer').innerHTML = footer;
+  document.getElementById('sheet-overlay').classList.add('on');
+  document.getElementById('bottom-sheet').classList.add('on');
 }
-function emToggle(i,v){
-  emParsedRisks[i].selected=v;
-  document.getElementById('em-sel-count').textContent=emParsedRisks.filter(r=>r.selected).length;
-}
-function emSelectAll(v){emParsedRisks.forEach(r=>r.selected=v);renderEmTable();}
-function emSelectTop(n){emParsedRisks.forEach((r,i)=>r.selected=i<n);renderEmTable();}
+function closeSheet() { document.getElementById('sheet-overlay').classList.remove('on'); document.getElementById('bottom-sheet').classList.remove('on'); }
 
-function confirmExcelImport(){
-  const selected=emParsedRisks.filter(r=>r.selected);
-  if(!selected.length){alert('선정된 리스크가 없습니다.');return;}
-  // Replace RISKS with selected (keep existing non-uploaded if any? here full replace for annual reset)
-  RISKS.length=0;
-  selected.forEach((r,i)=>{r.id='R'+String(i+1).padStart(3,'0');RISKS.push(r);});
-  closeExcelModal();
-  applyMaster();
-  // Re-render dashboard tables too
-  renderDash&&renderDash();
-  alert(`✓ ${selected.length}건의 리스크가 등록되었습니다.\n리스크 Master 목록이 업데이트되었습니다.`);
-}
+/* ── 리사이즈 ── */
+window.addEventListener('resize', function() {
+  if (curPage === 'dash')  setTimeout(() => drawChart('trend-canvas', TREND, TKEYS, TCOLORS, true), 50);
+  if (curPage === 'teams') setTimeout(() => drawTeamsChart(), 50);
+});
+
+/* ═══════════════════════════════════════════════════════════
+   🔧  오프라인 모드 배너
+═══════════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', function() {
+  if (CONFIG.OFFLINE_MODE) {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;bottom:70px;right:16px;z-index:9000;background:#1E3A5F;color:#5EEAD4;padding:8px 14px;border-radius:10px;font-size:11px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer';
+    banner.textContent = '🔌 오프라인 모드 (샘플 데이터)';
+    banner.title = 'CONFIG.OFFLINE_MODE = false 로 변경하면 SharePoint 연동됩니다';
+    banner.onclick = () => toast('CONFIG.SP_SITE_URL과 FLOW URL을 입력한 후 OFFLINE_MODE를 false로 변경하세요.', 'info', 6000);
+    document.body.appendChild(banner);
+  }
+});
 </script>
 </body>
 </html>
