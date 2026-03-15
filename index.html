@@ -531,10 +531,10 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
       <!-- ═ DASHBOARD ═ -->
       <div class="view" id="view-dash">
         <div class="kpi-grid">
-          <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">⚠️</span></div><div class="kpi-num" data-t="20">0</div><div class="kpi-label">관리 리스크</div><div class="kpi-sub">5개 팀 전체</div></div>
-          <div class="kpi-card" style="animation-delay:80ms"><div class="kpi-top"><span class="kpi-icon">✅</span><span class="badge-up">↑ +2</span></div><div class="kpi-num" data-t="17">0</div><div class="kpi-label">제출 완료</div><div class="kpi-sub">미제출 3건</div></div>
-          <div class="kpi-card" style="animation-delay:160ms"><div class="kpi-top"><span class="kpi-icon">📊</span><span class="badge-up">↑ +6%</span></div><div class="kpi-num" data-t="78" data-pct="1">0</div><div class="kpi-label">전사 달성율</div><div class="kpi-sub">전월 대비 +6%</div></div>
-          <div class="kpi-card" style="animation-delay:240ms"><div class="kpi-top"><span class="kpi-icon">⏳</span><span class="badge-warn">검토</span></div><div class="kpi-num" data-t="5">0</div><div class="kpi-label">평가 대기</div><div class="kpi-sub">즉시 처리 필요</div></div>
+          <div class="kpi-card" style="cursor:pointer" onclick="showKpiDrilldown('total')" title="클릭하여 상세 보기"><div class="kpi-top"><span class="kpi-icon">⚠️</span></div><div class="kpi-num" data-t="20" data-kpi="total">0</div><div class="kpi-label">관리 리스크</div><div class="kpi-sub">5개 팀 전체</div></div>
+          <div class="kpi-card" style="animation-delay:80ms;cursor:pointer" onclick="showKpiDrilldown('submitted')" title="클릭하여 상세 보기"><div class="kpi-top"><span class="kpi-icon">✅</span><span class="badge-up" id="kpi-submitted-badge">↑</span></div><div class="kpi-num" data-t="17" data-kpi="submitted">0</div><div class="kpi-label">제출 완료</div><div class="kpi-sub" id="kpi-submitted-sub">미제출 3건</div></div>
+          <div class="kpi-card" style="animation-delay:160ms;cursor:pointer" onclick="showKpiDrilldown('achieve')" title="클릭하여 상세 보기"><div class="kpi-top"><span class="kpi-icon">📊</span><span class="badge-up" id="kpi-ach-badge">↑</span></div><div class="kpi-num" data-t="78" data-pct="1" data-kpi="achieve">0</div><div class="kpi-label">전사 달성율</div><div class="kpi-sub" id="kpi-ach-sub">팀별 달성율</div></div>
+          <div class="kpi-card" style="animation-delay:240ms;cursor:pointer" onclick="showKpiDrilldown('eval')" title="클릭하여 상세 보기"><div class="kpi-top"><span class="kpi-icon">⏳</span><span class="badge-warn" id="kpi-eval-badge">검토</span></div><div class="kpi-num" data-t="5" data-kpi="eval">0</div><div class="kpi-label">평가 대기</div><div class="kpi-sub">즉시 처리 필요</div></div>
         </div>
         <div class="chart-row">
           <div class="card"><div class="card-title">팀별 이행 달성율</div><div class="card-sub">2025년 3월 기준</div><div id="team-bars"></div></div>
@@ -1078,9 +1078,59 @@ async function loadData(year, month) {
 }
 
 async function _loadOfflineData(year, month) {
-  RISKS = SAMPLE_RISKS.map(r => ({ ...r }));
+  // localStorage에 저장된 사용자 편집 내용 불러오기
+  const saved = _lsGetAll(year, month);
+
+  // SAMPLE_RISKS 복사 후 저장된 내용으로 덮어쓰기
+  RISKS = SAMPLE_RISKS.map(r => {
+    const base = { ...r };
+    const override = saved[r.id];
+    if (override) Object.assign(base, override);
+    return base;
+  });
+
+  // 연도별 더미 데이터 변형 (연도가 다르면 달성율 소폭 조정)
+  const yearOffset = (parseInt(year) - 2025) * 3;
+  RISKS.forEach(r => {
+    if (r.achieve != null) r.achieve = Math.min(100, Math.max(0, r.achieve + yearOffset));
+  });
+
   TREND = SAMPLE_TREND.map(d => ({ ...d }));
   _computeTeamsData();
+}
+
+/* ── localStorage 헬퍼 ─────────────────────────────────── */
+const LS_PREFIX = 'riskops_';
+function _lsKey(year, month, riskId) { return `${LS_PREFIX}${year}_${month}_${riskId}`; }
+function _lsSave(year, month, riskId, data) {
+  try { localStorage.setItem(_lsKey(year, month, riskId), JSON.stringify(data)); } catch(e) {}
+}
+function _lsLoad(year, month, riskId) {
+  try { const v = localStorage.getItem(_lsKey(year, month, riskId)); return v ? JSON.parse(v) : null; } catch(e) { return null; }
+}
+function _lsGetAll(year, month) {
+  const map = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(`${LS_PREFIX}${year}_${month}_`)) {
+        const riskId = k.replace(`${LS_PREFIX}${year}_${month}_`, '');
+        const v = localStorage.getItem(k);
+        if (v) map[riskId] = JSON.parse(v);
+      }
+    }
+  } catch(e) {}
+  return map;
+}
+function _lsClear(year, month) {
+  try {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(`${LS_PREFIX}${year}_${month}_`)) keys.push(k);
+    }
+    keys.forEach(k => localStorage.removeItem(k));
+  } catch(e) {}
 }
 
 async function _loadSPData(year, month) {
@@ -1402,6 +1452,17 @@ function initDash() {
     el.dataset.t = kpiMap[i] != null ? kpiMap[i] : el.dataset.t;
     if (i === 2) el.dataset.pct = '1';
   });
+  // 서브텍스트 실데이터 반영
+  const subSub = document.getElementById('kpi-submitted-sub');
+  if (subSub) subSub.textContent = `미제출 ${total - submitted}건`;
+  const subBadge = document.getElementById('kpi-submitted-badge');
+  if (subBadge) subBadge.textContent = `↑ +${submitted}`;
+  const achSub = document.getElementById('kpi-ach-sub');
+  if (achSub) { const best = TEAMS_DATA.reduce((a,b) => a.avg > b.avg ? a : b, TEAMS_DATA[0]); if (best) achSub.textContent = `최고: ${best.team} ${best.avg}%`; }
+  const achBadge = document.getElementById('kpi-ach-badge');
+  if (achBadge) achBadge.textContent = overallAch >= 80 ? '✓ 양호' : overallAch >= 65 ? '주의' : '위험';
+  const evalBadge = document.getElementById('kpi-eval-badge');
+  if (evalBadge) evalBadge.textContent = pendingEval > 0 ? `${pendingEval}건 검토` : '없음';
 
   renderTeamBars(); renderHeatmap(); renderRiskTable('전체');
   renderMissingAlerts();
@@ -1610,6 +1671,7 @@ async function submitMonthly(idx) {
       // 오프라인: 로컬 상태만 업데이트
       r.submitStatus = '제출완료'; r.status = '제출완료';
       r.content = content; r.specialNote = note;
+      _lsSave(curYear, curMonth, r.id, { submitStatus: '제출완료', content, specialNote: note });
     } else {
       // Power Automate F-01 호출 (저장 + 관리자 알림)
       const result = await callFlow(CONFIG.FLOW_SUBMIT_URL, payload);
@@ -1644,6 +1706,7 @@ async function saveDraft(idx) {
       await callFlow(CONFIG.FLOW_SAVE_URL, payload);
     }
     r.submitStatus = '임시저장'; r.content = content; r.specialNote = note;
+      _lsSave(curYear, curMonth, r.id, { submitStatus: '임시저장', content, specialNote: note });
     toast('임시저장되었습니다.', 'info');
     updateBadges(); renderMonthly();
   } catch (e) {
@@ -1903,7 +1966,111 @@ function renderMaster(data) {
 }
 function openRiskEditModal(id) {
   const r = RISKS.find(x => x.id === id); if (!r) return;
-  toast(`[${r.id}] 수정 기능은 SP 연결 후 활성화됩니다.`, 'info');
+  const existing = document.getElementById('edit-risk-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'edit-risk-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9990;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:500px;box-shadow:0 24px 64px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:3px">${r.id}</div>
+          <div style="font-size:16px;font-weight:800;color:var(--text)">리스크 수정</div>
+        </div>
+        <button onclick="document.getElementById('edit-risk-modal').remove()" style="width:30px;height:30px;border:none;background:var(--bg);border-radius:8px;font-size:16px;cursor:pointer;color:var(--muted)">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">리스크명 *</label>
+          <input id="edit-risk-title" type="text" value="${r.title.replace(/"/g,'&quot;')}"
+            style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">팀</label>
+            <select id="edit-risk-team" class="fm-sel" style="width:100%">
+              ${['영업팀','생산팀','연구개발팀','구매팀','품질팀'].map(t => `<option ${r.team===t?'selected':''}>${t}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">유형</label>
+            <select id="edit-risk-cat" class="fm-sel" style="width:100%">
+              ${['개인정보','공정거래','환경안전','지식재산','수출규제','부패방지','노무','기타'].map(c => `<option ${r.cat===c?'selected':''}>${c}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">영향도 (1~5)</label>
+            <input id="edit-risk-impact" type="number" min="1" max="5" value="${r.impact||Math.ceil(r.score/5)}"
+              style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none"
+              oninput="document.getElementById('edit-risk-score').textContent=(+this.value*(+document.getElementById('edit-risk-likelihood').value))">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">가능성 (1~5)</label>
+            <input id="edit-risk-likelihood" type="number" min="1" max="5" value="${r.likelihood||Math.floor(r.score/4)||1}"
+              style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none"
+              oninput="document.getElementById('edit-risk-score').textContent=((+document.getElementById('edit-risk-impact').value)*(+this.value))">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">위험도 (자동)</label>
+            <div style="padding:10px;border:1px solid var(--border);border-radius:8px;font-size:15px;font-weight:800;color:${scColor(r.score)};text-align:center;background:var(--light)">
+              <span id="edit-risk-score">${r.score}</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">담당자</label>
+          <input id="edit-risk-owner" type="text" value="${(r.owner||'').replace(/"/g,'&quot;')}"
+            style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">개선 과제</label>
+          <textarea id="edit-risk-task" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:72px;resize:vertical"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">${r.task||''}</textarea>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--light);border-radius:8px">
+          <input type="checkbox" id="edit-risk-selected" ${r.selected!==false?'checked':''} style="width:16px;height:16px;accent-color:var(--accent)">
+          <label for="edit-risk-selected" style="font-size:13px;font-weight:600;color:var(--text);cursor:pointer">이번 연도 점검 대상으로 선정</label>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+        <button class="btn btn-ghost" onclick="document.getElementById('edit-risk-modal').remove()">취소</button>
+        <button class="btn btn-primary" onclick="confirmEditRisk('${r.id}')">저장하기</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function confirmEditRisk(riskId) {
+  const r = RISKS.find(x => x.id === riskId); if (!r) return;
+  const title      = document.getElementById('edit-risk-title')?.value.trim();
+  const team       = document.getElementById('edit-risk-team')?.value;
+  const cat        = document.getElementById('edit-risk-cat')?.value;
+  const impact     = parseInt(document.getElementById('edit-risk-impact')?.value) || r.impact;
+  const likelihood = parseInt(document.getElementById('edit-risk-likelihood')?.value) || r.likelihood;
+  const owner      = document.getElementById('edit-risk-owner')?.value.trim() || '-';
+  const task       = document.getElementById('edit-risk-task')?.value.trim() || '';
+  const selected   = document.getElementById('edit-risk-selected')?.checked !== false;
+  if (!title) { toast('리스크명을 입력해주세요.', 'warn'); return; }
+  const score = impact * likelihood;
+  try {
+    if (!CONFIG.OFFLINE_MODE && r.spId) {
+      await spPatch(CONFIG.LIST_RISK_MASTER, r.spId, {
+        Title: title, Team: team, RiskCategory: cat,
+        ImpactScore: impact, LikelihoodScore: likelihood, RiskScore: score,
+        Owner: owner, ImprovementTask: task, IsSelected: selected
+      });
+    }
+    Object.assign(r, { title, team, cat, impact, likelihood, score, owner, task, selected });
+    document.getElementById('edit-risk-modal').remove();
+    applyMaster();
+    _computeTeamsData();
+    toast(`[${riskId}] 수정이 저장되었습니다.`, 'success');
+  } catch(e) { toast('저장 실패: ' + e.message, 'error'); }
 }
 
 /* 리스크 추가 모달 */
@@ -2656,6 +2823,137 @@ buildEvalBody = function(r, score) {
      </div>`
   );
 };
+
+
+/* ═══════════════════════════════════════════════════════════
+   📌  KPI 카드 드릴다운 모달
+═══════════════════════════════════════════════════════════ */
+function showKpiDrilldown(type) {
+  const existing = document.getElementById('kpi-modal');
+  if (existing) existing.remove();
+
+  let title = '', rows = [], footerBtns = '';
+
+  if (type === 'total') {
+    title = '📋 전체 관리 리스크 목록';
+    rows = RISKS.map(r => `
+      <tr>
+        <td class="tbl-id">${r.id}</td>
+        <td style="font-size:12px;font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.title}</td>
+        <td style="font-size:11px;color:var(--muted)">${r.team}</td>
+        <td><span class="cat-tag">${r.cat}</span></td>
+        <td style="text-align:center"><span class="${scClass(r.score)}">${r.score}</span></td>
+        <td><span class="status-chip ${stClass(r.submitStatus)}">${r.submitStatus}</span></td>
+      </tr>`);
+  } else if (type === 'submitted') {
+    title = '✅ 제출 현황 상세';
+    const submitted = RISKS.filter(r => r.submitStatus === '제출완료' || r.submitStatus === '평가완료');
+    const pending   = RISKS.filter(r => r.submitStatus === '미제출');
+    const drafts    = RISKS.filter(r => r.submitStatus === '임시저장');
+    rows = [
+      ...submitted.map(r => `<tr><td class="tbl-id">${r.id}</td><td style="font-size:12px;font-weight:600">${r.title}</td><td style="font-size:11px;color:var(--muted)">${r.team}</td><td><span class="status-chip ${stClass(r.submitStatus)}">${r.submitStatus}</span></td></tr>`),
+      ...drafts.map(r => `<tr><td class="tbl-id">${r.id}</td><td style="font-size:12px;font-weight:600">${r.title}</td><td style="font-size:11px;color:var(--muted)">${r.team}</td><td><span class="status-chip s-draft">임시저장</span></td></tr>`),
+      ...pending.map(r => `<tr><td class="tbl-id">${r.id}</td><td style="font-size:12px;font-weight:600">${r.title}</td><td style="font-size:11px;color:var(--muted);color:var(--red)">${r.team}</td><td><span class="status-chip s-none">미제출</span></td></tr>`),
+    ];
+  } else if (type === 'achieve') {
+    title = '📊 팀별 달성율 상세';
+    rows = TEAMS_DATA.map(d => {
+      const c = statusSt(d.status);
+      return `<tr>
+        <td style="font-size:13px;font-weight:700">${d.team}</td>
+        <td style="font-size:22px;font-weight:800;color:${d.avg>=80?'var(--green)':d.avg>=65?'var(--amber)':'var(--red)'}">${d.avg}%</td>
+        <td><div style="width:120px;height:8px;background:#EEF2F7;border-radius:4px;overflow:hidden"><div style="width:${d.avg}%;height:100%;background:${d.avg>=80?'var(--green)':d.avg>=65?'var(--amber)':'var(--red)'};border-radius:4px"></div></div></td>
+        <td><span class="stag" style="background:${c.bg};color:${c.tx}">${d.status}</span></td>
+        <td style="font-size:11px;color:var(--muted)">${RISKS.filter(r=>r.team===d.team).length}건 관리</td>
+      </tr>`;
+    });
+  } else if (type === 'eval') {
+    title = '⏳ 평가 대기 목록';
+    const pending = RISKS.filter(r => r.submitStatus === '제출완료');
+    rows = pending.length ? pending.map(r => `
+      <tr>
+        <td class="tbl-id">${r.id}</td>
+        <td style="font-size:12px;font-weight:600">${r.title}</td>
+        <td style="font-size:11px;color:var(--muted)">${r.team}</td>
+        <td><span class="cat-tag">${r.cat}</span></td>
+        <td><button class="act-btn" onclick="document.getElementById('kpi-modal').remove();navigateTo('eval')">평가하기</button></td>
+      </tr>`) : [`<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">평가 대기 항목이 없습니다</td></tr>`];
+    footerBtns = `<button class="btn btn-primary" onclick="document.getElementById('kpi-modal').remove();navigateTo('eval')">평가 화면으로 이동</button>`;
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'kpi-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9990;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:640px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3);animation:fadeUp .2s ease">
+      <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <div style="font-size:15px;font-weight:800;color:var(--text)">${title}</div>
+        <button onclick="document.getElementById('kpi-modal').remove()" style="width:30px;height:30px;border:none;background:var(--bg);border-radius:8px;font-size:16px;cursor:pointer;color:var(--muted)">✕</button>
+      </div>
+      <div style="overflow-y:auto;flex:1">
+        <table class="tbl" style="width:100%"><tbody>${rows.join('')}</tbody></table>
+      </div>
+      ${footerBtns ? `<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;flex-shrink:0">${footerBtns}</div>` : ''}
+    </div>`;
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   💾  localStorage 초기화 버튼 (오프라인 모드에서만 표시)
+═══════════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', function() {
+  if (!CONFIG.OFFLINE_MODE) return;
+  // 오프라인 모드 배너에 초기화 버튼 추가
+  setTimeout(() => {
+    const banner = document.querySelector('[title*="OFFLINE_MODE"]');
+    if (!banner) return;
+    const clearBtn = document.createElement('span');
+    clearBtn.textContent = ' · 초기화';
+    clearBtn.style.cssText = 'color:#EF4444;cursor:pointer;text-decoration:underline';
+    clearBtn.onclick = e => {
+      e.stopPropagation();
+      if (!confirm('저장된 임시 데이터를 모두 삭제하시겠습니까?')) return;
+      try {
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('riskops_')) keys.push(k);
+        }
+        keys.forEach(k => localStorage.removeItem(k));
+        toast(`${keys.length}건의 임시 데이터가 초기화되었습니다.`, 'info');
+        loadData(parseInt(curYear), curMonth).then(() => { updateBadges(); navigateTo(curPage); });
+      } catch(e) { toast('초기화 실패', 'error'); }
+    };
+    banner.appendChild(clearBtn);
+  }, 500);
+});
+
+/* ── 월 변경 셀렉터 연동 (모바일 필터바) ── */
+(function patchMonthSelector() {
+  window.addEventListener('DOMContentLoaded', function() {
+    // 모바일 월 셀렉터
+    const mobMonthSel = document.querySelectorAll('#filter-bar .fm-sel')[1];
+    if (mobMonthSel) {
+      mobMonthSel.addEventListener('change', async function() {
+        curMonth = parseInt(this.value);
+        await loadData(parseInt(curYear), curMonth);
+        updateBadges();
+        navigateTo(curPage);
+      });
+    }
+    // PC topbar 월 셀렉터 (존재하는 경우)
+    const pcMonthSel = document.getElementById('sel-month');
+    if (pcMonthSel) {
+      pcMonthSel.addEventListener('change', async function() {
+        curMonth = parseInt(this.value);
+        await loadData(parseInt(curYear), curMonth);
+        updateBadges();
+        navigateTo(curPage);
+      });
+    }
+  });
+})();
 
 </script>
 </body>
