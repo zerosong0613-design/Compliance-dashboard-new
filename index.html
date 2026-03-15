@@ -83,6 +83,14 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .login-btn{width:100%;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px #3B82F655;transition:all .2s}
 .login-btn:hover:not(:disabled){background:#2563EB;transform:translateY(-1px)}
 .login-btn:disabled{background:#CBD5E1;box-shadow:none;cursor:not-allowed}
+.step-indicator{display:flex;align-items:center;gap:0;margin-bottom:20px}
+.step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;transition:all .2s}
+.step-dot.done{background:var(--accent);color:#fff}
+.step-dot.current{background:var(--accent);color:#fff;box-shadow:0 0 0 4px #BFDBFE}
+.step-dot.pending{background:#E2E8F0;color:#94A3B8}
+.step-line{flex:1;height:2px;background:#E2E8F0;transition:background .3s}
+.step-line.done{background:var(--accent)}
+.step-lbl{font-size:10px;font-weight:600;color:var(--muted);margin-top:3px;text-align:center;white-space:nowrap}
 
 /* ═══════════════════════════════════════
    APP SHELL
@@ -439,7 +447,24 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
         <div class="login-brand-sub">컴플라이언스 리스크 관리 시스템</div>
       </div>
     </div>
-    <div class="login-section">역할 선택</div>
+    <!-- Step indicator -->
+    <div class="step-indicator" id="step-indicator">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+        <div class="step-dot current" id="step1-dot">1</div>
+        <div class="step-lbl">역할 선택</div>
+      </div>
+      <div class="step-line" id="step-line1" style="margin-bottom:16px"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+        <div class="step-dot pending" id="step2-dot">2</div>
+        <div class="step-lbl">팀 선택</div>
+      </div>
+      <div class="step-line" id="step-line2" style="margin-bottom:16px"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+        <div class="step-dot pending" id="step3-dot">3</div>
+        <div class="step-lbl">접속</div>
+      </div>
+    </div>
+    <div class="login-section">Step 1 — 역할 선택</div>
     <div class="role-grid">
       <div class="role-card" id="r-admin" onclick="pickRole('admin')">
         <div class="role-icon">🛡</div>
@@ -453,7 +478,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
       </div>
     </div>
     <div id="team-section">
-      <div class="login-section">소속 팀</div>
+      <div class="login-section">Step 2 — 소속 팀 선택</div>
       <div class="team-grid">
         <div class="team-btn" onclick="pickTeam('영업팀',this)">영업팀</div>
         <div class="team-btn" onclick="pickTeam('생산팀',this)">생산팀</div>
@@ -530,6 +555,8 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 
       <!-- ═ DASHBOARD ═ -->
       <div class="view" id="view-dash">
+        <!-- 즉각 조치 필요 배너 (동적 렌더링) -->
+        <div id="dash-action-banner" style="display:none;margin-bottom:16px"></div>
         <div class="kpi-grid">
           <div class="kpi-card" style="cursor:pointer" onclick="showKpiDrilldown('total')" title="클릭하여 상세 보기"><div class="kpi-top"><span class="kpi-icon">⚠️</span></div><div class="kpi-num" data-t="20" data-kpi="total">0</div><div class="kpi-label">관리 리스크</div><div class="kpi-sub">5개 팀 전체</div></div>
           <div class="kpi-card" style="animation-delay:80ms;cursor:pointer" onclick="showKpiDrilldown('submitted')" title="클릭하여 상세 보기"><div class="kpi-top"><span class="kpi-icon">✅</span><span class="badge-up" id="kpi-submitted-badge">↑</span></div><div class="kpi-num" data-t="17" data-kpi="submitted">0</div><div class="kpi-label">제출 완료</div><div class="kpi-sub" id="kpi-submitted-sub">미제출 3건</div></div>
@@ -724,6 +751,10 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
                 ⬇ PPT 생성
               </button>
             </div>
+            <div id="ppt-sample-warn" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;margin-top:12px">
+              <span style="font-size:14px">⚠</span>
+              <span style="font-size:12px;color:#92400E;font-weight:600">현재 <strong>샘플 데이터</strong>가 포함됩니다. SharePoint 연동(OFFLINE_MODE: false) 후 실데이터로 생성하세요.</span>
+            </div>
           </div>
           <div class="card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -764,6 +795,10 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
               <button class="btn btn-primary" style="padding:10px 22px;font-size:13px;white-space:nowrap" onclick="generateAnnualPPT()">
                 ⬇ 연간 PPT 생성
               </button>
+            </div>
+            <div id="ppt-annual-sample-warn" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;margin-top:12px">
+              <span style="font-size:14px">⚠</span>
+              <span style="font-size:12px;color:#92400E;font-weight:600">현재 <strong>샘플 데이터</strong>가 포함됩니다. SharePoint 연동 후 실데이터로 생성하세요.</span>
             </div>
           </div>
           <div class="card">
@@ -1028,6 +1063,61 @@ function toast(msg, type = 'success', duration = 3500) {
   t.innerHTML = `<span style="color:${colors[type]};font-weight:800;font-size:16px">${icons[type]}</span><span style="flex:1;line-height:1.4">${msg}</span>`;
   document.getElementById('toast-container').appendChild(t);
   setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(20px)'; t.style.transition = 'all .3s'; setTimeout(() => t.remove(), 300); }, duration);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   💬  커스텀 모달 다이얼로그 (prompt/confirm 대체)
+   showInputModal({title, label, placeholder, confirmText, danger}) → Promise<string|null>
+   showConfirmModal({title, message, confirmText, danger})          → Promise<boolean>
+═══════════════════════════════════════════════════════════ */
+function showInputModal({ title, label, placeholder = '', confirmText = '확인', danger = false }) {
+  return new Promise(resolve => {
+    const prev = document.getElementById('_custom-modal'); if (prev) prev.remove();
+    const overlay = document.createElement('div');
+    overlay.id = '_custom-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9995;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .15s';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:400px;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+        <div style="font-size:16px;font-weight:800;color:#0F172A;margin-bottom:18px">${title}</div>
+        ${label ? `<div style="font-size:13px;font-weight:600;color:#64748B;margin-bottom:8px">${label}</div>` : ''}
+        <textarea id="_modal-input" placeholder="${placeholder}"
+          style="width:100%;height:90px;padding:10px 12px;border:1.5px solid #E5EBF2;border-radius:8px;font-size:13px;font-family:inherit;outline:none;resize:vertical;line-height:1.6"
+          onfocus="this.style.borderColor='#3B82F6'" onblur="this.style.borderColor='#E5EBF2'"></textarea>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+          <button id="_modal-cancel" style="padding:10px 18px;border-radius:8px;border:1px solid #E5EBF2;background:#F8FAFC;color:#64748B;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">취소</button>
+          <button id="_modal-confirm" style="padding:10px 18px;border-radius:8px;border:none;background:${danger?'#EF4444':'#3B82F6'};color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">${confirmText}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    setTimeout(() => document.getElementById('_modal-input')?.focus(), 50);
+    document.getElementById('_modal-cancel').onclick = () => { overlay.remove(); resolve(null); };
+    document.getElementById('_modal-confirm').onclick = () => {
+      const v = document.getElementById('_modal-input').value.trim();
+      overlay.remove(); resolve(v || null);
+    };
+    overlay.onclick = e => { if (e.target === overlay) { overlay.remove(); resolve(null); } };
+  });
+}
+function showConfirmModal({ title, message, confirmText = '확인', danger = false }) {
+  return new Promise(resolve => {
+    const prev = document.getElementById('_custom-modal'); if (prev) prev.remove();
+    const overlay = document.createElement('div');
+    overlay.id = '_custom-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9995;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .15s';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:380px;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+        <div style="font-size:16px;font-weight:800;color:#0F172A;margin-bottom:12px">${title}</div>
+        ${message ? `<div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:18px">${message}</div>` : ''}
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button id="_modal-cancel" style="padding:10px 18px;border-radius:8px;border:1px solid #E5EBF2;background:#F8FAFC;color:#64748B;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">취소</button>
+          <button id="_modal-confirm" style="padding:10px 18px;border-radius:8px;border:none;background:${danger?'#EF4444':'#3B82F6'};color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">${confirmText}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('_modal-cancel').onclick = () => { overlay.remove(); resolve(false); };
+    document.getElementById('_modal-confirm').onclick = () => { overlay.remove(); resolve(true); };
+    overlay.onclick = e => { if (e.target === overlay) { overlay.remove(); resolve(false); } };
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1303,6 +1393,25 @@ const isMobile = () => window.innerWidth <= 768;
 /* ═══════════════════════════════════════════════════════════
    🔐  로그인 / 로그아웃
 ═══════════════════════════════════════════════════════════ */
+function _updateStepUI(step) {
+  // step: 1=역할선택, 2=팀선택, 3=완료
+  const d1=document.getElementById('step1-dot'), d2=document.getElementById('step2-dot'), d3=document.getElementById('step3-dot');
+  const l1=document.getElementById('step-line1'), l2=document.getElementById('step-line2');
+  if (!d1) return;
+  if (step === 1) {
+    d1.className='step-dot current'; d2.className='step-dot pending'; d3.className='step-dot pending';
+    l1.className='step-line'; l2.className='step-line';
+  } else if (step === 2) {
+    d1.className='step-dot done'; d1.textContent='✓';
+    d2.className='step-dot current'; d3.className='step-dot pending';
+    l1.className='step-line done'; l2.className='step-line';
+  } else if (step === 3) {
+    d1.className='step-dot done'; d1.textContent='✓';
+    d2.className='step-dot done'; d2.textContent='✓';
+    d3.className='step-dot current';
+    l1.className='step-line done'; l2.className='step-line done';
+  }
+}
 function pickRole(r) {
   loginRole = r; loginTeam = '';
   document.getElementById('r-admin').classList.toggle('on', r === 'admin');
@@ -1310,13 +1419,19 @@ function pickRole(r) {
   document.getElementById('team-section').style.display = r === 'user' ? 'block' : 'none';
   document.querySelectorAll('.team-btn').forEach(b => b.classList.remove('on'));
   document.getElementById('login-btn').disabled = r === 'user';
-  if (r === 'admin') document.getElementById('login-btn').disabled = false;
+  if (r === 'admin') {
+    document.getElementById('login-btn').disabled = false;
+    _updateStepUI(3);
+  } else {
+    _updateStepUI(2);
+  }
 }
 function pickTeam(t, el) {
   loginTeam = t;
   document.querySelectorAll('.team-btn').forEach(b => b.classList.remove('on'));
   el.classList.add('on');
   document.getElementById('login-btn').disabled = false;
+  _updateStepUI(3);
 }
 async function doLogin() {
   appRole = loginRole;
@@ -1427,6 +1542,7 @@ async function setYear(y) {
 ═══════════════════════════════════════════════════════════ */
 const statusSt = s => ({우수:{bg:'#ECFDF5',tx:'#059669'},정상:{bg:'#EFF6FF',tx:'#2563EB'},주의:{bg:'#FFFBEB',tx:'#D97706'},위험:{bg:'#FEF2F2',tx:'#DC2626'}}[s] || {bg:'#F1F5F9',tx:'#64748B'});
 const stClass   = s => ({제출완료:'s-sub',평가완료:'s-eval',미제출:'s-none',임시저장:'s-draft'}[s] || '');
+const stIcon    = s => ({제출완료:'✓ ',평가완료:'★ ',미제출:'✕ ',임시저장:'◎ ',이행완료:'✓ ',이행중:'↗ ',미이행:'✕ ',해당없음:'— '}[s] || '');
 const scClass   = v => v >= 15 ? 'score-hi' : v >= 10 ? 'score-md' : 'score-lo';
 const scColor   = v => v >= 15 ? 'var(--red)' : v >= 10 ? 'var(--amber)' : 'var(--green)';
 const heatColor = v => v >= 20 ? '#EF4444' : v >= 15 ? '#F97316' : v >= 10 ? '#F59E0B' : v >= 5 ? '#84CC16' : '#22C55E';
@@ -1438,6 +1554,28 @@ const scoreStyle = s => s >= 15 ? {bg:'#FEF2F2',col:'var(--red)'} : s >= 8 ? {bg
    🏠  대시보드
 ═══════════════════════════════════════════════════════════ */
 function initDash() {
+  // ── 즉각 조치 배너 ──
+  const missingCount   = RISKS.filter(r => r.submitStatus === '미제출').length;
+  const pendingEvalCnt = RISKS.filter(r => r.submitStatus === '제출완료').length;
+  const banner = document.getElementById('dash-action-banner');
+  if (banner) {
+    const items = [];
+    if (missingCount > 0)   items.push({ icon:'⚠', color:'#FEF2F2', border:'#FECACA', text:'#DC2626', msg:`미제출 <strong>${missingCount}건</strong> — 독촉 메일 필요`, action:`navigateTo('monthly')`, btn:'입력 현황 보기' });
+    if (pendingEvalCnt > 0) items.push({ icon:'⏳', color:'#FFFBEB', border:'#FDE68A', text:'#D97706', msg:`평가 대기 <strong>${pendingEvalCnt}건</strong> — 즉시 평가 필요`, action:`navigateTo('eval')`, btn:'평가 화면 이동' });
+    if (items.length > 0) {
+      banner.style.display = 'flex';
+      banner.style.cssText = 'display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap';
+      banner.innerHTML = items.map(it => `
+        <div style="flex:1;min-width:220px;display:flex;align-items:center;gap:12px;padding:12px 16px;background:${it.color};border:1px solid ${it.border};border-radius:12px">
+          <span style="font-size:20px;flex-shrink:0">${it.icon}</span>
+          <span style="font-size:13px;color:${it.text};flex:1">${it.msg}</span>
+          <button onclick="${it.action}" style="padding:5px 12px;border:1.5px solid ${it.border};border-radius:7px;background:#fff;color:${it.text};font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">${it.btn}</button>
+        </div>`).join('');
+    } else {
+      banner.style.display = 'block';
+      banner.innerHTML = `<div style="padding:11px 16px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;font-size:13px;color:#059669;font-weight:600">✓ 즉각 조치 필요 항목 없음 — 모든 리스크가 정상 상태입니다.</div>`;
+    }
+  }
   // KPI 수치 실데이터 반영
   const total = RISKS.length;
   const submitted = RISKS.filter(r => r.submitStatus === '제출완료' || r.submitStatus === '평가완료').length;
@@ -1529,7 +1667,7 @@ function renderRiskTable(filter) {
     const pb = r.achieve != null
       ? `<div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:${r.achieve}%;background:${r.achieve >= 80 ? 'var(--green)' : r.achieve >= 60 ? 'var(--amber)' : 'var(--red)'}"></div></div><span style="font-weight:700">${r.achieve}%</span></div>`
       : '<span style="color:#94A3B8">미평가</span>';
-    return `<tr><td class="tbl-id">${r.id}</td><td class="tbl-title" title="${r.title}">${r.title}</td><td class="tbl-muted">${r.team}</td><td><span class="cat-tag">${r.cat}</span></td><td><span class="${scClass(r.score)}">${r.score}</span></td><td><span class="status-chip ${stClass(r.submitStatus)}">${r.submitStatus}</span></td><td>${pb}</td><td><button class="act-btn" onclick="showRiskDetail('${r.id}')">상세</button></td></tr>`;
+    return `<tr><td class="tbl-id">${r.id}</td><td class="tbl-title" title="${r.title}">${r.title}</td><td class="tbl-muted">${r.team}</td><td><span class="cat-tag">${r.cat}</span></td><td><span class="${scClass(r.score)}">${r.score}</span></td><td><span class="status-chip ${stClass(r.submitStatus)}">${stIcon(r.submitStatus)}${r.submitStatus}</span></td><td>${pb}</td><td><button class="act-btn" onclick="showRiskDetail('${r.id}')">상세</button></td></tr>`;
   }).join('');
 }
 function filterTbl(f, btn) {
@@ -1566,11 +1704,68 @@ function renderHeatmap() {
   let h = '<div style="display:flex;gap:3px;margin-bottom:5px"><div style="width:24px"></div>';
   for (let l = 1; l <= 5; l++) h += `<div style="flex:1;text-align:center;font-size:9px;color:var(--muted);font-weight:600">L${l}</div>`;
   h += '</div>';
-  for (let imp = 5; imp >= 1; imp--) { h += `<div class="hm-row"><div class="hm-lbl">${imp}</div>`; for (let li = 1; li <= 5; li++) { const s = imp * li; h += `<div class="hm-cell" style="background:${heatColor(s)}" title="${s}">${s}</div>`; } h += '</div>'; }
+  for (let imp = 5; imp >= 1; imp--) {
+    h += `<div class="hm-row"><div class="hm-lbl">${imp}</div>`;
+    for (let li = 1; li <= 5; li++) {
+      const s = imp * li;
+      h += `<div class="hm-cell" style="background:${heatColor(s)};cursor:pointer" title="영향도 ${imp} × 가능성 ${li} = ${s}점" onclick="showHeatmapDrilldown(${imp},${li})">${s}</div>`;
+    }
+    h += '</div>';
+  }
   h += '<div style="display:flex;gap:4px;margin-top:8px;align-items:center"><span style="font-size:9px;color:var(--muted)">낮음</span>';
   ['#22C55E','#84CC16','#F59E0B','#F97316','#EF4444'].forEach(c => h += `<div style="width:14px;height:6px;border-radius:3px;background:${c}"></div>`);
   h += '<span style="font-size:9px;color:var(--muted)">높음</span></div>';
   document.getElementById('heatmap').innerHTML = h;
+}
+
+function showHeatmapDrilldown(imp, li) {
+  const score = imp * li;
+  const matching = RISKS.filter(r => r.impact === imp && r.likelihood === li);
+  // impact/likelihood가 정확히 없는 경우 score 범위로 폴백
+  const scoreRange = RISKS.filter(r => {
+    const rs = r.impact * r.likelihood;
+    return rs === score;
+  });
+  const list = matching.length ? matching : scoreRange;
+  const prev = document.getElementById('hm-drill-modal'); if (prev) prev.remove();
+  const modal = document.createElement('div');
+  modal.id = 'hm-drill-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9990;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .15s';
+  const color = heatColor(score);
+  const rows = list.length
+    ? list.map(r => `<tr>
+        <td style="font-size:11px;font-weight:700;color:#3B82F6;font-family:monospace;padding:10px 14px">${r.id}</td>
+        <td style="font-size:12px;font-weight:600;padding:10px 0;max-width:200px">${r.title}</td>
+        <td style="font-size:11px;color:#64748B;padding:10px 14px;white-space:nowrap">${r.team}</td>
+        <td style="padding:10px 14px"><span class="status-chip ${stClass(r.submitStatus)}" style="font-size:10px">${stIcon(r.submitStatus)}${r.submitStatus}</span></td>
+      </tr>`).join('')
+    : `<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8;font-size:13px">해당 위험도의 리스크가 없습니다</td></tr>`;
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:540px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+      <div style="padding:20px 24px;border-bottom:1px solid #E5EBF2;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+            <div style="width:32px;height:32px;border-radius:8px;background:${color};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff">${score}</div>
+            <div style="font-size:15px;font-weight:800;color:#0F172A">위험도 ${score}점 리스크</div>
+          </div>
+          <div style="font-size:12px;color:#64748B">영향도 ${imp} × 가능성 ${li} · 총 ${list.length}건</div>
+        </div>
+        <button onclick="document.getElementById('hm-drill-modal').remove()" style="width:30px;height:30px;border:none;background:#F8FAFC;border-radius:8px;font-size:16px;cursor:pointer;color:#64748B">✕</button>
+      </div>
+      <div style="overflow-y:auto;flex:1">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr style="background:#F8FAFC;border-bottom:2px solid #E5EBF2">
+            <th style="padding:10px 14px;text-align:left;font-size:11px;color:#64748B;font-weight:700">ID</th>
+            <th style="padding:10px 0;text-align:left;font-size:11px;color:#64748B;font-weight:700">리스크명</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;color:#64748B;font-weight:700">팀</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;color:#64748B;font-weight:700">상태</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1584,7 +1779,7 @@ function renderMonthly() {
     <div class="r-item ${selMonthly === i ? 'on' : ''}" onclick="selectMonthly(${i})">
       <div class="r-item-id">${r.id} · ${r.cat}</div>
       <div class="r-item-name">${r.title}</div>
-      <span class="status-chip ${stClass(r.submitStatus)}" style="font-size:9px">${r.submitStatus}</span>
+      <span class="status-chip ${stClass(r.submitStatus)}" style="font-size:9px">${stIcon(r.submitStatus)}${r.submitStatus}</span>
     </div>`).join('');
 }
 
@@ -1614,9 +1809,10 @@ function selectMonthly(i) {
 
 function buildMonthlyFormBody(r) {
   const statuses = ['이행완료','이행중','미이행','해당없음'];
+  const statusIcons = {이행완료:'✓ ',이행중:'↗ ',미이행:'✕ ',해당없음:'— '};
   return `
     <div class="form-group"><label class="form-label">이행 상태 <span style="color:var(--red)">*</span></label>
-      <div class="radio-row" id="status-chips">${statuses.map(st => `<div class="radio-chip ${r.submitStatus === '제출완료' && st === '이행완료' ? 'on' : ''}" onclick="toggleChip(this)">${st}</div>`).join('')}</div>
+      <div class="radio-row" id="status-chips">${statuses.map(st => `<div class="radio-chip ${r.submitStatus === '제출완료' && st === '이행완료' ? 'on' : ''}" onclick="toggleChip(this)">${statusIcons[st]}${st}</div>`).join('')}</div>
     </div>
     <div class="form-group"><label class="form-label">이행 내용 <span style="color:var(--red)">*</span></label>
       <textarea class="form-textarea" id="monthly-content" placeholder="이번 달 이행 내용을 구체적으로 작성하세요...">${r.content || ''}</textarea>
@@ -1656,6 +1852,31 @@ async function submitMonthly(idx) {
   if (!status) { toast('이행 상태를 선택해주세요.', 'warn'); return; }
   if (!content) { toast('이행 내용을 입력해주세요.', 'warn'); return; }
 
+  // ── 제출 확인 모달 ──
+  const confirmed = await showConfirmModal({
+    title: '이행현황 최종 제출',
+    message: `<div style="display:flex;flex-direction:column;gap:8px">
+      <div style="padding:10px 14px;background:#F8FAFC;border-radius:8px;border:1px solid #E5EBF2">
+        <div style="font-size:11px;font-weight:700;color:#64748B;margin-bottom:4px">대상 리스크</div>
+        <div style="font-size:13px;font-weight:600;color:#0F172A">${r.id} · ${r.title}</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1;padding:8px 12px;background:#F0FDF4;border-radius:8px;border:1px solid #BBF7D0">
+          <div style="font-size:10px;font-weight:700;color:#059669">이행 상태</div>
+          <div style="font-size:12px;font-weight:700;color:#065F46;margin-top:2px">${status}</div>
+        </div>
+        <div style="flex:2;padding:8px 12px;background:#F8FAFC;border-radius:8px;border:1px solid #E5EBF2">
+          <div style="font-size:10px;font-weight:700;color:#64748B">이행 내용 (요약)</div>
+          <div style="font-size:11px;color:#374151;margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${content}</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#EF4444;font-weight:600;padding:6px 0">⚠ 제출 후에는 관리자의 수정 요청이 있어야 재입력이 가능합니다.</div>
+    </div>`,
+    confirmText: '최종 제출',
+    danger: false
+  });
+  if (!confirmed) return;
+
   const btn = document.getElementById(`submit-btn-${idx}`);
   if (btn) { btn.textContent = '제출 중...'; btn.disabled = true; }
 
@@ -1668,12 +1889,10 @@ async function submitMonthly(idx) {
     };
 
     if (CONFIG.OFFLINE_MODE) {
-      // 오프라인: 로컬 상태만 업데이트
       r.submitStatus = '제출완료'; r.status = '제출완료';
       r.content = content; r.specialNote = note;
       _lsSave(curYear, curMonth, r.id, { submitStatus: '제출완료', content, specialNote: note });
     } else {
-      // Power Automate F-01 호출 (저장 + 관리자 알림)
       const result = await callFlow(CONFIG.FLOW_SUBMIT_URL, payload);
       r.submitStatus = '제출완료'; r.status = '제출완료';
       r.content = content; r.specialNote = note;
@@ -1682,6 +1901,7 @@ async function submitMonthly(idx) {
 
     if (btn) { btn.textContent = '✓ 제출 완료'; btn.style.background = 'var(--green)'; }
     toast(`${r.id} 이행현황이 제출되었습니다.`, 'success');
+    _setDirty(false);
     updateBadges();
     renderMonthly();
   } catch (e) {
@@ -1708,6 +1928,7 @@ async function saveDraft(idx) {
     r.submitStatus = '임시저장'; r.content = content; r.specialNote = note;
       _lsSave(curYear, curMonth, r.id, { submitStatus: '임시저장', content, specialNote: note });
     toast('임시저장되었습니다.', 'info');
+    _setDirty(false);
     updateBadges(); renderMonthly();
   } catch (e) {
     toast('임시저장 실패: ' + e.message, 'error');
@@ -1715,7 +1936,13 @@ async function saveDraft(idx) {
 }
 
 async function requestRevision(idx) {
-  const reason = prompt('이의신청 사유를 입력해주세요:');
+  const reason = await showInputModal({
+    title: '이의신청',
+    label: '이의신청 사유를 입력해주세요.',
+    placeholder: '예: 해당 기간 내 실제 이행이 완료되었으나 시스템 미반영...',
+    confirmText: '이의신청 접수',
+    danger: false
+  });
   if (!reason) return;
   try {
     if (!CONFIG.OFFLINE_MODE && CONFIG.FLOW_SUBMIT_URL) {
@@ -1744,7 +1971,7 @@ function renderEvalList() {
     <div class="r-item ${selEval === i ? 'on' : ''}" onclick="selectEval(${i})">
       <div class="r-item-id">${r.id} · ${r.team}</div>
       <div class="r-item-name">${r.title}</div>
-      <span class="status-chip s-sub" style="font-size:9px">제출완료</span>
+      <span class="status-chip s-sub" style="font-size:9px">✓ 제출완료</span>
     </div>`).join('');
   if (!pending.length) {
     document.getElementById('eval-list').innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">평가 대기 항목이 없습니다<br><span style="font-size:11px;color:#94A3B8">제출완료 건이 생기면 여기 표시됩니다</span></div>';
@@ -1794,8 +2021,9 @@ function buildEvalBody(r, score) {
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">평가 의견</label>
-      <textarea class="form-textarea" id="eval-comment" style="height:80px" placeholder="평가 의견을 입력하세요 (선택)">${r.evalComment || ''}</textarea>
+      <label class="form-label" id="eval-comment-label">평가 의견 <span id="eval-comment-required" style="color:var(--red);display:none">*</span></label>
+      <textarea class="form-textarea" id="eval-comment" style="height:80px" placeholder="평가 의견을 입력하세요 (달성율 70% 미만 시 필수)">${r.evalComment || ''}</textarea>
+      <div id="eval-comment-hint" style="font-size:11px;color:var(--red);margin-top:4px;display:none">달성율이 70% 미만인 경우 평가 의견 입력이 필요합니다.</div>
     </div>`;
 }
 
@@ -1803,6 +2031,11 @@ function updateScore(v) {
   const sc = scoreCol(v);
   const disp = document.getElementById('score-disp'); if (disp) { disp.textContent = v + '%'; disp.style.color = sc; }
   const sl = document.getElementById('eval-sl'); if (sl) sl.style.accentColor = sc;
+  // 70% 미만 시 평가 의견 필수 표시
+  const req = document.getElementById('eval-comment-required');
+  const hint = document.getElementById('eval-comment-hint');
+  if (req) req.style.display = parseInt(v) < 70 ? 'inline' : 'none';
+  if (hint) hint.style.display = parseInt(v) < 70 ? 'block' : 'none';
 }
 function setScore(v) {
   const sl = document.getElementById('eval-sl'); if (sl) { sl.value = v; updateScore(v); }
@@ -1812,7 +2045,15 @@ async function completeEval(i) {
   const pending = RISKS.filter(r => r.submitStatus === '제출완료');
   const r = pending[i];
   const score = parseInt(document.getElementById('eval-sl')?.value || 80);
-  const comment = document.getElementById('eval-comment')?.value || '';
+  const comment = document.getElementById('eval-comment')?.value.trim() || '';
+
+  // 70% 미만 시 코멘트 필수 검증
+  if (score < 70 && !comment) {
+    toast('달성율 70% 미만인 경우 평가 의견을 입력해주세요.', 'warn');
+    document.getElementById('eval-comment')?.focus();
+    return;
+  }
+
   const btn = document.getElementById(`eval-complete-btn-${i}`);
   if (btn) { btn.textContent = '저장 중...'; btn.disabled = true; }
 
@@ -1848,7 +2089,14 @@ async function completeEval(i) {
 async function requestEdit(i) {
   const pending = RISKS.filter(r => r.submitStatus === '제출완료');
   const r = pending[i];
-  const reason = prompt('수정 요청 사유를 입력하세요:'); if (!reason) return;
+  const reason = await showInputModal({
+    title: '수정 요청',
+    label: `[${r.id}] ${r.title}`,
+    placeholder: '수정을 요청하는 사유를 구체적으로 입력해주세요...',
+    confirmText: '수정 요청 발송',
+    danger: true
+  });
+  if (!reason) return;
   try {
     if (!CONFIG.OFFLINE_MODE && r.reportSpId) {
       await spPatch(CONFIG.LIST_MONTHLY, r.reportSpId, { RevisionRequested: true, RevisionNote: reason, SubmitStatus: '임시저장' });
@@ -2187,7 +2435,7 @@ function renderMyTeam() {
     const pb = r.achieve != null
       ? `<div class="progress-wrap"><div class="progress-track" style="width:50px"><div class="progress-fill" style="width:${r.achieve}%;background:${r.achieve >= 80 ? 'var(--green)' : r.achieve >= 60 ? 'var(--amber)' : 'var(--red)'}"></div></div><span style="font-weight:700;font-size:12px">${r.achieve}%</span></div>`
       : '<span style="color:var(--red);font-size:12px;font-weight:700">미입력</span>';
-    return `<div class="my-risk-row"><div class="my-risk-id">${r.id}</div><div class="my-risk-name">${r.title}</div><span class="status-chip ${stClass(r.submitStatus)}" style="font-size:9px;flex-shrink:0">${r.submitStatus}</span>${pb}</div>`;
+    return `<div class="my-risk-row"><div class="my-risk-id">${r.id}</div><div class="my-risk-name">${r.title}</div><span class="status-chip ${stClass(r.submitStatus)}" style="font-size:9px;flex-shrink:0">${stIcon(r.submitStatus)}${r.submitStatus}</span>${pb}</div>`;
   }).join('') : '<div style="text-align:center;color:var(--muted);padding:32px;font-size:13px">이번달 점검 리스크가 없습니다</div>';
   setTimeout(runCounters, 100);
 }
@@ -2196,7 +2444,14 @@ function renderMyTeam() {
    📊  보고서 생성 (PPT — 실데이터 연동)
 ═══════════════════════════════════════════════════════════ */
 var rptCurrentTab = 'monthly';
-function renderReports() { switchRptTab(rptCurrentTab); }
+function renderReports() {
+  // 샘플 데이터 경고 배너 제어
+  const warnMonthly = document.getElementById('ppt-sample-warn');
+  const warnAnnual = document.getElementById('ppt-annual-sample-warn');
+  if (warnMonthly) warnMonthly.style.display = CONFIG.OFFLINE_MODE ? 'flex' : 'none';
+  if (warnAnnual)  warnAnnual.style.display  = CONFIG.OFFLINE_MODE ? 'flex' : 'none';
+  switchRptTab(rptCurrentTab);
+}
 function switchRptTab(tab) {
   rptCurrentTab = tab;
   const pm = document.getElementById('rpt-panel-monthly'), pa = document.getElementById('rpt-panel-annual');
@@ -2378,6 +2633,10 @@ async function _doGeneratePPT() {
     const d = getReportData(); const pptx = new PptxGenJS(); pptx.layout = 'LAYOUT_WIDE';
     const slide = pptx.addSlide(); const ac = d.overallAch >= 80 ? '059669' : d.overallAch >= 65 ? 'D97706' : 'DC2626';
     slide.background = { color: 'F4F7FB' };
+    // 샘플 데이터 워터마크 (오프라인 모드)
+    if (CONFIG.OFFLINE_MODE) {
+      slide.addText('⚠ SAMPLE DATA — SharePoint 연동 후 실데이터로 교체 필요', {x:0,y:4.6,w:'100%',h:0.22,fontSize:8,bold:true,color:'DC2626',fontFace:'Arial',align:'center',valign:'middle'});
+    }
     slide.addShape(pptx.ShapeType.rect, {x:0,y:0,w:'100%',h:0.55,fill:{color:'0D1B2A'}});
     slide.addText('⚖ Compliance RiskOps', {x:0.2,y:0.07,w:4,h:0.22,fontSize:10,bold:true,color:'FFFFFF',fontFace:'Arial'});
     slide.addText('SK Chemical 법무 컴플라이언스팀', {x:0.2,y:0.29,w:4,h:0.18,fontSize:8,color:'8BA3BC',fontFace:'Arial'});
@@ -2911,9 +3170,15 @@ window.addEventListener('DOMContentLoaded', function() {
     const clearBtn = document.createElement('span');
     clearBtn.textContent = ' · 초기화';
     clearBtn.style.cssText = 'color:#EF4444;cursor:pointer;text-decoration:underline';
-    clearBtn.onclick = e => {
+    clearBtn.onclick = async e => {
       e.stopPropagation();
-      if (!confirm('저장된 임시 데이터를 모두 삭제하시겠습니까?')) return;
+      const ok = await showConfirmModal({
+        title: '임시 데이터 초기화',
+        message: '저장된 임시 데이터를 모두 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.',
+        confirmText: '초기화',
+        danger: true
+      });
+      if (!ok) return;
       try {
         const keys = [];
         for (let i = 0; i < localStorage.length; i++) {
@@ -2954,6 +3219,48 @@ window.addEventListener('DOMContentLoaded', function() {
     }
   });
 })();
+
+/* ═══════════════════════════════════════════════════════════
+   🛡  페이지 이탈 경고 — 입력 중 새로고침/탭 닫기 방지
+═══════════════════════════════════════════════════════════ */
+let _hasDirtyForm = false;
+function _setDirty(dirty) { _hasDirtyForm = dirty; }
+
+// 월간 폼 textarea 변경 시 dirty 마킹
+document.addEventListener('input', function(e) {
+  if (e.target.id === 'monthly-content' || e.target.id === 'monthly-note') {
+    _setDirty(true);
+  }
+});
+// 제출/임시저장 완료 시 dirty 해제
+const _origSaveDraft = typeof saveDraft !== 'undefined' ? saveDraft : null;
+const _origSubmitMonthly = typeof submitMonthly !== 'undefined' ? submitMonthly : null;
+
+window.addEventListener('beforeunload', function(e) {
+  if (_hasDirtyForm && curPage === 'monthly') {
+    const msg = '작성 중인 이행 내용이 있습니다. 페이지를 벗어나면 내용이 사라질 수 있습니다.';
+    e.preventDefault();
+    e.returnValue = msg;
+    return msg;
+  }
+});
+
+// 네비게이션 이탈 시 (SPA 내부 이동)
+const _origNavigateTo = navigateTo;
+navigateTo = function(id) {
+  if (_hasDirtyForm && curPage === 'monthly' && id !== 'monthly') {
+    showConfirmModal({
+      title: '이탈 확인',
+      message: '작성 중인 이행 내용이 있습니다.<br>임시저장 없이 이동하면 내용이 사라집니다.',
+      confirmText: '이동하기',
+      danger: true
+    }).then(ok => {
+      if (ok) { _setDirty(false); _origNavigateTo(id); }
+    });
+    return;
+  }
+  _origNavigateTo(id);
+};
 
 </script>
 </body>
