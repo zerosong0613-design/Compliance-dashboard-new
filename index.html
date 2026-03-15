@@ -941,6 +941,7 @@ const CONFIG = {
   LIST_EVALUATION:    'Evaluation',
   FLOW_SUBMIT_URL:    '',   // ← F-01 Power Automate HTTP 트리거 URL 붙여넣기
   FLOW_SAVE_URL:      '',   // ← F-06 Power Automate HTTP 트리거 URL 붙여넣기
+  FLOW_REVISION_URL:  '',   // ← F-07 이의신청 HTTP 트리거 URL 붙여넣기
   /* 오프라인 모드: SP 미연결 시 샘플 데이터로 동작 (개발/데모용) */
   OFFLINE_MODE: true,       // SP 연결 완료 후 false 로 변경
 };
@@ -1944,11 +1945,23 @@ async function requestRevision(idx) {
     danger: false
   });
   if (!reason) return;
+  const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam);
+  const r = base[idx];
   try {
-    if (!CONFIG.OFFLINE_MODE && CONFIG.FLOW_SUBMIT_URL) {
-      await callFlow(CONFIG.FLOW_SUBMIT_URL, { type: 'revision', team: appTeam, reason, riskId: RISKS[idx]?.spId });
+    if (!CONFIG.OFFLINE_MODE) {
+      if (!CONFIG.FLOW_REVISION_URL) throw new Error('CONFIG.FLOW_REVISION_URL 이 설정되지 않았습니다.');
+      await callFlow(CONFIG.FLOW_REVISION_URL, {
+        type: 'revision_request',
+        riskId: String(r?.spId || ''),
+        riskTitle: r?.title || '',
+        team: appTeam,
+        year: parseInt(curYear),
+        month: curMonth,
+        reason,
+        submittedBy: appTeam
+      });
     }
-    toast('이의신청이 접수되었습니다.', 'success');
+    toast('이의신청이 접수되었습니다. 컴플라이언스팀에서 검토 후 연락드립니다.', 'success', 5000);
   } catch (e) { toast('이의신청 실패: ' + e.message, 'error'); }
 }
 
