@@ -3396,22 +3396,8 @@ function _updateDirtyIndicator() {
 const _origSetDirty = _setDirty;
 _setDirty = function(dirty) { _hasDirtyForm = dirty; _updateDirtyIndicator(); };
 
-// 네비게이션 이탈 시 (SPA 내부 이동)
+// 네비게이션 이탈 시 (SPA 내부 이동) — 통합 패치
 const _origNavigateTo = navigateTo;
-navigateTo = function(id) {
-  if (_hasDirtyForm && curPage === 'monthly' && id !== 'monthly') {
-    showConfirmModal({
-      title: '이탈 확인',
-      message: '작성 중인 이행 내용이 있습니다.<br>임시저장 없이 이동하면 내용이 사라집니다.',
-      confirmText: '이동하기',
-      danger: true
-    }).then(ok => {
-      if (ok) { _setDirty(false); _origNavigateTo(id); }
-    });
-    return;
-  }
-  _origNavigateTo(id);
-};
 
 /* ═══════════════════════════════════════════════════════════
    🔧  일괄 적용 패치 — PM/Designer Agent 개선사항
@@ -3520,16 +3506,7 @@ showConfirmModal = function(opts) {
   });
 };
 
-/* ── ARIA: 사이드바 nav aria-current ── */
-const _origNavigateToAria = _origNavigateTo;
-const _patchedNavigate = navigateTo;
-navigateTo = function(id) {
-  _patchedNavigate(id);
-  document.querySelectorAll('.sb-btn,.bnav-btn,.dr-btn').forEach(b => {
-    if (b.dataset.id === id) b.setAttribute('aria-current', 'page');
-    else b.removeAttribute('aria-current');
-  });
-};
+/* ── ARIA: 사이드바 nav aria-current — 통합 navigateTo에 포함 ── */
 
 /* ── Excel/PPT 로딩 상태 개선 ── */
 const _origParseExcelFile = parseExcelFile;
@@ -3561,30 +3538,35 @@ document.addEventListener('input', function(e) {
   if (e.target.id && e.target.id.startsWith('edit-risk-')) _setDirty(true);
 });
 
-/* ── 페이지 이탈 경고 확장: eval/master 편집 중 ── */
-const _patchedNav2 = navigateTo;
-navigateTo = function(id) {
-  if (_hasDirtyForm && (curPage === 'eval' || curPage === 'master') && id !== curPage) {
-    showConfirmModal({
-      title: '이탈 확인',
-      message: '편집 중인 내용이 있습니다.<br>저장하지 않고 이동하시겠습니까?',
-      confirmText: '이동하기',
-      danger: true
-    }).then(ok => { if (ok) { _setDirty(false); _patchedNav2(id); } });
-    return;
-  }
-  _patchedNav2(id);
-};
+/* ── 페이지 이탈 경고 확장 — 통합 navigateTo에 포함 ── */
 
 /* ── navigator.onLine 체크 — 오프라인 상태 안내 개선 ── */
 window.addEventListener('online', function() { toast('네트워크가 연결되었습니다.', 'success'); });
 window.addEventListener('offline', function() { toast('네트워크 연결이 끊어졌습니다. 오프라인 모드로 전환됩니다.', 'warn', 5000); });
 
-/* ── 차트: 탭 전환 시 재렌더 (hidden→visible) ── */
-const _patchedNav3 = navigateTo;
+/* ── 통합 navigateTo 패치 (dirty form + ARIA + 차트 재렌더) ── */
 navigateTo = function(id) {
-  _patchedNav3(id);
-  // 탭 전환 후 차트가 있는 페이지면 딜레이 후 재렌더
+  // 1) dirty form 이탈 경고 (monthly / eval / master)
+  if (_hasDirtyForm && id !== curPage) {
+    const dirtyPages = ['monthly', 'eval', 'master'];
+    if (dirtyPages.includes(curPage)) {
+      showConfirmModal({
+        title: '이탈 확인',
+        message: '작성 중인 내용이 있습니다.<br>저장하지 않고 이동하시겠습니까?',
+        confirmText: '이동하기',
+        danger: true
+      }).then(ok => { if (ok) { _setDirty(false); navigateTo(id); } });
+      return;
+    }
+  }
+  // 2) 원본 navigateTo 실행
+  _origNavigateTo(id);
+  // 3) ARIA aria-current
+  document.querySelectorAll('.sb-btn,.bnav-btn,.dr-btn').forEach(b => {
+    if (b.dataset.id === id) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
+  // 4) 차트 재렌더 (탭 전환 시)
   if (id === 'dash') setTimeout(() => drawChart('trend-canvas', TREND, TKEYS, TCOLORS, true), 120);
   if (id === 'teams') setTimeout(() => drawTeamsChart(), 120);
   if (id === 'myteam') {
