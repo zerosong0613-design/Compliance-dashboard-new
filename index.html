@@ -2610,7 +2610,8 @@ function switchRptTab(tab) {
 
 function getReportData() {
   const year  = document.getElementById('rpt-year')?.value || curYear;
-  const month = document.getElementById('rpt-month')?.value || (curMonth + '월');
+  const monthVal = document.getElementById('rpt-month')?.value || curMonth;
+  const month = monthVal + (String(monthVal).includes('월') ? '' : '월');
   const comment = document.getElementById('rpt-comment')?.value || '전반적으로 양호한 수준이나, 일부 팀의 집중 관리가 요구됩니다.';
   const total = RISKS.length;
   const submitted  = RISKS.filter(r => r.submitStatus === '제출완료' || r.submitStatus === '평가완료').length;
@@ -2766,12 +2767,14 @@ function generatePPT() {
 }
 async function _doGeneratePPT() {
   try {
-    const d = getReportData(); const pptx = new PptxGenJS(); pptx.layout = 'LAYOUT_WIDE';
+    const d = getReportData(); const pptx = new PptxGenJS();
+    pptx.defineLayout({ name:'CUSTOM_16x9', width:13.33, height:7.5 });
+    pptx.layout = 'CUSTOM_16x9';
     const slide = pptx.addSlide(); const ac = d.overallAch >= 80 ? '059669' : d.overallAch >= 65 ? 'D97706' : 'DC2626';
     slide.background = { color: 'F4F7FB' };
     // 샘플 데이터 워터마크 (오프라인 모드)
     if (CONFIG.OFFLINE_MODE) {
-      slide.addText('⚠ SAMPLE DATA — SharePoint 연동 후 실데이터로 교체 필요', {x:0,y:4.6,w:'100%',h:0.22,fontSize:8,bold:true,color:'DC2626',fontFace:'Arial',align:'center',valign:'middle'});
+      slide.addText('⚠ SAMPLE DATA — SharePoint 연동 후 실데이터로 교체 필요', {x:0,y:6.6,w:'100%',h:0.22,fontSize:8,bold:true,color:'DC2626',fontFace:'Arial',align:'center',valign:'middle'});
     }
     slide.addShape(pptx.ShapeType.rect, {x:0,y:0,w:'100%',h:0.55,fill:{color:'0D1B2A'}});
     slide.addText('⚖ Compliance RiskOps', {x:0.2,y:0.07,w:4,h:0.22,fontSize:10,bold:true,color:'FFFFFF',fontFace:'Arial'});
@@ -2785,7 +2788,7 @@ async function _doGeneratePPT() {
       slide.addText(k[2], {x:x+0.12,y:0.88,w:2.8,h:0.36,fontSize:22,bold:true,color:k[3],fontFace:'Arial'});
     });
     d.teams.forEach((t,i) => {
-      const y = 1.7 + i * 0.38; const tc = t.color.replace('#','');
+      const y = 1.8 + i * 0.55; const tc = t.color.replace('#','');
       slide.addText(t.name, {x:0.2,y:y+0.08,w:1.2,h:0.22,fontSize:8,bold:true,color:'0F172A',fontFace:'Arial'});
       slide.addShape(pptx.ShapeType.rect, {x:1.5,y:y+0.12,w:2.5,h:0.12,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.06});
       if (t.avg>0) slide.addShape(pptx.ShapeType.rect, {x:1.5,y:y+0.12,w:2.5*(t.avg/100),h:0.12,fill:{color:tc},line:{color:tc,pt:0},rectRadius:0.06});
@@ -2793,7 +2796,7 @@ async function _doGeneratePPT() {
       slide.addText(t.status, {x:4.7,y:y+0.08,w:0.7,h:0.22,fontSize:7,color:t.avg>=80?'059669':t.avg>=65?'D97706':'DC2626',fontFace:'Arial'});
     });
     d.topRisks.forEach((r,i) => {
-      const y = 1.72 + i * 0.52; const sc = r.score; const scC = sc>=15?'DC2626':sc>=8?'D97706':'059669'; const scB = sc>=15?'FEF2F2':sc>=8?'FFFBEB':'ECFDF5';
+      const y = 1.8 + i * 0.7; const sc = r.score; const scC = sc>=15?'DC2626':sc>=8?'D97706':'059669'; const scB = sc>=15?'FEF2F2':sc>=8?'FFFBEB':'ECFDF5';
       slide.addText(''+(i+1), {x:5.8,y,w:0.4,h:0.32,fontSize:9,bold:true,color:'94A3B8',fontFace:'Arial',align:'center'});
       slide.addShape(pptx.ShapeType.rect, {x:6.2,y:y+0.04,w:0.9,h:0.22,fill:{color:'EFF6FF'},line:{color:'BFDBFE',pt:1},rectRadius:0.04});
       slide.addText(r.team, {x:6.2,y:y+0.04,w:0.9,h:0.22,fontSize:7,color:'3B82F6',fontFace:'Arial',align:'center'});
@@ -2801,10 +2804,10 @@ async function _doGeneratePPT() {
       slide.addShape(pptx.ShapeType.rect, {x:11.4,y:y+0.04,w:0.8,h:0.22,fill:{color:scB},line:{color:scB,pt:0},rectRadius:0.04});
       slide.addText(sc+'점', {x:11.4,y:y+0.04,w:0.8,h:0.22,fontSize:8,bold:true,color:scC,fontFace:'Arial',align:'center'});
     });
-    slide.addShape(pptx.ShapeType.rect, {x:0,y:4.32,w:'100%',h:0.6,fill:{color:'0D1B2A'}});
-    slide.addText('총평', {x:0.2,y:4.42,w:0.5,h:0.22,fontSize:9,bold:true,color:'5EEAD4',fontFace:'Arial'});
-    slide.addText(d.comment, {x:0.85,y:4.42,w:10,h:0.22,fontSize:9,color:'CBD5E1',fontFace:'Arial'});
-    slide.addText('작성일: '+new Date().toLocaleDateString('ko-KR'), {x:11.0,y:4.42,w:1.8,h:0.22,fontSize:7.5,color:'4A6280',fontFace:'Arial',align:'right'});
+    slide.addShape(pptx.ShapeType.rect, {x:0,y:6.85,w:'100%',h:0.65,fill:{color:'0D1B2A'}});
+    slide.addText('총평', {x:0.2,y:6.97,w:0.5,h:0.22,fontSize:9,bold:true,color:'5EEAD4',fontFace:'Arial'});
+    slide.addText(d.comment, {x:0.85,y:6.97,w:10,h:0.22,fontSize:9,color:'CBD5E1',fontFace:'Arial'});
+    slide.addText('작성일: '+new Date().toLocaleDateString('ko-KR'), {x:11.0,y:6.97,w:1.8,h:0.22,fontSize:7.5,color:'4A6280',fontFace:'Arial',align:'right'});
     await pptx.writeFile({fileName:`[SK Chemical] 컴플라이언스_월간현황_${d.year}_${d.month}.pptx`});
     toast('PPT 생성 완료!', 'success');
   } catch (e) { console.error('PPT 오류:', e); toast('PPT 생성 실패: ' + e.message, 'error'); }
@@ -2819,7 +2822,9 @@ function generateAnnualPPT() {
 }
 async function _doGenerateAnnualPPT() {
   try {
-    const d = getAnnualData(); const pptx = new PptxGenJS(); pptx.layout = 'LAYOUT_WIDE';
+    const d = getAnnualData(); const pptx = new PptxGenJS();
+    pptx.defineLayout({ name:'CUSTOM_16x9', width:13.33, height:7.5 });
+    pptx.layout = 'CUSTOM_16x9';
     const ac = d.overallAch >= 80 ? '059669' : d.overallAch >= 65 ? 'D97706' : 'DC2626';
     const hdr = (slide, sub) => {
       slide.background = { color: 'F4F7FB' };
@@ -2838,10 +2843,10 @@ async function _doGenerateAnnualPPT() {
       s1.addText(k[0], {x:x+0.12,y:1.2,w:2.8,h:0.2,fontSize:7.5,bold:true,color:'64748B',fontFace:'Arial'});
     });
     const bw = 0.42; d.monthlyAch.forEach((v,i) => { const bx=0.3+i*(bw+0.04); const bh=(v/100)*0.9; s1.addShape(pptx.ShapeType.rect,{x:bx,y:2.05,w:bw,h:0.9,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.02}); if(bh>0)s1.addShape(pptx.ShapeType.rect,{x:bx,y:2.05+(0.9-bh*0.9),w:bw,h:bh*0.9,fill:{color:'3B82F6'},line:{color:'3B82F6',pt:0},rectRadius:0.02}); s1.addText(v+'%',{x:bx,y:1.89,w:bw,h:0.16,fontSize:6,bold:true,color:'3B82F6',fontFace:'Arial',align:'center'}); s1.addText(d.months[i],{x:bx,y:3.0,w:bw,h:0.14,fontSize:6,color:'94A3B8',fontFace:'Arial',align:'center'}); });
-    s1.addShape(pptx.ShapeType.rect,{x:0,y:3.74,w:'100%',h:0.64,fill:{color:'0D1B2A'}});
-    s1.addText('연간 총평',{x:0.2,y:3.86,w:0.9,h:0.22,fontSize:9,bold:true,color:'5EEAD4',fontFace:'Arial'});
-    s1.addText(d.comment,{x:1.25,y:3.86,w:9.4,h:0.22,fontSize:9,color:'CBD5E1',fontFace:'Arial'});
-    s1.addText('작성일: '+new Date().toLocaleDateString('ko-KR'),{x:11.0,y:3.86,w:1.8,h:0.22,fontSize:7.5,color:'4A6280',fontFace:'Arial',align:'right'});
+    s1.addShape(pptx.ShapeType.rect,{x:0,y:6.85,w:'100%',h:0.65,fill:{color:'0D1B2A'}});
+    s1.addText('연간 총평',{x:0.2,y:6.97,w:0.9,h:0.22,fontSize:9,bold:true,color:'5EEAD4',fontFace:'Arial'});
+    s1.addText(d.comment,{x:1.25,y:6.97,w:9.4,h:0.22,fontSize:9,color:'CBD5E1',fontFace:'Arial'});
+    s1.addText('작성일: '+new Date().toLocaleDateString('ko-KR'),{x:11.0,y:6.97,w:1.8,h:0.22,fontSize:7.5,color:'4A6280',fontFace:'Arial',align:'right'});
     const s2 = pptx.addSlide(); hdr(s2, '연간 보고서 · 2/2 — 팀별 상세 분석');
     d.teams.forEach((t,i) => { const y=0.7+i*0.52; const tc=t.color.replace('#',''); const ac2=t.avg>=80?'059669':t.avg>=65?'D97706':'DC2626'; s2.addText(t.name,{x:0.2,y,w:1.3,h:0.32,fontSize:8,bold:true,color:'0F172A',fontFace:'Arial'}); s2.addShape(pptx.ShapeType.rect,{x:1.6,y:y+0.09,w:2.0,h:0.14,fill:{color:'EEF2F7'},line:{color:'EEF2F7',pt:0},rectRadius:0.07}); if(t.avg>0)s2.addShape(pptx.ShapeType.rect,{x:1.6,y:y+0.09,w:2.0*(t.avg/100),h:0.14,fill:{color:tc},line:{color:tc,pt:0},rectRadius:0.07}); s2.addText(t.avg+'%',{x:3.7,y,w:0.5,h:0.32,fontSize:9,bold:true,color:ac2,fontFace:'Arial'}); s2.addText(t.status,{x:4.3,y:y+0.05,w:0.8,h:0.22,fontSize:7,color:ac2,fontFace:'Arial'}); });
     d.topRisks.forEach((r,i) => { const y=0.72+i*0.58; const sc=r.score; const scC=sc>=15?'DC2626':sc>=8?'D97706':'059669'; const scB=sc>=15?'FEF2F2':sc>=8?'FFFBEB':'ECFDF5'; s2.addText(''+(i+1),{x:5.9,y,w:0.4,h:0.32,fontSize:9,bold:true,color:'94A3B8',fontFace:'Arial',align:'center'}); s2.addShape(pptx.ShapeType.rect,{x:6.3,y:y+0.04,w:0.9,h:0.22,fill:{color:'EFF6FF'},line:{color:'BFDBFE',pt:1},rectRadius:0.04}); s2.addText(r.team,{x:6.3,y:y+0.04,w:0.9,h:0.22,fontSize:7,color:'3B82F6',fontFace:'Arial',align:'center'}); s2.addText(r.title,{x:7.3,y,w:3.8,h:0.32,fontSize:8,color:'0F172A',fontFace:'Arial'}); s2.addShape(pptx.ShapeType.rect,{x:11.1,y:y+0.04,w:0.9,h:0.22,fill:{color:scB},line:{color:scB,pt:0},rectRadius:0.04}); s2.addText(sc+'점',{x:11.1,y:y+0.04,w:0.9,h:0.22,fontSize:8,bold:true,color:scC,fontFace:'Arial',align:'center'}); });
