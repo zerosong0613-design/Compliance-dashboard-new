@@ -2637,7 +2637,7 @@ function getAnnualData() {
   });
   const bestMonthIdx = monthlyAch.indexOf(Math.max(...monthlyAch));
   const cats = Object.entries(RISKS.reduce((acc, r) => { acc[r.cat] = (acc[r.cat] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1]);
-  return { year, comment, total: RISKS.length, evaluated: RISKS.filter(r => r.submitStatus === '평가완료').length, overallAch, months, monthlyAch, bestMonth: months[bestMonthIdx] || '-', cats: cats.map(([name, count]) => ({ name, count })), teams: TEAMS_DATA.map((d, i) => ({ ...d, color: TCOLORS[i], jan: TREND[3]?.[d.team] || 0, feb: TREND[4]?.[d.team] || 0, mar: TREND[5]?.[d.team] || 0 })), topRisks: RISKS.slice().sort((a, b) => b.score - a.score).slice(0, 5) };
+  return { year, comment, total: RISKS.length, evaluated: RISKS.filter(r => r.submitStatus === '평가완료').length, overallAch, months, monthlyAch, bestMonth: months[bestMonthIdx] || '-', cats: cats.map(([name, count]) => ({ name, count })), teams: TEAMS_DATA.map((d, i) => ({ name: d.team, avg: d.avg, status: d.status, color: TCOLORS[i], jan: TREND[3]?.[d.team] || 0, feb: TREND[4]?.[d.team] || 0, mar: TREND[5]?.[d.team] || 0 })), topRisks: RISKS.slice().sort((a, b) => b.score - a.score).slice(0, 5) };
 }
 
 
