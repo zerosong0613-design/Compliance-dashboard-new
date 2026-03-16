@@ -246,7 +246,10 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .card-sub{font-size:12px;color:var(--muted);margin-top:3px;margin-bottom:14px}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
 @media(max-width:768px){.kpi-grid{grid-template-columns:1fr 1fr;gap:12px}}
-.kpi-card{background:var(--surface);border-radius:14px;padding:18px 20px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);animation:fadeUp .4s ease both}
+@media(max-width:400px){.kpi-grid{grid-template-columns:1fr !important}}
+.kpi-card{background:var(--surface);border-radius:14px;padding:18px 20px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);animation:fadeUp .4s ease both;transition:transform .15s,box-shadow .15s}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.10)}
+.kpi-card:active{transform:translateY(0)}
 .kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .kpi-icon{font-size:22px}
 .badge-up{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#ECFDF5;color:var(--green)}
@@ -264,7 +267,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .bar-track{flex:1;height:8px;background:#EEF2F7;border-radius:99px;overflow:hidden}
 .bar-fill{height:100%;border-radius:99px;width:0%;transition:width 1s cubic-bezier(.4,0,.2,1)}
 .team-pct{width:36px;font-size:12px;font-weight:800;color:var(--text);text-align:right;flex-shrink:0}
-.stag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;flex-shrink:0}
+.stag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;flex-shrink:0}
 .hm-row{display:flex;gap:3px;margin-bottom:3px}
 .hm-lbl{width:24px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted)}
 .hm-cell{flex:1;aspect-ratio:1;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:rgba(255,255,255,.9);cursor:default;transition:transform .15s}
@@ -297,12 +300,14 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .s-eval{background:#ECFDF5;color:#059669}
 .s-none{background:#FEF2F2;color:var(--red)}
 .s-draft{background:#FFFBEB;color:var(--amber)}
-.status-chip{font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap}
+.status-chip{font-size:12px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap}
 .progress-wrap{display:flex;align-items:center;gap:7px}
 .progress-track{width:48px;height:5px;background:var(--border);border-radius:99px;overflow:hidden}
 .progress-fill{height:100%;border-radius:99px}
-.act-btn{padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s}
+.act-btn{padding:8px 14px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s;min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center}
 .act-btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.success{background:var(--green);color:#fff;pointer-events:none;opacity:.85}
+.dirty-dot::after{content:'';display:inline-block;width:8px;height:8px;background:var(--amber);border-radius:50%;margin-left:6px;vertical-align:middle;animation:fadeIn .3s}
 /* Desktop split view */
 .split-view{display:flex;gap:18px;height:calc(100vh - 130px)}
 @media(max-width:768px){.split-view{display:block}}
@@ -433,6 +438,9 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 #excel-file-input{display:none}
 /* Reports */
 #rpt-slide *{box-sizing:border-box}
+body.sheet-open{overflow:hidden!important}
+body.modal-open{overflow:hidden!important}
+@media(max-width:500px){#add-risk-modal>div>div,#edit-risk-modal>div{max-width:calc(100% - 32px)!important;padding:20px!important}}
 </style>
 </head>
 <body>
@@ -557,15 +565,15 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
       <div class="view" id="view-dash">
         <!-- 즉각 조치 필요 배너 (동적 렌더링) -->
         <div id="dash-action-banner" style="display:none;margin-bottom:16px"></div>
-        <div class="kpi-grid">
-          <div class="kpi-card" style="cursor:pointer" onclick="showKpiDrilldown('total')" title="클릭하여 상세 보기"><div class="kpi-top"><span class="kpi-icon">⚠️</span></div><div class="kpi-num" data-t="20" data-kpi="total">0</div><div class="kpi-label">관리 리스크</div><div class="kpi-sub">5개 팀 전체</div></div>
+        <div class="kpi-grid" role="region" aria-label="핵심 성과 지표">
+          <div class="kpi-card" style="cursor:pointer" onclick="showKpiDrilldown('total')" title="클릭하여 상세 보기" role="button" aria-label="관리 리스크 상세 보기"><div class="kpi-top"><span class="kpi-icon">⚠️</span></div><div class="kpi-num" data-t="20" data-kpi="total">0</div><div class="kpi-label">관리 리스크</div><div class="kpi-sub">5개 팀 전체</div></div>
           <div class="kpi-card" style="animation-delay:80ms;cursor:pointer" onclick="showKpiDrilldown('submitted')" title="클릭하여 상세 보기"><div class="kpi-top"><span class="kpi-icon">✅</span><span class="badge-up" id="kpi-submitted-badge">↑</span></div><div class="kpi-num" data-t="17" data-kpi="submitted">0</div><div class="kpi-label">제출 완료</div><div class="kpi-sub" id="kpi-submitted-sub">미제출 3건</div></div>
           <div class="kpi-card" style="animation-delay:160ms;cursor:pointer" onclick="showKpiDrilldown('achieve')" title="클릭하여 상세 보기"><div class="kpi-top"><span class="kpi-icon">📊</span><span class="badge-up" id="kpi-ach-badge">↑</span></div><div class="kpi-num" data-t="78" data-pct="1" data-kpi="achieve">0</div><div class="kpi-label">전사 달성율</div><div class="kpi-sub" id="kpi-ach-sub">팀별 달성율</div></div>
           <div class="kpi-card" style="animation-delay:240ms;cursor:pointer" onclick="showKpiDrilldown('eval')" title="클릭하여 상세 보기"><div class="kpi-top"><span class="kpi-icon">⏳</span><span class="badge-warn" id="kpi-eval-badge">검토</span></div><div class="kpi-num" data-t="5" data-kpi="eval">0</div><div class="kpi-label">평가 대기</div><div class="kpi-sub">즉시 처리 필요</div></div>
         </div>
         <div class="chart-row">
           <div class="card"><div class="card-title">팀별 이행 달성율</div><div class="card-sub">2025년 3월 기준</div><div id="team-bars"></div></div>
-          <div class="card"><div class="card-title">월별 달성율 추이</div><div class="card-sub">최근 6개월</div><canvas id="trend-canvas" style="width:100%"></canvas><div id="trend-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div></div>
+          <div class="card"><div class="card-title">월별 달성율 추이</div><div class="card-sub">최근 6개월</div><canvas id="trend-canvas" style="width:100%" aria-label="월별 달성율 추이 차트" role="img"></canvas><div id="trend-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div></div>
         </div>
         <div class="bottom-row">
           <div class="card"><div class="card-title">리스크 Heat Map</div><div class="card-sub">영향도 × 가능성</div><div id="heatmap"></div></div>
@@ -619,7 +627,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
             <div class="chart-filter-tabs" id="team-filter-tabs"></div>
           </div>
           <div class="chart-wrap">
-            <canvas id="teams-canvas" style="width:100%;display:block"></canvas>
+            <canvas id="teams-canvas" style="width:100%;display:block" aria-label="팀별 추이 차트" role="img"></canvas>
             <div class="chart-tooltip" id="teams-tooltip"></div>
           </div>
           <!-- 범례 -->
@@ -840,7 +848,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
           <div class="kpi-card" style="animation-delay:160ms"><div class="kpi-top"><span class="kpi-icon">⏳</span><span class="badge-warn">미제출</span></div><div class="kpi-num" data-t="1">0</div><div class="kpi-label">미입력</div></div>
         </div>
         <div class="chart-row">
-          <div class="card"><div class="card-title">월별 달성율 추이</div><div class="card-sub" id="myteam-csub">영업팀</div><canvas id="myteam-canvas" height="180" style="width:100%"></canvas></div>
+          <div class="card"><div class="card-title">월별 달성율 추이</div><div class="card-sub" id="myteam-csub">영업팀</div><canvas id="myteam-canvas" height="180" style="width:100%" aria-label="내 팀 월별 달성율 차트" role="img"></canvas></div>
           <div class="card"><div class="card-title">리스크별 현황</div><div class="card-sub">이번달 입력 현황</div><div id="myteam-risks" style="margin-top:8px"></div></div>
         </div>
       </div>
@@ -911,6 +919,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
           <span>선정된 리스크: <span class="em-sel-count" id="em-sel-count">0</span>건</span>
           <button style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:11px;cursor:pointer;font-family:inherit" onclick="emSelectAll(true)">전체 선택</button>
           <button style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:11px;cursor:pointer;font-family:inherit" onclick="emSelectAll(false)">전체 해제</button>
+          <button style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:11px;cursor:pointer;font-family:inherit" onclick="emInvertSelection()">선택 반전</button>
           <button style="padding:4px 10px;border:1px solid #BFDBFE;border-radius:6px;background:#EFF6FF;font-size:11px;cursor:pointer;font-family:inherit;color:var(--accent)" onclick="emSelectTop(5)">상위 5개만</button>
           <button style="padding:4px 10px;border:1px solid #BFDBFE;border-radius:6px;background:#EFF6FF;font-size:11px;cursor:pointer;font-family:inherit;color:var(--accent)" onclick="emSelectTop(10)">상위 10개만</button>
         </div>
@@ -1076,6 +1085,8 @@ function showInputModal({ title, label, placeholder = '', confirmText = '확인'
     const prev = document.getElementById('_custom-modal'); if (prev) prev.remove();
     const overlay = document.createElement('div');
     overlay.id = '_custom-modal';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-label', title);
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9995;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .15s';
     overlay.innerHTML = `
       <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:400px;box-shadow:0 24px 64px rgba(0,0,0,.3)">
@@ -1104,6 +1115,8 @@ function showConfirmModal({ title, message, confirmText = '확인', danger = fal
     const prev = document.getElementById('_custom-modal'); if (prev) prev.remove();
     const overlay = document.createElement('div');
     overlay.id = '_custom-modal';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-label', title);
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9995;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .15s';
     overlay.innerHTML = `
       <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:380px;box-shadow:0 24px 64px rgba(0,0,0,.3)">
@@ -1161,7 +1174,11 @@ async function loadData(year, month) {
     }
   } catch (e) {
     console.error('데이터 로드 오류:', e);
-    toast('데이터 로드 실패: ' + e.message, 'error', 5000);
+    const errMsg = e.message || '';
+    if (errMsg.includes('401') || errMsg.includes('403')) toast('권한이 없습니다. SharePoint 로그인 상태를 확인하세요.', 'error', 5000);
+    else if (errMsg.includes('CORS') || errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError')) toast('네트워크 연결을 확인하세요. (CORS 설정 필요 가능)', 'error', 5000);
+    else if (errMsg.includes('404')) toast('SharePoint 사이트 또는 리스트를 찾을 수 없습니다. CONFIG 설정을 확인하세요.', 'error', 5000);
+    else toast('데이터 로드 실패: ' + e.message, 'error', 5000);
     await _loadOfflineData(year, month); // 폴백
   } finally {
     hideLoading();
@@ -1194,7 +1211,16 @@ async function _loadOfflineData(year, month) {
 const LS_PREFIX = 'riskops_';
 function _lsKey(year, month, riskId) { return `${LS_PREFIX}${year}_${month}_${riskId}`; }
 function _lsSave(year, month, riskId, data) {
-  try { localStorage.setItem(_lsKey(year, month, riskId), JSON.stringify(data)); } catch(e) {}
+  try {
+    const key = _lsKey(year, month, riskId);
+    const val = JSON.stringify(data);
+    localStorage.setItem(key, val);
+    return true;
+  } catch(e) {
+    console.warn('localStorage 저장 실패:', e);
+    toast('로컬 저장 공간이 부족합니다. 관리자에게 문의하세요.', 'error', 5000);
+    return false;
+  }
 }
 function _lsLoad(year, month, riskId) {
   try { const v = localStorage.getItem(_lsKey(year, month, riskId)); return v ? JSON.parse(v) : null; } catch(e) { return null; }
@@ -1677,7 +1703,65 @@ function filterTbl(f, btn) {
 }
 function showRiskDetail(riskId) {
   const r = RISKS.find(x => x.id === riskId); if (!r) return;
-  toast(`${r.id}: ${r.title} — 위험도 ${r.score}점`, 'info', 4000);
+  const prev = document.getElementById('risk-detail-modal'); if (prev) prev.remove();
+  const modal = document.createElement('div');
+  modal.id = 'risk-detail-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9990;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)';
+  modal.setAttribute('role','dialog');
+  modal.setAttribute('aria-label','리스크 상세 정보');
+  const sc = scoreStyle(r.score);
+  const achHtml = r.achieve != null
+    ? `<div style="display:flex;align-items:center;gap:8px"><div style="width:80px;height:8px;background:#EEF2F7;border-radius:4px;overflow:hidden"><div style="width:${r.achieve}%;height:100%;background:${r.achieve>=80?'var(--green)':r.achieve>=60?'var(--amber)':'var(--red)'};border-radius:4px"></div></div><span style="font-weight:800;color:${r.achieve>=80?'var(--green)':r.achieve>=60?'var(--amber)':'var(--red)'}">${r.achieve}%</span></div>`
+    : '<span style="color:#94A3B8">미평가</span>';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3);animation:fadeUp .2s ease">
+      <div style="padding:20px 24px;border-bottom:1px solid #E5EBF2;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:monospace">${r.id}</span>
+            <span class="cat-tag">${r.cat}</span>
+            <span class="status-chip ${stClass(r.submitStatus)}">${stIcon(r.submitStatus)}${r.submitStatus}</span>
+          </div>
+          <div style="font-size:16px;font-weight:800;color:var(--text)">${r.title}</div>
+        </div>
+        <button onclick="document.getElementById('risk-detail-modal').remove();document.body.classList.remove('modal-open')" style="width:30px;height:30px;border:none;background:var(--bg);border-radius:8px;font-size:16px;cursor:pointer;color:var(--muted);flex-shrink:0">✕</button>
+      </div>
+      <div style="overflow-y:auto;flex:1;padding:20px 24px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px">
+          <div style="background:var(--light);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border)">
+            <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px">영향도</div>
+            <div style="font-size:22px;font-weight:800;color:var(--text)">${r.impact || '-'}</div>
+          </div>
+          <div style="background:var(--light);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border)">
+            <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px">가능성</div>
+            <div style="font-size:22px;font-weight:800;color:var(--text)">${r.likelihood || '-'}</div>
+          </div>
+          <div style="background:${sc.bg};border-radius:10px;padding:12px;text-align:center;border:1px solid ${sc.col}22">
+            <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px">위험도</div>
+            <div style="font-size:22px;font-weight:800;color:${sc.col}">${r.score}</div>
+          </div>
+        </div>
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">팀 / 담당자</div>
+          <div style="font-size:13px;color:var(--text)">${r.team} · ${r.owner || '-'}</div>
+        </div>
+        ${r.desc ? `<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">리스크 설명</div><div style="font-size:13px;color:var(--text);line-height:1.7;background:var(--light);padding:12px;border-radius:8px">${r.desc}</div></div>` : ''}
+        ${r.task ? `<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">개선 과제</div><div style="font-size:13px;color:var(--text);line-height:1.7;background:#EFF6FF;padding:12px;border-radius:8px;border:1px solid #BFDBFE">${r.task}</div></div>` : ''}
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">달성율</div>
+          ${achHtml}
+        </div>
+        ${r.content ? `<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">최근 제출 내용</div><div style="font-size:13px;color:var(--text);line-height:1.7;background:var(--light);padding:12px;border-radius:8px">${r.content}</div></div>` : ''}
+        ${r.specialNote ? `<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">특이사항</div><div style="font-size:13px;color:var(--text);line-height:1.7">${r.specialNote}</div></div>` : ''}
+        ${r.evalComment ? `<div><div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">평가 의견</div><div style="font-size:13px;color:var(--text);line-height:1.7;background:#ECFDF5;padding:12px;border-radius:8px;border:1px solid #A7F3D0">${r.evalComment}</div></div>` : ''}
+      </div>
+      <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;flex-shrink:0">
+        <button class="btn btn-ghost" onclick="document.getElementById('risk-detail-modal').remove();document.body.classList.remove('modal-open')">닫기</button>
+      </div>
+    </div>`;
+  modal.onclick = e => { if (e.target === modal) { modal.remove(); document.body.classList.remove('modal-open'); } };
+  document.body.classList.add('modal-open');
+  document.body.appendChild(modal);
 }
 
 /* 차트 */
@@ -1852,6 +1936,8 @@ async function submitMonthly(idx) {
   const { status, content, note } = getFormValues();
   if (!status) { toast('이행 상태를 선택해주세요.', 'warn'); return; }
   if (!content) { toast('이행 내용을 입력해주세요.', 'warn'); return; }
+  if (content.length < 10) { toast('이행 내용을 10자 이상 작성해주세요.', 'warn'); return; }
+  if (status === '해당없음' && content.length > 200) { toast('"해당없음" 선택 시 상세 내용이 필요하지 않을 수 있습니다. 상태를 확인해주세요.', 'info'); }
 
   // ── 제출 확인 모달 ──
   const confirmed = await showConfirmModal({
@@ -2209,7 +2295,7 @@ function masterSearch(q) { masterQ = q; applyMaster(); }
 function applyMaster() {
   let d = RISKS;
   if (masterTeam !== '전체') d = d.filter(r => r.team === masterTeam);
-  if (masterQ) d = d.filter(r => r.title.includes(masterQ) || r.id.includes(masterQ));
+  if (masterQ) { const q = masterQ.toLowerCase(); d = d.filter(r => r.title.toLowerCase().includes(q) || r.id.toLowerCase().includes(q) || (r.cat||'').toLowerCase().includes(q) || (r.desc||'').toLowerCase().includes(q) || (r.task||'').toLowerCase().includes(q) || (r.owner||'').toLowerCase().includes(q)); }
   renderMaster(d);
 }
 function renderMaster(data) {
@@ -2311,8 +2397,8 @@ async function confirmEditRisk(riskId) {
   const title      = document.getElementById('edit-risk-title')?.value.trim();
   const team       = document.getElementById('edit-risk-team')?.value;
   const cat        = document.getElementById('edit-risk-cat')?.value;
-  const impact     = parseInt(document.getElementById('edit-risk-impact')?.value) || r.impact;
-  const likelihood = parseInt(document.getElementById('edit-risk-likelihood')?.value) || r.likelihood;
+  const impact     = Math.min(5, Math.max(1, parseInt(document.getElementById('edit-risk-impact')?.value) || r.impact));
+  const likelihood = Math.min(5, Math.max(1, parseInt(document.getElementById('edit-risk-likelihood')?.value) || r.likelihood));
   const owner      = document.getElementById('edit-risk-owner')?.value.trim() || '-';
   const task       = document.getElementById('edit-risk-task')?.value.trim() || '';
   const selected   = document.getElementById('edit-risk-selected')?.checked !== false;
@@ -2370,8 +2456,8 @@ async function confirmAddRisk() {
   const title = document.getElementById('new-risk-title')?.value.trim();
   const team  = document.getElementById('new-risk-team')?.value;
   const cat   = document.getElementById('new-risk-cat')?.value;
-  const impact = parseInt(document.getElementById('new-risk-impact')?.value) || 3;
-  const likelihood = parseInt(document.getElementById('new-risk-likelihood')?.value) || 3;
+  const impact = Math.min(5, Math.max(1, parseInt(document.getElementById('new-risk-impact')?.value) || 3));
+  const likelihood = Math.min(5, Math.max(1, parseInt(document.getElementById('new-risk-likelihood')?.value) || 3));
   const owner = document.getElementById('new-risk-owner')?.value.trim() || '-';
   if (!title) { toast('리스크명을 입력해주세요.', 'warn'); return; }
   const score = impact * likelihood;
@@ -2795,11 +2881,28 @@ function parseExcelFile(file) {
       const required = ['RiskTitle','Team','ImpactScore','LikelihoodScore'];
       const missing = required.filter(k => !Object.keys(rows[0]).includes(k));
       if (missing.length) { toast(`양식 오류: ${missing.join(', ')} 컬럼이 없습니다.`, 'error'); return; }
+      const validTeams = ['영업팀','생산팀','연구개발팀','구매팀','품질팀'];
+      const parseErrors = [];
       emParsedRisks = rows.map((r, i) => {
-        const impact = parseInt(r.ImpactScore) || 1, likelihood = parseInt(r.LikelihoodScore) || 1;
-        const score = Math.min(5, Math.max(1, impact)) * Math.min(5, Math.max(1, likelihood));
-        return { id: 'R' + String(i + 1).padStart(3, '0'), title: String(r.RiskTitle || '').trim(), team: String(r.Team || '').trim(), cat: String(r.RiskCategory || '기타').trim(), desc: String(r.RiskDescription || '').trim(), task: String(r.ImprovementTask || '').trim(), impact, likelihood, score, status: '미제출', submitStatus: '미제출', achieve: null, owner: '-', selected: score >= 15, spId: null };
-      }).filter(r => r.title).sort((a, b) => b.score - a.score);
+        const rowNum = i + 2;
+        const title = String(r.RiskTitle || '').trim();
+        const team = String(r.Team || '').trim();
+        if (!title) { parseErrors.push(`${rowNum}행: 리스크명 누락`); return null; }
+        if (!team) { parseErrors.push(`${rowNum}행: 팀명 누락`); return null; }
+        if (validTeams.length && !validTeams.includes(team)) { parseErrors.push(`${rowNum}행: 팀명 "${team}"이(가) 유효하지 않습니다 (${validTeams.join('/')})`); }
+        const rawImpact = parseInt(r.ImpactScore);
+        const rawLikelihood = parseInt(r.LikelihoodScore);
+        if (isNaN(rawImpact) || rawImpact < 1 || rawImpact > 5) { parseErrors.push(`${rowNum}행: 영향도는 1~5 숫자여야 합니다 (입력값: ${r.ImpactScore})`); }
+        if (isNaN(rawLikelihood) || rawLikelihood < 1 || rawLikelihood > 5) { parseErrors.push(`${rowNum}행: 가능성은 1~5 숫자여야 합니다 (입력값: ${r.LikelihoodScore})`); }
+        const impact = Math.min(5, Math.max(1, rawImpact || 1));
+        const likelihood = Math.min(5, Math.max(1, rawLikelihood || 1));
+        const score = impact * likelihood;
+        return { id: 'R' + String(i + 1).padStart(3, '0'), title, team, cat: String(r.RiskCategory || '기타').trim(), desc: String(r.RiskDescription || '').trim(), task: String(r.ImprovementTask || '').trim(), impact, likelihood, score, status: '미제출', submitStatus: '미제출', achieve: null, owner: '-', selected: score >= 15, spId: null };
+      }).filter(r => r && r.title).sort((a, b) => b.score - a.score);
+      if (parseErrors.length > 0) {
+        toast(`⚠ ${parseErrors.length}건의 데이터 문제가 발견되었습니다. 콘솔을 확인하세요.`, 'warn', 5000);
+        console.warn('Excel 파싱 경고:', parseErrors);
+      }
       showExcelSelectStep(file.name, rows.length);
     } catch (err) { toast('파싱 오류: ' + err.message, 'error'); }
   };
@@ -3258,6 +3361,22 @@ window.addEventListener('beforeunload', function(e) {
   }
 });
 
+// ── dirty form 추적 확장: 상태칩, 파일첨부, 평가폼 ──
+document.addEventListener('click', function(e) {
+  if (e.target.classList && e.target.classList.contains('radio-chip') && curPage === 'monthly') _setDirty(true);
+});
+document.addEventListener('change', function(e) {
+  if (e.target.id === 'attach-input') _setDirty(true);
+  if (e.target.id === 'eval-sl' || e.target.id === 'eval-comment') _setDirty(true);
+});
+// ── dirty 표시 dot ──
+function _updateDirtyIndicator() {
+  const pt = document.getElementById('page-title');
+  if (pt) pt.classList.toggle('dirty-dot', _hasDirtyForm && curPage === 'monthly');
+}
+const _origSetDirty = _setDirty;
+_setDirty = function(dirty) { _hasDirtyForm = dirty; _updateDirtyIndicator(); };
+
 // 네비게이션 이탈 시 (SPA 내부 이동)
 const _origNavigateTo = navigateTo;
 navigateTo = function(id) {
@@ -3273,6 +3392,134 @@ navigateTo = function(id) {
     return;
   }
   _origNavigateTo(id);
+};
+
+/* ═══════════════════════════════════════════════════════════
+   🔧  일괄 적용 패치 — PM/Designer Agent 개선사항
+═══════════════════════════════════════════════════════════ */
+
+/* ── Bottom Sheet body scroll lock ── */
+const _origOpenSheet = openSheet;
+openSheet = function(id, title, body, footer) {
+  _origOpenSheet(id, title, body, footer);
+  document.body.classList.add('sheet-open');
+};
+const _origCloseSheet = closeSheet;
+closeSheet = function() {
+  _origCloseSheet();
+  document.body.classList.remove('sheet-open');
+};
+
+/* ── 라디오칩 키보드 내비게이션 (ArrowLeft/Right) ── */
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  const active = document.activeElement;
+  if (!active || !active.classList.contains('radio-chip')) return;
+  const row = active.closest('.radio-row');
+  if (!row) return;
+  const chips = Array.from(row.querySelectorAll('.radio-chip'));
+  const idx = chips.indexOf(active);
+  const next = e.key === 'ArrowRight' ? chips[idx + 1] || chips[0] : chips[idx - 1] || chips[chips.length - 1];
+  if (next) { next.focus(); next.click(); e.preventDefault(); }
+});
+
+/* ── 라디오칩 tabindex + focus 스타일 자동 부여 ── */
+document.addEventListener('DOMContentLoaded', function() {
+  const style = document.createElement('style');
+  style.textContent = '.radio-chip:focus{outline:2px solid var(--accent);outline-offset:2px}';
+  document.head.appendChild(style);
+});
+new MutationObserver(function() {
+  document.querySelectorAll('.radio-chip:not([tabindex])').forEach(c => c.setAttribute('tabindex', '0'));
+}).observe(document.body, { childList: true, subtree: true });
+
+/* ── Excel 모달 선택 반전 ── */
+function emInvertSelection() {
+  emParsedRisks.forEach(r => r.selected = !r.selected);
+  renderEmTable();
+}
+
+/* ── Chart canvas width=0 방어 ── */
+const _origDrawChart = drawChart;
+drawChart = function(cid, data, keys, colors, legend) {
+  const canvas = document.getElementById(cid);
+  if (!canvas) return;
+  if (canvas.offsetWidth < 10 || !canvas.offsetParent) { console.warn('Chart skipped: canvas not visible', cid); return; }
+  _origDrawChart(cid, data, keys, colors, legend);
+};
+const _origDrawTeamsChart = drawTeamsChart;
+drawTeamsChart = function() {
+  const canvas = document.getElementById('teams-canvas');
+  if (!canvas || canvas.offsetWidth < 10 || !canvas.offsetParent) { console.warn('TeamsChart skipped: canvas not visible'); return; }
+  _origDrawTeamsChart();
+};
+
+/* ── Empty State 개선: 액션 유도 링크 ── */
+const _origRenderMyTeam = renderMyTeam;
+renderMyTeam = function() {
+  _origRenderMyTeam();
+  const risksEl = document.getElementById('myteam-risks');
+  if (risksEl && risksEl.querySelector('[style*="text-align:center"]') && risksEl.textContent.includes('없습니다')) {
+    risksEl.innerHTML = `<div style="text-align:center;color:var(--muted);padding:32px;font-size:13px">
+      <div style="font-size:32px;margin-bottom:8px">📋</div>
+      이번달 점검 리스크가 없습니다
+      <div style="font-size:12px;color:#94A3B8;margin-top:8px">리스크 Master에서 리스크가 선정되면 여기에 표시됩니다.</div>
+      ${appRole === 'admin' ? '<button class="btn btn-ghost" style="margin-top:12px;font-size:12px" onclick="navigateTo(\'master\')">리스크 Master 이동</button>' : '<div style="font-size:11px;color:#94A3B8;margin-top:8px">관리자에게 문의하세요.</div>'}
+    </div>`;
+  }
+};
+
+/* ── 평가 완료 목록 Empty State 개선 ── */
+const _origRenderEvalList = renderEvalList;
+renderEvalList = function() {
+  _origRenderEvalList();
+  const listEl = document.getElementById('eval-list');
+  if (listEl && listEl.textContent.includes('평가 대기 항목이 없습니다')) {
+    const allEvaluated = RISKS.filter(r => r.submitStatus === '평가완료').length;
+    const notSubmitted = RISKS.filter(r => r.submitStatus === '미제출' || r.submitStatus === '임시저장').length;
+    let contextMsg = '';
+    if (allEvaluated > 0 && notSubmitted === 0) contextMsg = '모든 리스크의 평가가 완료되었습니다.';
+    else if (notSubmitted > 0) contextMsg = `팀에서 아직 ${notSubmitted}건을 제출하지 않았습니다.`;
+    else contextMsg = '제출완료 건이 생기면 여기에 표시됩니다.';
+    listEl.innerHTML = `<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">
+      <div style="font-size:32px;margin-bottom:8px">⚖</div>
+      평가 대기 항목이 없습니다
+      <div style="font-size:12px;color:#94A3B8;margin-top:8px">${contextMsg}</div>
+    </div>`;
+  }
+};
+
+/* ── 제출 완료 버튼 CSS class 사용 ── */
+const _origSubmitMonthlyBtn = submitMonthly;
+/* already patched inline — just ensure btn uses class */
+
+/* ── ARIA: 모달 role=dialog ── */
+const _origShowConfirmModal = showConfirmModal;
+showConfirmModal = function(opts) {
+  return _origShowConfirmModal(opts).then(function(result) {
+    return result;
+  });
+};
+
+/* ── ARIA: 사이드바 nav aria-current ── */
+const _origNavigateToAria = _origNavigateTo;
+const _patchedNavigate = navigateTo;
+navigateTo = function(id) {
+  _patchedNavigate(id);
+  document.querySelectorAll('.sb-btn,.bnav-btn,.dr-btn').forEach(b => {
+    if (b.dataset.id === id) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
+};
+
+/* ── Excel/PPT 로딩 상태 개선 ── */
+const _origParseExcelFile = parseExcelFile;
+parseExcelFile = function(file) {
+  showLoading('엑셀 파일 파싱 중...');
+  setTimeout(function() {
+    _origParseExcelFile(file);
+    hideLoading();
+  }, 50);
 };
 
 </script>
