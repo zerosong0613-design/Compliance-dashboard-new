@@ -1691,7 +1691,6 @@ function renderMissingAlerts() {
     if (!missing[r.team]) missing[r.team] = [];
     missing[r.team].push(r);
   });
-  const dday = (() => { const n = new Date(); const end = new Date(n.getFullYear(), n.getMonth() + 1, 0); return Math.ceil((end - n) / 86400000); })();
   if (!Object.keys(missing).length) {
     alertEl.innerHTML = '<div style="text-align:center;padding:24px;color:var(--green);font-weight:700">✓ 미제출 없음</div>';
     return;
