@@ -2,7 +2,7 @@
 
 > `index.html` 파일 상단 `CONFIG` 블록만 수정하면 연동이 완료됩니다.
 >
-> **최종 수정:** 2026-03-16 (v9.2 — PM/Designer Agent 3차 패치 반영)
+> **최종 수정:** 2026-03-16 (v9.3 — PM Agent 4차 패치 반영)
 
 ---
 
@@ -187,6 +187,18 @@ A. `OFFLINE_MODE: true` 상태에서는 정상입니다. SP 연동 완료 후 `f
 - **모바일 UX**: 400px 이하 1열 레이아웃, Bottom Sheet body 스크롤 잠금, 모달 반응형
 - **안정성**: localStorage 에러 처리, Canvas 렌더 방어, 에러 메시지 타입별 분기
 - **기능**: 리스크 상세 모달, 검색 전체 필드 확장, Dirty form 추적 확장, Excel 선택 반전
+
+## v9.3 변경사항 요약 (2026-03-16)
+
+PM Agent 4차 분석 기반 17개 항목 적용:
+
+- **월 셀렉터 수정**: PC/모바일 월 변경 시 데이터 갱신 정상 작동, 로그인 시 현재 연도/월 자동 설정
+- **보안**: XSS 방어 (`_esc()` 헬퍼), innerHTML에 사용자 입력 이스케이프 적용
+- **독촉 메일**: 하드코딩 HTML 제거 → 동적 렌더링으로 교체, `sendNudge()` 함수 연결
+- **검증 강화**: 리스크명 4~200자 제한, 중복 등록 감지, textarea 2000자 maxlength + 글자수 카운터
+- **안정성**: 차트 탭 전환 재렌더, callFlow 15초 타임아웃, 리사이즈 디바운스 200ms
+- **데이터**: TREND 빈 데이터 null 처리 (가짜 70% 제거), submitStatus/status 자동 동기화
+- **UX**: Dirty form eval/master 확장, navigator.onLine 알림, Excel 더블클릭 방어
 
 상세 내역은 `plan.md` Part 5-3 참조.
 
