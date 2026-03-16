@@ -530,7 +530,7 @@ body.modal-open{overflow:hidden!important}
           <option value="2026">2026년</option>
         </select>
         <div style="width:1px;height:20px;background:var(--border)"></div>
-        <select class="fm-sel"><option>1월</option><option>2월</option><option selected>3월</option><option>4월</option><option>5월</option><option>6월</option><option>7월</option><option>8월</option><option>9월</option><option>10월</option><option>11월</option><option>12월</option></select>
+        <select id="sel-month" class="fm-sel" onchange="setMonth(this.value)"><option value="1">1월</option><option value="2">2월</option><option value="3" selected>3월</option><option value="4">4월</option><option value="5">5월</option><option value="6">6월</option><option value="7">7월</option><option value="8">8월</option><option value="9">9월</option><option value="10">10월</option><option value="11">11월</option><option value="12">12월</option></select>
       </div>
       <button class="export-btn" onclick="exportRisksExcel()">⬇ 내보내기</button>
     </div>
@@ -555,7 +555,7 @@ body.modal-open{overflow:hidden!important}
         <option value="2026">2026년</option>
       </select>
       <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
-      <select class="fm-sel"><option>1월</option><option>2월</option><option selected>3월</option><option>4월</option><option>5월</option><option>6월</option><option>7월</option><option>8월</option><option>9월</option><option>10월</option><option>11월</option><option>12월</option></select>
+      <select id="sel-month-mob" class="fm-sel" onchange="setMonth(this.value)"><option value="1">1월</option><option value="2">2월</option><option value="3" selected>3월</option><option value="4">4월</option><option value="5">5월</option><option value="6">6월</option><option value="7">7월</option><option value="8">8월</option><option value="9">9월</option><option value="10">10월</option><option value="11">11월</option><option value="12">12월</option></select>
     </div>
 
     <!-- CONTENT -->
@@ -572,15 +572,12 @@ body.modal-open{overflow:hidden!important}
           <div class="kpi-card" style="animation-delay:240ms;cursor:pointer" onclick="showKpiDrilldown('eval')" title="클릭하여 상세 보기"><div class="kpi-top"><span class="kpi-icon">⏳</span><span class="badge-warn" id="kpi-eval-badge">검토</span></div><div class="kpi-num" data-t="5" data-kpi="eval">0</div><div class="kpi-label">평가 대기</div><div class="kpi-sub">즉시 처리 필요</div></div>
         </div>
         <div class="chart-row">
-          <div class="card"><div class="card-title">팀별 이행 달성율</div><div class="card-sub">2025년 3월 기준</div><div id="team-bars"></div></div>
+          <div class="card"><div class="card-title">팀별 이행 달성율</div><div class="card-sub" id="dash-period-label">기준</div><div id="team-bars"></div></div>
           <div class="card"><div class="card-title">월별 달성율 추이</div><div class="card-sub">최근 6개월</div><canvas id="trend-canvas" style="width:100%" aria-label="월별 달성율 추이 차트" role="img"></canvas><div id="trend-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div></div>
         </div>
         <div class="bottom-row">
           <div class="card"><div class="card-title">리스크 Heat Map</div><div class="card-sub">영향도 × 가능성</div><div id="heatmap"></div></div>
-          <div class="card"><div class="card-title">⚠ 미제출 현황</div><div class="card-sub">즉시 조치 · D-11</div>
-            <div class="alert-item-card"><div class="alert-head"><span class="alert-team">구매팀</span><span class="alert-badge">2건</span><span class="alert-days">D-11</span></div><div class="alert-risk"><span style="color:var(--red)">•</span>하도급 거래 서면 미교부</div><div class="alert-risk"><span style="color:var(--red)">•</span>수입물품 관세분류 오류</div><button class="alert-send-btn" onclick="this.textContent='✓ 발송 완료';this.style.background='#64748B'">독촉 메일 발송</button></div>
-            <div class="alert-item-card"><div class="alert-head"><span class="alert-team">생산팀</span><span class="alert-badge">1건</span><span class="alert-days">D-11</span></div><div class="alert-risk"><span style="color:var(--red)">•</span>근로계약서 필수조항 누락</div><button class="alert-send-btn" onclick="this.textContent='✓ 발송 완료';this.style.background='#64748B'">독촉 메일 발송</button></div>
-          </div>
+          <div class="card"><div class="card-title">⚠ 미제출 현황</div><div class="card-sub" id="dash-missing-sub">즉시 조치</div><div id="dash-missing-alerts"></div></div>
         </div>
         <div class="table-card">
           <div class="table-header">
@@ -1046,13 +1043,21 @@ async function spPatch(listName, itemId, body) {
 /* Flow HTTP 트리거 호출 */
 async function callFlow(url, body) {
   if (!url) throw new Error('Flow URL이 설정되지 않았습니다. CONFIG.FLOW_SUBMIT_URL / FLOW_SAVE_URL 을 입력해주세요.');
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) throw new Error(`Flow 호출 실패 (${res.status})`);
-  try { return await res.json(); } catch { return { success: true }; }
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: ctrl.signal
+    });
+    if (!res.ok) throw new Error(`Flow 호출 실패 (${res.status})`);
+    try { return await res.json(); } catch { return { success: true }; }
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('서버 응답 시간 초과 (15초). 네트워크를 확인하세요.');
+    throw e;
+  } finally { clearTimeout(timeout); }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1345,7 +1350,7 @@ function _computeTrend(trendReports, year, month) {
     const row = { month: slot.label };
     TKEYS.forEach(team => {
       const items = trendReports.filter(r => r.Team === team && r.Year === slot.year && r.Month === slot.month && r.AchieveScore != null);
-      row[team] = items.length ? Math.round(items.reduce((s, r) => s + r.AchieveScore, 0) / items.length) : 70;
+      row[team] = items.length ? Math.round(items.reduce((s, r) => s + r.AchieveScore, 0) / items.length) : null;
     });
     return row;
   });
@@ -1475,6 +1480,7 @@ async function doLogin() {
   const now = new Date();
   curYear = String(now.getFullYear());
   curMonth = now.getMonth() + 1;
+  _syncSelectors();
   await loadData(parseInt(curYear), curMonth);
   updateBadges();
   navigateTo(appRole === 'admin' ? 'dash' : 'monthly');
@@ -1564,9 +1570,28 @@ async function setYear(y) {
   navigateTo(curPage);
 }
 
+async function setMonth(m) {
+  m = parseInt(m);
+  const pc = document.getElementById('sel-month'); const mob = document.getElementById('sel-month-mob');
+  if (pc && parseInt(pc.value) !== m) pc.value = m;
+  if (mob && parseInt(mob.value) !== m) mob.value = m;
+  curMonth = m;
+  await loadData(parseInt(curYear), curMonth);
+  updateBadges();
+  navigateTo(curPage);
+}
+
+function _syncSelectors() {
+  ['sel-year','sel-year-mob'].forEach(id => { const el = document.getElementById(id); if (el) el.value = curYear; });
+  ['sel-month','sel-month-mob'].forEach(id => { const el = document.getElementById(id); if (el) el.value = curMonth; });
+}
+
 /* ═══════════════════════════════════════════════════════════
    📊  헬퍼 함수
 ═══════════════════════════════════════════════════════════ */
+/* XSS 방어: HTML 이스케이프 */
+function _esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
 const statusSt = s => ({우수:{bg:'#ECFDF5',tx:'#059669'},정상:{bg:'#EFF6FF',tx:'#2563EB'},주의:{bg:'#FFFBEB',tx:'#D97706'},위험:{bg:'#FEF2F2',tx:'#DC2626'}}[s] || {bg:'#F1F5F9',tx:'#64748B'});
 const stClass   = s => ({제출완료:'s-sub',평가완료:'s-eval',미제출:'s-none',임시저장:'s-draft'}[s] || '');
 const stIcon    = s => ({제출완료:'✓ ',평가완료:'★ ',미제출:'✕ ',임시저장:'◎ ',이행완료:'✓ ',이행중:'↗ ',미이행:'✕ ',해당없음:'— '}[s] || '');
@@ -1629,6 +1654,9 @@ function initDash() {
   const evalBadge = document.getElementById('kpi-eval-badge');
   if (evalBadge) evalBadge.textContent = pendingEval > 0 ? `${pendingEval}건 검토` : '없음';
 
+  // 동적 기준일 표시
+  const periodLabel = document.getElementById('dash-period-label');
+  if (periodLabel) periodLabel.textContent = `${curYear}년 ${curMonth}월 기준`;
   renderTeamBars(); renderHeatmap(); renderRiskTable('전체');
   renderMissingAlerts();
   setTimeout(() => drawChart('trend-canvas', TREND, TKEYS, TCOLORS, true), 80);
@@ -1653,8 +1681,11 @@ function renderTeamBars() {
 }
 
 function renderMissingAlerts() {
-  const alertEl = document.querySelector('#view-dash .alert-item-card')?.parentElement;
+  const alertEl = document.getElementById('dash-missing-alerts');
   if (!alertEl) return;
+  const subEl = document.getElementById('dash-missing-sub');
+  const dday = (() => { const n = new Date(); const end = new Date(n.getFullYear(), n.getMonth() + 1, 0); return Math.ceil((end - n) / 86400000); })();
+  if (subEl) subEl.textContent = `즉시 조치 · D-${dday}`;
   const missing = {};
   RISKS.filter(r => r.submitStatus === '미제출').forEach(r => {
     if (!missing[r.team]) missing[r.team] = [];
@@ -1694,7 +1725,7 @@ function renderRiskTable(filter) {
     const pb = r.achieve != null
       ? `<div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:${r.achieve}%;background:${r.achieve >= 80 ? 'var(--green)' : r.achieve >= 60 ? 'var(--amber)' : 'var(--red)'}"></div></div><span style="font-weight:700">${r.achieve}%</span></div>`
       : '<span style="color:#94A3B8">미평가</span>';
-    return `<tr><td class="tbl-id">${r.id}</td><td class="tbl-title" title="${r.title}">${r.title}</td><td class="tbl-muted">${r.team}</td><td><span class="cat-tag">${r.cat}</span></td><td><span class="${scClass(r.score)}">${r.score}</span></td><td><span class="status-chip ${stClass(r.submitStatus)}">${stIcon(r.submitStatus)}${r.submitStatus}</span></td><td>${pb}</td><td><button class="act-btn" onclick="showRiskDetail('${r.id}')">상세</button></td></tr>`;
+    return `<tr><td class="tbl-id">${_esc(r.id)}</td><td class="tbl-title" title="${_esc(r.title)}">${_esc(r.title)}</td><td class="tbl-muted">${_esc(r.team)}</td><td><span class="cat-tag">${_esc(r.cat)}</span></td><td><span class="${scClass(r.score)}">${r.score}</span></td><td><span class="status-chip ${stClass(r.submitStatus)}">${stIcon(r.submitStatus)}${r.submitStatus}</span></td><td>${pb}</td><td><button class="act-btn" onclick="showRiskDetail('${_esc(r.id)}')">상세</button></td></tr>`;
   }).join('');
 }
 function filterTbl(f, btn) {
@@ -1778,10 +1809,11 @@ function drawChart(cid, data, keys, colors, legend) {
   [40, 60, 80, 100].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, yp(v)); ctx.lineTo(pad.l + cw, yp(v)); ctx.stroke(); ctx.fillStyle = '#94A3B8'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right'; ctx.fillText(v + '%', pad.l - 3, yp(v) + 3); });
   ctx.fillStyle = '#94A3B8'; ctx.textAlign = 'center'; months.forEach((m, i) => ctx.fillText(m, xp(i), H - 6));
   keys.forEach((key, ki) => {
-    const vals = data.map(d => d[key] || 0);
+    const vals = data.map(d => d[key] != null ? d[key] : null);
     ctx.beginPath(); ctx.strokeStyle = colors[ki]; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
-    vals.forEach((v, i) => i === 0 ? ctx.moveTo(xp(i), yp(v)) : ctx.lineTo(xp(i), yp(v))); ctx.stroke();
-    vals.forEach((v, i) => { ctx.beginPath(); ctx.arc(xp(i), yp(v), 3.5, 0, Math.PI * 2); ctx.fillStyle = colors[ki]; ctx.fill(); });
+    let started = false;
+    vals.forEach((v, i) => { if (v == null) { started = false; return; } if (!started) { ctx.moveTo(xp(i), yp(v)); started = true; } else ctx.lineTo(xp(i), yp(v)); }); ctx.stroke();
+    vals.forEach((v, i) => { if (v == null) return; ctx.beginPath(); ctx.arc(xp(i), yp(v), 3.5, 0, Math.PI * 2); ctx.fillStyle = colors[ki]; ctx.fill(); });
   });
   if (legend) { const el = document.getElementById('trend-legend'); if (el) el.innerHTML = keys.map((k, i) => `<div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:50%;background:${colors[i]}"></div><span style="font-size:11px;color:var(--muted)">${k}</span></div>`).join(''); }
 }
@@ -1900,7 +1932,8 @@ function buildMonthlyFormBody(r) {
       <div class="radio-row" id="status-chips">${statuses.map(st => `<div class="radio-chip ${r.submitStatus === '제출완료' && st === '이행완료' ? 'on' : ''}" onclick="toggleChip(this)">${statusIcons[st]}${st}</div>`).join('')}</div>
     </div>
     <div class="form-group"><label class="form-label">이행 내용 <span style="color:var(--red)">*</span></label>
-      <textarea class="form-textarea" id="monthly-content" placeholder="이번 달 이행 내용을 구체적으로 작성하세요...">${r.content || ''}</textarea>
+      <textarea class="form-textarea" id="monthly-content" placeholder="이번 달 이행 내용을 구체적으로 작성하세요..." maxlength="2000">${r.content || ''}</textarea>
+      <div style="font-size:11px;color:var(--muted);text-align:right;margin-top:2px"><span id="content-chars">0</span>/2000</div>
     </div>
     <div class="form-group"><label class="form-label">증빙 파일</label>
       <div class="dropzone" onclick="document.getElementById('attach-input').click()">
@@ -2301,12 +2334,12 @@ function applyMaster() {
 function renderMaster(data) {
   document.getElementById('master-tbody').innerHTML = data.map(r => `
     <tr>
-      <td class="tbl-id">${r.id}</td>
-      <td class="tbl-title" title="${r.title}">${r.title}</td>
-      <td class="tbl-muted">${r.team}</td>
-      <td><span class="cat-tag">${r.cat}</span></td>
+      <td class="tbl-id">${_esc(r.id)}</td>
+      <td class="tbl-title" title="${_esc(r.title)}">${_esc(r.title)}</td>
+      <td class="tbl-muted">${_esc(r.team)}</td>
+      <td><span class="cat-tag">${_esc(r.cat)}</span></td>
       <td><span class="${scClass(r.score)}">${r.score}</span></td>
-      <td class="tbl-muted">${r.owner}</td>
+      <td class="tbl-muted">${_esc(r.owner)}</td>
       <td>${r.selected !== false ? '<span style="color:var(--green);font-weight:700">✓</span>' : '<span style="color:#94A3B8">미선정</span>'}</td>
       <td><button class="act-btn" onclick="openRiskEditModal('${r.id}')">수정</button></td>
     </tr>`).join('');
@@ -2403,6 +2436,7 @@ async function confirmEditRisk(riskId) {
   const task       = document.getElementById('edit-risk-task')?.value.trim() || '';
   const selected   = document.getElementById('edit-risk-selected')?.checked !== false;
   if (!title) { toast('리스크명을 입력해주세요.', 'warn'); return; }
+  if (title.length < 4) { toast('리스크명은 4자 이상 입력해주세요.', 'warn'); return; }
   const score = impact * likelihood;
   try {
     if (!CONFIG.OFFLINE_MODE && r.spId) {
@@ -2460,6 +2494,10 @@ async function confirmAddRisk() {
   const likelihood = Math.min(5, Math.max(1, parseInt(document.getElementById('new-risk-likelihood')?.value) || 3));
   const owner = document.getElementById('new-risk-owner')?.value.trim() || '-';
   if (!title) { toast('리스크명을 입력해주세요.', 'warn'); return; }
+  if (title.length < 4) { toast('리스크명은 4자 이상 입력해주세요.', 'warn'); return; }
+  if (title.length > 200) { toast('리스크명은 200자 이하로 입력해주세요.', 'warn'); return; }
+  const dup = RISKS.find(r => r.title === title && r.team === team);
+  if (dup) { toast(`"${title}" 리스크가 이미 ${team}에 존재합니다 (${dup.id}).`, 'warn'); return; }
   const score = impact * likelihood;
   try {
     if (!CONFIG.OFFLINE_MODE) {
@@ -2978,10 +3016,15 @@ function openSheet(id, title, body, footer) {
 }
 function closeSheet() { document.getElementById('sheet-overlay').classList.remove('on'); document.getElementById('bottom-sheet').classList.remove('on'); }
 
-/* ── 리사이즈 ── */
+/* ── 리사이즈 (디바운스) ── */
+let _resizeTimer;
 window.addEventListener('resize', function() {
-  if (curPage === 'dash')  setTimeout(() => drawChart('trend-canvas', TREND, TKEYS, TCOLORS, true), 50);
-  if (curPage === 'teams') setTimeout(() => drawTeamsChart(), 50);
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(function() {
+    if (curPage === 'dash')  drawChart('trend-canvas', TREND, TKEYS, TCOLORS, true);
+    if (curPage === 'teams') drawTeamsChart();
+    if (curPage === 'myteam') { const t = appTeam || '영업팀'; const myTrend = TREND.map(d => ({ month: d.month, [t]: d[t] || 0 })); drawChart('myteam-canvas', myTrend, [t], ['#3B82F6'], false); }
+  }, 200);
 });
 
 /* ═══════════════════════════════════════════════════════════
@@ -3310,31 +3353,7 @@ window.addEventListener('DOMContentLoaded', function() {
   }, 500);
 });
 
-/* ── 월 변경 셀렉터 연동 (모바일 필터바) ── */
-(function patchMonthSelector() {
-  window.addEventListener('DOMContentLoaded', function() {
-    // 모바일 월 셀렉터
-    const mobMonthSel = document.querySelectorAll('#filter-bar .fm-sel')[1];
-    if (mobMonthSel) {
-      mobMonthSel.addEventListener('change', async function() {
-        curMonth = parseInt(this.value);
-        await loadData(parseInt(curYear), curMonth);
-        updateBadges();
-        navigateTo(curPage);
-      });
-    }
-    // PC topbar 월 셀렉터 (존재하는 경우)
-    const pcMonthSel = document.getElementById('sel-month');
-    if (pcMonthSel) {
-      pcMonthSel.addEventListener('change', async function() {
-        curMonth = parseInt(this.value);
-        await loadData(parseInt(curYear), curMonth);
-        updateBadges();
-        navigateTo(curPage);
-      });
-    }
-  });
-})();
+/* ── 월 변경: HTML onchange="setMonth()"로 직접 연결 완료 (v9.3) ── */
 
 /* ═══════════════════════════════════════════════════════════
    🛡  페이지 이탈 경고 — 입력 중 새로고침/탭 닫기 방지
@@ -3521,6 +3540,86 @@ parseExcelFile = function(file) {
     hideLoading();
   }, 50);
 };
+
+/* ═══════════════════════════════════════════════════════════
+   🔧  v9.3 패치 — PM Agent 4차 개선
+═══════════════════════════════════════════════════════════ */
+
+/* ── Excel import 더블클릭 방어 ── */
+const _origConfirmExcelImport = confirmExcelImport;
+confirmExcelImport = async function() {
+  const btn = document.getElementById('em-confirm-btn');
+  if (btn && btn.disabled) return;
+  if (btn) { btn.disabled = true; btn.textContent = '등록 중...'; }
+  try { await _origConfirmExcelImport(); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = '✓ 선정 완료 · 등록하기'; } }
+};
+
+/* ── Dirty form 추적 확장: eval + master 페이지 ── */
+document.addEventListener('input', function(e) {
+  if (e.target.id === 'eval-comment' || e.target.id === 'eval-sl') _setDirty(true);
+  if (e.target.id && e.target.id.startsWith('edit-risk-')) _setDirty(true);
+});
+
+/* ── 페이지 이탈 경고 확장: eval/master 편집 중 ── */
+const _patchedNav2 = navigateTo;
+navigateTo = function(id) {
+  if (_hasDirtyForm && (curPage === 'eval' || curPage === 'master') && id !== curPage) {
+    showConfirmModal({
+      title: '이탈 확인',
+      message: '편집 중인 내용이 있습니다.<br>저장하지 않고 이동하시겠습니까?',
+      confirmText: '이동하기',
+      danger: true
+    }).then(ok => { if (ok) { _setDirty(false); _patchedNav2(id); } });
+    return;
+  }
+  _patchedNav2(id);
+};
+
+/* ── navigator.onLine 체크 — 오프라인 상태 안내 개선 ── */
+window.addEventListener('online', function() { toast('네트워크가 연결되었습니다.', 'success'); });
+window.addEventListener('offline', function() { toast('네트워크 연결이 끊어졌습니다. 오프라인 모드로 전환됩니다.', 'warn', 5000); });
+
+/* ── 차트: 탭 전환 시 재렌더 (hidden→visible) ── */
+const _patchedNav3 = navigateTo;
+navigateTo = function(id) {
+  _patchedNav3(id);
+  // 탭 전환 후 차트가 있는 페이지면 딜레이 후 재렌더
+  if (id === 'dash') setTimeout(() => drawChart('trend-canvas', TREND, TKEYS, TCOLORS, true), 120);
+  if (id === 'teams') setTimeout(() => drawTeamsChart(), 120);
+  if (id === 'myteam') {
+    const t = appTeam || '영업팀';
+    const myTrend = TREND.map(d => ({ month: d.month, [t]: d[t] || 0 }));
+    setTimeout(() => drawChart('myteam-canvas', myTrend, [t], ['#3B82F6'], false), 120);
+  }
+};
+
+/* ── 글자수 카운터 ── */
+document.addEventListener('input', function(e) {
+  if (e.target.id === 'monthly-content') {
+    const counter = document.getElementById('content-chars');
+    if (counter) counter.textContent = e.target.value.length;
+  }
+});
+
+/* ── submitStatus/status 통합 — 항상 동기화 ── */
+const _origLoadOffline = _loadOfflineData;
+_loadOfflineData = async function(year, month) {
+  await _origLoadOffline(year, month);
+  RISKS.forEach(r => { if (r.submitStatus && r.status !== r.submitStatus) r.status = r.submitStatus; });
+};
+
+/* ── 보고서 연도 셀렉터 동적 기본값 ── */
+const _origRenderReports = renderReports;
+renderReports = function() {
+  _origRenderReports();
+  const rptYear = document.getElementById('rpt-year');
+  const rptAnnYear = document.getElementById('rpt-ann-year');
+  if (rptYear) rptYear.value = curYear;
+  if (rptAnnYear) rptAnnYear.value = curYear;
+};
+
+/* ── 월 셀렉터 패치 삭제 (이제 HTML에서 직접 onchange 연결) ── */
 
 </script>
 </body>
