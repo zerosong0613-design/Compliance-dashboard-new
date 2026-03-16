@@ -1856,16 +1856,56 @@ function showRiskDetail(riskId) {
 /* 차트 */
 function drawChart(cid, data, keys, colors, legend) {
   const canvas = document.getElementById(cid); if (!canvas) return;
-  const W = canvas.offsetWidth || 400, H = Math.round(W * 0.38);
+  const W = canvas.offsetWidth || 400, H = Math.round(W * 0.42);
   canvas.width = W * devicePixelRatio; canvas.height = H * devicePixelRatio;
   const ctx = canvas.getContext('2d'); ctx.scale(devicePixelRatio, devicePixelRatio);
-  const pad = {t:8,r:8,b:28,l:34}, cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-  const mn = 40, mx = 100, months = data.map(d => d.month);
-  const xp = i => pad.l + i * (cw / (months.length - 1));
-  const yp = v => pad.t + ch - (v - mn) / (mx - mn) * ch;
+  const pad = {t:12,r:8,b:28,l:38}, cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+  const months = data.map(d => d.month);
+
+  // Y축 범위를 데이터 기반으로 동적 계산
+  let allVals = [];
+  keys.forEach(key => data.forEach(d => { if (d[key] != null) allVals.push(d[key]); }));
+  const dataMin = allVals.length ? Math.min(...allVals) : 0;
+  const dataMax = allVals.length ? Math.max(...allVals) : 100;
+  // 최소값을 10 단위로 내림, 최대값을 10 단위로 올림 (최소 0, 최대 100)
+  const mn = Math.max(0, Math.floor((dataMin - 5) / 10) * 10);
+  const mx = Math.min(100, Math.ceil((dataMax + 5) / 10) * 10);
+  // Y축 눈금 생성 (4~5단계)
+  const step = mx - mn <= 30 ? 10 : 20;
+  const ticks = [];
+  for (let v = mn; v <= mx; v += step) ticks.push(v);
+  if (ticks[ticks.length - 1] < mx) ticks.push(mx);
+
+  const xp = i => pad.l + (months.length > 1 ? i * (cw / (months.length - 1)) : cw / 2);
+  const yp = v => pad.t + ch - (v - mn) / (Math.max(mx - mn, 1)) * ch;
+
+  // 격자선 + Y축 라벨
   ctx.strokeStyle = '#E5EBF2'; ctx.lineWidth = 1;
-  [40, 60, 80, 100].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, yp(v)); ctx.lineTo(pad.l + cw, yp(v)); ctx.stroke(); ctx.fillStyle = '#94A3B8'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right'; ctx.fillText(v + '%', pad.l - 3, yp(v) + 3); });
-  ctx.fillStyle = '#94A3B8'; ctx.textAlign = 'center'; months.forEach((m, i) => ctx.fillText(m, xp(i), H - 6));
+  ticks.forEach(v => {
+    ctx.beginPath(); ctx.moveTo(pad.l, yp(v)); ctx.lineTo(pad.l + cw, yp(v)); ctx.stroke();
+    ctx.fillStyle = '#94A3B8'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(v + '%', pad.l - 4, yp(v) + 3);
+  });
+
+  // 연도 경계선 표시 (1월이 포함된 경우 점선으로 구분)
+  months.forEach((m, i) => {
+    if (m === '1월' && i > 0) {
+      ctx.save();
+      ctx.strokeStyle = '#F59E0B'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(xp(i), pad.t); ctx.lineTo(xp(i), pad.t + ch); ctx.stroke();
+      ctx.setLineDash([]);
+      // "연초" 라벨
+      ctx.fillStyle = '#F59E0B'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('▼ 연초', xp(i), pad.t - 1);
+      ctx.restore();
+    }
+  });
+
+  // X축 라벨
+  ctx.fillStyle = '#94A3B8'; ctx.textAlign = 'center'; ctx.font = '10px sans-serif';
+  months.forEach((m, i) => ctx.fillText(m, xp(i), H - 6));
+
+  // 데이터 라인 + 포인트
   keys.forEach((key, ki) => {
     const vals = data.map(d => d[key] != null ? d[key] : null);
     ctx.beginPath(); ctx.strokeStyle = colors[ki]; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
