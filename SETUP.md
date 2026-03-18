@@ -2,7 +2,7 @@
 
 > `index.html` 파일 상단 `CONFIG` 블록만 수정하면 연동이 완료됩니다.
 >
-> **최종 수정:** 2026-03-16 (v9.3 — PM Agent 4차 패치 반영)
+> **최종 수정:** 2026-03-18 (v10 — 아카이브 탭 신설, 대시보드 재설계)
 
 ---
 
@@ -103,6 +103,12 @@ const CONFIG = {
   FLOW_REVISION_URL: 'https://prod-**.logic.azure.com/...',
   //                  ↑ F-07 이의신청 HTTP 트리거 URL
 
+  FLOW_NUDGE_URL:    'https://prod-**.logic.azure.com/...',
+  //                  ↑ F-04 독촉 메일 HTTP 트리거 URL
+
+  COPILOT_AGENT_URL: 'https://copilotstudio.microsoft.com/...',
+  //                  ↑ Copilot Studio 에이전트 임베드 URL (아카이브 탭에서 사용)
+
   OFFLINE_MODE: false,   // ← true → false 로 변경하면 SP 연동 활성화
 };
 ```
@@ -153,6 +159,8 @@ vercel --prod
 □ CONFIG.FLOW_SUBMIT_URL 입력
 □ CONFIG.FLOW_SAVE_URL 입력
 □ CONFIG.FLOW_REVISION_URL 입력
+□ CONFIG.FLOW_NUDGE_URL 입력 (독촉 메일 연동)
+□ CONFIG.COPILOT_AGENT_URL 입력 (아카이브 Copilot 에이전트 연동, 선택)
 □ CONFIG.OFFLINE_MODE = false 변경
 □ (선택) CONFIG.ANTHROPIC_API_KEY 입력
 □ Vercel 배포 후 URL 확인
@@ -200,8 +208,21 @@ PM Agent 4차 분석 기반 17개 항목 적용:
 - **데이터**: TREND 빈 데이터 null 처리 (가짜 70% 제거), submitStatus/status 자동 동기화
 - **UX**: Dirty form eval/master 확장, navigator.onLine 알림, Excel 더블클릭 방어
 
+## v10 변경사항 요약 (2026-03-18)
+
+대시보드 전면 재설계 + 아카이브 탭 신설 (15개 항목):
+
+- **대시보드 재배치**: 즉각조치 배너→KPI 4종→달성율→사이클카드→히트맵+미제출 순으로 재구성
+- **위험평가 Full Cycle**: 5단계 사이클 카드 설명형 전환 (단계별 desc/why 문장), `previewPhase()` 클릭 미리보기
+- **KPI 카드 복원**: kpi-total/submitted/ach/eval ID 추가, 실데이터 연동 준비 완료
+- **아카이브 탭 신설**: NAV_ADMIN/NAV_USER/BNAV 모두 추가, 연도별 자료 보관 + 법령 인사이트 + Copilot iframe
+- **법령 알리미**: 카테고리 필터(공정거래/개인정보/SHE/IP/기타), 긴급도 표시(즉시검토/모니터링/반영완료)
+- **Copilot 에이전트**: `CONFIG.COPILOT_AGENT_URL` 설정 시 iframe 활성화, 미연결 시 플레이스홀더 표시
+- **차트 개선**: Y축 동적 범위, 연초 경계선 표시 (월별 달성율/팀 이행현황 차트)
+- **샘플 데이터**: 연간 사이클 재설계 (1월 낮음→12월 높음), 월/연도별 동적 변동
+
 상세 내역은 `plan.md` Part 5-3 참조.
 
 ---
 
-*작성: 컴플라이언스팀 (법무) | 2026-03-15 (수정: 2026-03-16)*
+*작성: 컴플라이언스팀 (법무) | 2026-03-15 (수정: 2026-03-18)*
