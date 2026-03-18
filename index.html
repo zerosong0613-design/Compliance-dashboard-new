@@ -269,7 +269,8 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .lsb-green{background:#ECFDF5;color:#059669}
 @media(max-width:768px){#archive-bottom-grid{grid-template-columns:1fr!important}}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
-@media(max-width:768px){.kpi-grid{grid-template-columns:1fr 1fr;gap:12px}}
+.kpi-grid-3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:768px){.kpi-grid{grid-template-columns:1fr 1fr;gap:12px}.kpi-grid-3{grid-template-columns:1fr 1fr}}
 @media(max-width:400px){.kpi-grid{grid-template-columns:1fr !important}}
 .kpi-card{background:var(--surface);border-radius:14px;padding:18px 20px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);animation:fadeUp .4s ease both;transition:transform .15s,box-shadow .15s}
 .kpi-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.10)}
@@ -324,7 +325,10 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .phase-stepbar-head{padding:16px 24px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .phase-stepbar-sub{font-size:12px;color:var(--muted)}
 .phase-stepbar-year{margin-left:auto;font-size:11px;color:var(--muted)}
-.phase-timeline{display:flex;align-items:flex-start;padding:14px 16px 0;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.phase-timeline{display:flex;align-items:flex-start;padding:14px 16px 0;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative}
+.phase-stepbar{position:relative}
+.phase-stepbar::after{content:'';position:absolute;bottom:0;right:0;top:50px;width:40px;background:linear-gradient(90deg,transparent,var(--surface));pointer-events:none;z-index:2;border-radius:0 0 14px 0;display:none}
+@media(max-width:768px){.phase-stepbar::after{display:block}}
 .ps-step{flex:1;min-width:100px;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;z-index:1;padding:0 4px 14px;cursor:pointer;transition:background .15s;border-radius:10px}
 .ps-step:hover{background:var(--bg)}
 .ps-step.active{background:var(--accent-l)}
@@ -416,7 +420,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .filter-scroll{display:flex;gap:7px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px}
 .f-btn{padding:10px 16px;border:1px solid var(--border);border-radius:99px;background:#fff;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;transition:all .15s;min-height:44px;display:inline-flex;align-items:center}
 .f-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.overflow-x{overflow-x:auto}
+.overflow-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .tbl{width:100%;border-collapse:collapse;font-size:13px}
 .tbl th{padding:11px 16px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.3px;color:var(--muted);white-space:nowrap;background:var(--light);border-bottom:2px solid var(--border)}
 .tbl td{padding:13px 16px;border-bottom:1px solid var(--border);color:var(--text)}
@@ -455,7 +459,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .r-item-id{font-size:11px;font-weight:700;color:#94A3B8;margin-bottom:3px}
 .r-item-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px;line-height:1.4}
 .form-panel{flex:1;background:var(--surface);border-radius:14px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;display:flex;flex-direction:column}
-@media(max-width:768px){.form-panel{min-height:400px}}
+@media(max-width:768px){.form-panel{min-height:auto}}
 .form-hd{padding:18px 22px;border-bottom:1px solid var(--border);background:var(--light);flex-shrink:0}
 .form-hd-id{font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px}
 .form-hd-title{font-size:15px;font-weight:800;color:var(--text)}
@@ -518,7 +522,8 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .chart-tooltip{position:absolute;background:var(--navy);color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;pointer-events:none;display:none;z-index:10;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.25);line-height:1.7}
 
 .master-toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
-.search-wrap{flex:1;min-width:200px;position:relative}
+@media(max-width:400px){.master-toolbar{gap:6px}.master-toolbar .btn{font-size:11px!important;padding:6px 10px!important}.add-btn{font-size:12px;padding:8px 12px}}
+.search-wrap{flex:1;min-width:140px;position:relative}
 .search-input{width:100%;padding:9px 12px 9px 36px;border:1px solid var(--border);border-radius:10px;font-size:13px;outline:none;font-family:inherit;background:var(--surface)}
 .search-input:focus{border-color:var(--accent)}
 .search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--muted)}
@@ -570,9 +575,23 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 #excel-file-input{display:none}
 /* Reports */
 #rpt-slide *{box-sizing:border-box}
+.mob-hint{display:none}
+@media(max-width:768px){.mob-hint{display:inline}}
 body.sheet-open{overflow:hidden!important}
 body.modal-open{overflow:hidden!important}
-@media(max-width:500px){#add-risk-modal>div>div,#edit-risk-modal>div{max-width:calc(100% - 32px)!important;padding:20px!important}}
+@media(max-width:500px){
+  #add-risk-modal>div>div,#edit-risk-modal>div{max-width:calc(100% - 32px)!important;padding:20px!important}
+  /* 모달 내 2열 그리드 → 1열 전환 */
+  #add-risk-modal [style*="grid-template-columns:1fr 1fr"],
+  #edit-risk-modal [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  /* 팀 선택 3열 → 2열 */
+  .team-grid{grid-template-columns:1fr 1fr!important}
+  /* 로그인 카드 패딩 축소 */
+  .login-card{padding:24px 18px!important}
+  #login-screen{padding:12px!important}
+  /* Copilot iframe 모바일 높이 축소 */
+  #copilot-frame-wrap,#copilot-iframe,#copilot-placeholder{min-height:240px!important}
+}
 </style>
 </head>
 <body>
@@ -905,7 +924,7 @@ body.modal-open{overflow:hidden!important}
                 <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">총평 (선택)</div>
                 <div style="display:flex;gap:6px;align-items:center">
                   <input id="rpt-comment" type="text" placeholder="예: 전반적으로 양호, 구매팀 집중 관리 필요"
-                    style="width:260px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;color:var(--text)"
+                    style="width:100%;max-width:260px;min-width:140px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;color:var(--text)"
                     onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
                   <button id="ai-monthly-btn" class="btn btn-ghost" style="padding:8px 12px;font-size:12px;white-space:nowrap;border-color:#8B5CF6;color:#7C3AED" onclick="generateAIComment('monthly')">✨ AI 작성</button>
                 </div>
@@ -929,7 +948,7 @@ body.modal-open{overflow:hidden!important}
                 <div id="rpt-slide" style="width:100%;height:100%;font-family:'Apple SD Gothic Neo','맑은 고딕',sans-serif"></div>
               </div>
             </div>
-            <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--muted)">설정을 변경하면 미리보기가 자동 업데이트됩니다</div>
+            <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--muted)">설정을 변경하면 미리보기가 자동 업데이트됩니다<span class="mob-hint"> · 모바일에서는 PPT 다운로드 후 확인 권장</span></div>
           </div>
         </div>
 
@@ -950,7 +969,7 @@ body.modal-open{overflow:hidden!important}
                 <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">연간 총평 (선택)</div>
                 <div style="display:flex;gap:6px;align-items:center">
                   <input id="rpt-ann-comment" type="text" placeholder="예: 전사 달성율 82% 달성, 지속적 개선 추세"
-                    style="width:260px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;color:var(--text)"
+                    style="width:100%;max-width:260px;min-width:140px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;color:var(--text)"
                     onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
                   <button id="ai-annual-btn" class="btn btn-ghost" style="padding:8px 12px;font-size:12px;white-space:nowrap;border-color:#8B5CF6;color:#7C3AED" onclick="generateAIComment('annual')">✨ AI 작성</button>
                 </div>
@@ -989,7 +1008,7 @@ body.modal-open{overflow:hidden!important}
                 </div>
               </div>
             </div>
-            <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--muted)">설정을 변경하면 미리보기가 자동 업데이트됩니다</div>
+            <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--muted)">설정을 변경하면 미리보기가 자동 업데이트됩니다<span class="mob-hint"> · 모바일에서는 PPT 다운로드 후 확인 권장</span></div>
           </div>
         </div>
       </div>
@@ -1084,7 +1103,7 @@ body.modal-open{overflow:hidden!important}
       <!-- ═ MY TEAM ═ -->
 
       <div class="view" id="view-myteam">
-        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi-grid kpi-grid-3">
           <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">📋</span></div><div class="kpi-num" data-t="4">0</div><div class="kpi-label">담당 리스크</div></div>
           <div class="kpi-card" style="animation-delay:80ms"><div class="kpi-top"><span class="kpi-icon">📊</span></div><div class="kpi-num" data-t="86" data-pct="1">0</div><div class="kpi-label">달성율</div></div>
           <div class="kpi-card" style="animation-delay:160ms"><div class="kpi-top"><span class="kpi-icon">⏳</span><span class="badge-warn">미제출</span></div><div class="kpi-num" data-t="1">0</div><div class="kpi-label">미입력</div></div>
@@ -1165,8 +1184,8 @@ body.modal-open{overflow:hidden!important}
           <button style="padding:4px 10px;border:1px solid #BFDBFE;border-radius:6px;background:#EFF6FF;font-size:11px;cursor:pointer;font-family:inherit;color:var(--accent)" onclick="emSelectTop(5)">상위 5개만</button>
           <button style="padding:4px 10px;border:1px solid #BFDBFE;border-radius:6px;background:#EFF6FF;font-size:11px;cursor:pointer;font-family:inherit;color:var(--accent)" onclick="emSelectTop(10)">상위 10개만</button>
         </div>
-        <div style="overflow-x:auto">
-          <table class="em-tbl">
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+          <table class="em-tbl" style="min-width:520px">
             <thead><tr><th style="width:36px;text-align:center">선정</th><th style="width:32px;text-align:center">순위</th><th>리스크명</th><th>팀</th><th>유형</th><th style="text-align:center">영향도</th><th style="text-align:center">가능성</th><th style="text-align:center">위험도</th></tr></thead>
             <tbody id="em-risk-tbody"></tbody>
           </table>
@@ -3843,9 +3862,10 @@ function renderDash() { initDash(); }
 /* ═══════════════════════════════════════════════════════════
    🪟  모바일 UI
 ═══════════════════════════════════════════════════════════ */
-function openDrawer()  { document.getElementById('drawer').classList.add('on'); document.getElementById('drawer-overlay').classList.add('on'); }
+function openDrawer()  { closeSheet(); document.getElementById('drawer').classList.add('on'); document.getElementById('drawer-overlay').classList.add('on'); }
 function closeDrawer() { document.getElementById('drawer').classList.remove('on'); document.getElementById('drawer-overlay').classList.remove('on'); }
 function openSheet(id, title, body, footer) {
+  closeDrawer();
   document.getElementById('sheet-id').textContent = id;
   document.getElementById('sheet-title').textContent = title;
   document.getElementById('sheet-body').innerHTML = body;
@@ -3872,7 +3892,10 @@ window.addEventListener('resize', function() {
 window.addEventListener('DOMContentLoaded', function() {
   if (CONFIG.OFFLINE_MODE) {
     const banner = document.createElement('div');
-    banner.style.cssText = 'position:fixed;bottom:70px;right:16px;z-index:9000;background:#1E3A5F;color:#5EEAD4;padding:8px 14px;border-radius:10px;font-size:11px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer';
+    const isMob = window.innerWidth <= 768;
+    banner.style.cssText = isMob
+      ? 'position:fixed;bottom:calc(64px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:9000;background:#1E3A5F;color:#5EEAD4;padding:6px 14px;border-radius:10px;font-size:11px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;white-space:nowrap'
+      : 'position:fixed;bottom:20px;right:16px;z-index:9000;background:#1E3A5F;color:#5EEAD4;padding:8px 14px;border-radius:10px;font-size:11px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer';
     banner.textContent = '🔌 오프라인 모드 (샘플 데이터)';
     banner.title = 'CONFIG.OFFLINE_MODE = false 로 변경하면 SharePoint 연동됩니다';
     banner.onclick = () => toast('CONFIG.SP_SITE_URL과 FLOW URL을 입력한 후 OFFLINE_MODE를 false로 변경하세요.', 'info', 6000);
@@ -4147,8 +4170,8 @@ function showKpiDrilldown(type) {
         <div style="font-size:15px;font-weight:800;color:var(--text)">${title}</div>
         <button onclick="document.getElementById('kpi-modal').remove()" style="width:30px;height:30px;border:none;background:var(--bg);border-radius:8px;font-size:16px;cursor:pointer;color:var(--muted)">✕</button>
       </div>
-      <div style="overflow-y:auto;flex:1">
-        <table class="tbl" style="width:100%"><tbody>${rows.join('')}</tbody></table>
+      <div style="overflow-y:auto;overflow-x:auto;flex:1;-webkit-overflow-scrolling:touch">
+        <table class="tbl" style="width:100%;min-width:420px"><tbody>${rows.join('')}</tbody></table>
       </div>
       ${footerBtns ? `<div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;flex-shrink:0">${footerBtns}</div>` : ''}
     </div>`;
