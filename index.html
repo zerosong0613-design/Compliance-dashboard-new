@@ -2823,6 +2823,11 @@ async function requestRevision(idx) {
       });
     }
     toast('이의신청이 접수되었습니다. 컴플라이언스팀에서 검토 후 연락드립니다.', 'success', 5000);
+    // 오프라인 모드: 상태를 localStorage에 반영
+    if (CONFIG.OFFLINE_MODE && r && r.submitStatus !== '이의신청') {
+      r._revisionRequested = true;
+      _lsSave(curYear, curMonth, r.id, { submitStatus: r.submitStatus, _revisionRequested: true });
+    }
   } catch (e) { toast('이의신청 실패: ' + e.message, 'error'); }
 }
 
@@ -4373,33 +4378,17 @@ document.addEventListener('keydown', function(e) {
   if (drawer && drawer.classList.contains('on')) { closeDrawer(); e.preventDefault(); return; }
 });
 
-/* ── D1-7: Bottom Sheet 오버레이 클릭 시 dirty form 확인 ── */
-const _origSheetOverlayClose = closeSheet;
+/* ── Bottom Sheet 오버레이 클릭 시 dirty form 확인 ── */
 document.getElementById('sheet-overlay').onclick = async function() {
   if (_hasDirtyForm && curPage === 'monthly') {
     const ok = await showConfirmModal({ title: '입력 중인 내용이 있습니다', message: '작성 중인 이행 내용이 사라질 수 있습니다. 닫으시겠습니까?', confirmText: '닫기', danger: true });
     if (!ok) return;
     _setDirty(false);
   }
-  _origSheetOverlayClose();
+  closeSheet();
 };
 
-/* ── P2-12: requestRevision 오프라인 모드 상태 반영 ── */
-const _origRequestRevision = requestRevision;
-requestRevision = async function(idx) {
-  await _origRequestRevision(idx);
-  // 오프라인 모드에서 상태를 localStorage에 저장
-  if (CONFIG.OFFLINE_MODE) {
-    const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam);
-    const r = base[idx];
-    if (r && r.submitStatus !== '이의신청') {
-      r._revisionRequested = true;
-      _lsSave(curYear, curMonth, r.id, { submitStatus: r.submitStatus, _revisionRequested: true });
-    }
-  }
-};
-
-/* ── P1-8: head 내 _loadLib 데드코드는 유지 (초기 로딩용), body 측이 덮어쓰므로 무해 ── */
+/* (v10.1 requestRevision offline 로직은 원본 함수에 직접 통합됨) */
 
 /* ═══════════════════════════════════════════════════════════
    🎯  v10.2 패치 — Phase 미션 컨트롤 (체크리스트 + 단계 완료 확정)
