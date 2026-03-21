@@ -1101,6 +1101,11 @@ body.modal-open{overflow:hidden!important}
         </div>
       </div>
 
+      <!-- ═ EVAL RESULT (User) ═ -->
+      <div class="view" id="view-evalresult">
+        <div id="evalresult-content"></div>
+      </div>
+
       <!-- ═ MY TEAM ═ -->
 
       <div class="view" id="view-myteam">
@@ -1783,17 +1788,17 @@ const NAV_ADMIN = [
   {sec:'정보'},{id:'archive',icon:'📚',label:'아카이브'},
 ];
 const NAV_USER = [
-  {sec:'업무'},{id:'monthly',icon:'📝',label:'월간 현황 입력',badge:0},
+  {sec:'업무'},{id:'monthly',icon:'📝',label:'월간 현황 입력',badge:0},{id:'evalresult',icon:'📊',label:'평가 결과 확인'},
   {sec:'현황'},{id:'myteam',icon:'📈',label:'내 팀 이행현황'},
   {sec:'정보'},{id:'archive',icon:'📚',label:'아카이브'},
 ];
 const BNAV_ADMIN = [{id:'dash',icon:'▦',label:'대시보드'},{id:'monthly',icon:'⚖',label:'검토',badge:true},{id:'teams',icon:'👥',label:'팀현황'},{id:'master',icon:'📋',label:'Master'},{id:'archive',icon:'📚',label:'아카이브'}];
-const BNAV_USER  = [{id:'monthly',icon:'📝',label:'현황 입력',badge:true},{id:'myteam',icon:'📈',label:'내 팀 현황'},{id:'archive',icon:'📚',label:'아카이브'}];
-const PAGE_TITLES = {dash:'전사 대시보드',phasecontrol:'단계별 미션',monthly_admin:'이행현황 검토',monthly:'월간 현황 입력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성',archive:'아카이브'};
+const BNAV_USER  = [{id:'monthly',icon:'📝',label:'입력',badge:true},{id:'evalresult',icon:'📊',label:'평가결과'},{id:'myteam',icon:'📈',label:'내 팀'},{id:'archive',icon:'📚',label:'아카이브'}];
+const PAGE_TITLES = {dash:'전사 대시보드',phasecontrol:'단계별 미션',monthly_admin:'이행현황 검토',monthly:'월간 현황 입력',evalresult:'평가 결과 확인',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성',archive:'아카이브'};
 // 관리자가 monthly 탭 진입 시 제목 오버라이드
 const _getPageTitle = (id) => id === 'monthly' && appRole === 'admin' ? PAGE_TITLES.monthly_admin : (PAGE_TITLES[id] || id);
 const SHOW_FILTER = ['dash','teams','eval','master','monthly'];
-const HIDE_TOPBAR_RIGHT = ['reports','selection','myteam','archive','eval','phasecontrol'];
+const HIDE_TOPBAR_RIGHT = ['reports','selection','myteam','archive','eval','phasecontrol','evalresult'];
 
 let appRole = '', appTeam = '', loginRole = '', loginTeam = '', curPage = '', curYear = '2025', curMonth = 3;
 const isMobile = () => window.innerWidth <= 768;
@@ -1968,6 +1973,7 @@ function navigateTo(id) {
   if (id === 'master')    applyMaster();
   if (id === 'selection') renderSelection();
   if (id === 'myteam')    renderMyTeam();
+  if (id === 'evalresult') renderEvalResult();
   if (id === 'dash')      { initDash(); runCounters(); }
   if (id === 'phasecontrol') renderPhaseControl();
   if (id === 'reports')   renderReports();
@@ -2700,7 +2706,8 @@ function showHeatmapDrilldown(imp, li) {
 ═══════════════════════════════════════════════════════════ */
 let selMonthly = null;
 function renderMonthly() {
-  const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam);
+  // 현업: 입력 대상만 (미제출/임시저장/제출완료), 평가완료는 evalresult 탭에서
+  const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam && r.submitStatus !== '평가완료');
   document.getElementById('monthly-psub').textContent = `${curYear}년 ${curMonth}월 · ${appRole === 'admin' ? '전체' : appTeam}`;
   const panelTitle = document.getElementById('monthly-panel-title');
   if (panelTitle) panelTitle.textContent = appRole === 'admin' ? '리스크 검토 목록' : '이번달 점검 리스크';
@@ -3128,6 +3135,141 @@ async function saveDraft(idx) {
   } catch (e) {
     toast('임시저장 실패: ' + e.message, 'error');
   }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   📊  평가 결과 확인 (현업 담당자 전용)
+═══════════════════════════════════════════════════════════ */
+function renderEvalResult() {
+  const el = document.getElementById('evalresult-content');
+  if (!el) return;
+  const team = appTeam || '영업팀';
+  const evaluated = RISKS.filter(r => r.team === team && r.submitStatus === '평가완료');
+  const achRisks = evaluated.filter(r => r.achieve != null);
+  const avgAch = achRisks.length ? Math.round(achRisks.reduce((s,r) => s + r.achieve, 0) / achRisks.length) : 0;
+  const pendingRevision = evaluated.filter(r => r._revisionRequested && r._revisionStatus === 'pending');
+
+  let html = `
+    <div style="margin-bottom:16px">
+      <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">📊 평가 결과 확인</div>
+      <div style="font-size:13px;color:var(--muted)">${curYear}년 ${curMonth}월 · ${team} · 평가완료 ${evaluated.length}건</div>
+    </div>`;
+
+  // 요약 카드
+  html += `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+      <div class="card" style="text-align:center;padding:16px">
+        <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px">평균 달성율</div>
+        <div style="font-size:28px;font-weight:900;color:${avgAch>=80?'var(--green)':avgAch>=60?'var(--amber)':'var(--red)'}">${avgAch}%</div>
+      </div>
+      <div class="card" style="text-align:center;padding:16px">
+        <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px">평가 완료</div>
+        <div style="font-size:28px;font-weight:900;color:var(--accent)">${evaluated.length}건</div>
+      </div>
+      <div class="card" style="text-align:center;padding:16px">
+        <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px">이의신청</div>
+        <div style="font-size:28px;font-weight:900;color:${pendingRevision.length?'#D97706':'var(--muted)'}">${pendingRevision.length}건</div>
+      </div>
+    </div>`;
+
+  if (!evaluated.length) {
+    html += `
+      <div class="card" style="text-align:center;padding:40px">
+        <div style="font-size:32px;margin-bottom:10px">📋</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">아직 평가 완료된 건이 없습니다</div>
+        <div style="font-size:13px;color:var(--muted)">제출 후 컴플라이언스팀에서 평가하면 여기에 결과가 표시됩니다.</div>
+      </div>`;
+    el.innerHTML = html;
+    return;
+  }
+
+  // 리스크별 결과 카드
+  evaluated.forEach((r, i) => {
+    const achColor = r.achieve >= 80 ? 'var(--green)' : r.achieve >= 60 ? 'var(--amber)' : 'var(--red)';
+    const achLabel = r.achieve >= 80 ? '양호' : r.achieve >= 60 ? '주의' : '미달';
+    const hasPendingRevision = r._revisionRequested && r._revisionStatus === 'pending';
+    const hasResolvedRevision = r._revisionRequested && r._revisionStatus !== 'pending';
+    const isAccepted = r._revisionStatus === 'accepted';
+
+    html += `
+      <div class="card" style="margin-bottom:12px;${hasPendingRevision ? 'border-color:#FDE68A' : ''}">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:2px">${r.id} · ${r.cat}</div>
+            <div style="font-size:14px;font-weight:700;color:var(--text)">${r.title}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:${achColor==='var(--green)'?'#ECFDF5':achColor==='var(--amber)'?'#FFFBEB':'#FEF2F2'};color:${achColor}">${achLabel}</span>
+            <span style="font-size:24px;font-weight:900;color:${achColor}">${r.achieve}%</span>
+          </div>
+        </div>
+
+        <div style="height:6px;background:#EEF2F7;border-radius:99px;overflow:hidden;margin-bottom:12px">
+          <div style="height:100%;width:${r.achieve}%;background:${achColor};border-radius:99px;transition:width .6s"></div>
+        </div>
+
+        ${r.evalComment ? `
+          <div style="padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:10px">
+            <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px">컴플라이언스팀 평가 의견</div>
+            <div style="font-size:13px;color:var(--text);line-height:1.6">${r.evalComment}</div>
+          </div>` : ''}
+
+        ${hasPendingRevision ? `
+          <div style="padding:10px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;margin-bottom:10px">
+            <div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:4px">⏳ 이의신청 검토 중 (${r._revisionAt || ''})</div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.5">${r._revisionReason || ''}</div>
+          </div>` : ''}
+
+        ${hasResolvedRevision ? `
+          <div style="padding:10px 14px;background:${isAccepted?'#F0FDF4':'#FEF2F2'};border:1px solid ${isAccepted?'#86EFAC':'#FECACA'};border-radius:8px;margin-bottom:10px">
+            <div style="font-size:12px;font-weight:700;color:${isAccepted?'#059669':'#DC2626'};margin-bottom:4px">${isAccepted?'✅ 이의 수용됨':'❌ 이의 기각됨'} (${r._revisionResolvedAt || ''})</div>
+            ${r._revisionResponse ? `<div style="font-size:12px;color:var(--muted);line-height:1.5">💬 ${r._revisionResponse}</div>` : ''}
+          </div>` : ''}
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:8px;border-top:1px solid var(--border)">
+          ${!hasPendingRevision && r.achieve < 80 ? `<button class="btn btn-danger" style="font-size:12px;padding:7px 14px" onclick="navigateTo('monthly');setTimeout(()=>{const idx=RISKS.filter(r2=>r2.team===appTeam&&r2.submitStatus!=='평가완료').length;},100)">이의신청</button>` : ''}
+          ${hasPendingRevision ? `<span style="font-size:12px;color:#92400E;font-weight:700">검토 대기 중</span>` : ''}
+          ${!r._revisionRequested && r.achieve < 80 ? `<button class="btn btn-danger" style="font-size:12px;padding:7px 14px" onclick="_evalResultRevision('${r.id}')">이의신청</button>` : ''}
+        </div>
+      </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+/* ── 평가결과 화면에서 이의신청 ── */
+async function _evalResultRevision(riskId) {
+  const r = RISKS.find(x => x.id === riskId);
+  if (!r) return;
+  const reason = await showInputModal({
+    title: '이의신청',
+    label: `[${r.id}] ${r.title} (달성율 ${r.achieve}%)에 대한 이의신청 사유를 입력해주세요.`,
+    placeholder: '예: 실제 이행 내용이 반영되지 않았습니다...',
+    confirmText: '이의신청 접수',
+    danger: false
+  });
+  if (!reason) return;
+  try {
+    if (!CONFIG.OFFLINE_MODE && CONFIG.FLOW_REVISION_URL) {
+      await callFlow(CONFIG.FLOW_REVISION_URL, {
+        type: 'revision_request', riskId: String(r.spId || ''), riskTitle: r.title,
+        team: appTeam, year: parseInt(curYear), month: curMonth, reason, submittedBy: appTeam
+      });
+    }
+    r._revisionRequested = true;
+    r._revisionReason = reason;
+    r._revisionAt = new Date().toISOString().split('T')[0];
+    r._revisionBy = appTeam;
+    r._revisionStatus = 'pending';
+    if (CONFIG.OFFLINE_MODE) {
+      _lsSave(curYear, curMonth, r.id, {
+        ...r, _revisionRequested: true, _revisionReason: reason,
+        _revisionAt: r._revisionAt, _revisionBy: appTeam, _revisionStatus: 'pending'
+      });
+    }
+    toast('이의신청이 접수되었습니다.', 'success');
+    renderEvalResult();
+  } catch (e) { toast('이의신청 실패: ' + e.message, 'error'); }
 }
 
 async function requestRevision(idx) {
