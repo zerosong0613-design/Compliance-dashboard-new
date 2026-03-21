@@ -4482,8 +4482,9 @@ renderReports = function() {
 /* ── D1-4: 모달 Escape 닫기 + 포커스 트랩 ── */
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape') return;
-  // 우선순위: 커스텀 모달 > KPI 드릴다운 > 리스크 상세 > 히트맵 > 수정/추가 > 엑셀 > Bottom Sheet
+  // 우선순위: 퀵에딧 > 커스텀 모달 > KPI 드릴다운 > 리스크 상세 > 히트맵 > 수정/추가 > 엑셀 > Bottom Sheet
   const modals = [
+    { id: 'task-quick-modal', close: () => document.getElementById('task-quick-modal')?.remove() },
     { id: '_custom-modal',    close: () => document.getElementById('_custom-modal')?.remove() },
     { id: 'kpi-modal',        close: () => document.getElementById('kpi-modal')?.remove() },
     { id: 'risk-detail-modal',close: () => document.getElementById('risk-detail-modal')?.remove() },
@@ -5234,6 +5235,77 @@ function renderPhaseControl() {
   el.innerHTML = html;
 }
 
+/* ── 개선 과제 퀵 에딧 모달 (Selection 페이지에서 사용) ── */
+function openTaskQuickEdit(riskId) {
+  const r = RISKS.find(x => x.id === riskId);
+  if (!r) return;
+
+  const existing = document.getElementById('task-quick-modal');
+  if (existing) existing.remove();
+
+  const hasTask = r.task && r.task.trim() !== '';
+  const modal = document.createElement('div');
+  modal.id = 'task-quick-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-label', '개선 과제 입력');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9992;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .15s';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;box-shadow:0 24px 64px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:2px">${_esc(r.id)} · ${_esc(r.team)}</div>
+          <div style="font-size:16px;font-weight:800;color:var(--text)">${_esc(r.title)}</div>
+        </div>
+        <button onclick="document.getElementById('task-quick-modal').remove()" style="width:30px;height:30px;border:none;background:var(--bg);border-radius:8px;font-size:16px;cursor:pointer;color:var(--muted)">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+        <div style="padding:8px 10px;background:var(--bg);border-radius:8px;text-align:center">
+          <div style="font-size:10px;color:var(--muted);font-weight:600">영향도</div>
+          <div style="font-size:16px;font-weight:800;color:var(--text)">${r.impact || '-'}</div>
+        </div>
+        <div style="padding:8px 10px;background:var(--bg);border-radius:8px;text-align:center">
+          <div style="font-size:10px;color:var(--muted);font-weight:600">가능성</div>
+          <div style="font-size:16px;font-weight:800;color:var(--text)">${r.likelihood || '-'}</div>
+        </div>
+        <div style="padding:8px 10px;background:var(--bg);border-radius:8px;text-align:center">
+          <div style="font-size:10px;color:var(--muted);font-weight:600">위험도</div>
+          <div style="font-size:16px;font-weight:800;color:${scColor(r.score)}">${r.score}</div>
+        </div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <label style="font-size:12px;font-weight:700;color:var(--text)">개선 과제 (통제수단)</label>
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${hasTask?'#ECFDF5':'#FEF2F2'};color:${hasTask?'#059669':'#DC2626'}">${hasTask?'입력됨':'필수 입력'}</span>
+        </div>
+        <textarea id="tq-task-input" style="width:100%;padding:12px;border:1.5px solid ${hasTask?'var(--border)':'#3B82F6'};border-radius:10px;font-size:13px;font-family:inherit;outline:none;height:100px;resize:vertical;${hasTask?'':'box-shadow:0 0 0 3px rgba(59,130,246,.12)'}"
+          placeholder="예: 매분기 교육 실시 + 체크리스트 점검 + 외부감사 대비 문서화"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">${_esc(r.task || '')}</textarea>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">이 리스크에 대해 현재 시행 중인 통제수단, 예방 활동, 개선 계획을 기록하세요.</div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px">
+        <button onclick="document.getElementById('task-quick-modal').remove()" style="padding:10px 18px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">취소</button>
+        <button onclick="saveTaskQuickEdit('${r.id}')" style="padding:10px 18px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">저장</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  // 포커스
+  setTimeout(() => document.getElementById('tq-task-input')?.focus(), 100);
+}
+
+function saveTaskQuickEdit(riskId) {
+  const r = RISKS.find(x => x.id === riskId);
+  if (!r) return;
+  const task = document.getElementById('tq-task-input')?.value.trim() || '';
+  r.task = task;
+  if (CONFIG.OFFLINE_MODE) {
+    _lsSave(curYear, curMonth, r.id, { ...r, task });
+  }
+  document.getElementById('task-quick-modal')?.remove();
+  renderSelection();
+  toast(task ? `[${riskId}] 개선 과제가 저장되었습니다.` : `[${riskId}] 개선 과제가 비워졌습니다.`, 'success');
+}
+
 /* ── Selection 페이지: Phase 3 기간에 개선 과제 미입력 표시 ── */
 const _origRenderSelection = renderSelection;
 renderSelection = function() {
@@ -5261,6 +5333,12 @@ renderSelection = function() {
     const isSelected = risk.selected !== false;
     const hasTask = risk.task && risk.task.trim() !== '';
 
+    // 리스크명 셀 클릭 → 개선과제 퀵에딧 모달
+    titleTd.style.cursor = 'pointer';
+    titleTd.style.color = 'var(--accent)';
+    titleTd.title = '클릭하여 개선 과제 입력';
+    titleTd.onclick = (e) => { e.stopPropagation(); openTaskQuickEdit(risk.id); };
+
     // 마지막 열(위험도) 뒤에 개선과제 상태 열 추가
     const existingBadge = tr.querySelector('.task-status-cell');
     if (existingBadge) existingBadge.remove();
@@ -5271,9 +5349,9 @@ renderSelection = function() {
     if (!isSelected) {
       td.innerHTML = '<span style="color:var(--muted)">—</span>';
     } else if (hasTask) {
-      td.innerHTML = '<span style="color:var(--green)">입력됨</span>';
+      td.innerHTML = `<span style="color:var(--green);cursor:pointer" onclick="event.stopPropagation();openTaskQuickEdit('${risk.id}')" title="클릭하여 수정">입력됨</span>`;
     } else {
-      td.innerHTML = '<span style="padding:2px 8px;border-radius:99px;background:#FEF2F2;color:#DC2626;cursor:pointer" onclick="event.stopPropagation();navigateTo(\'master\')" title="Master에서 개선 과제 입력">미입력</span>';
+      td.innerHTML = `<span style="padding:2px 8px;border-radius:99px;background:#FEF2F2;color:#DC2626;cursor:pointer" onclick="event.stopPropagation();openTaskQuickEdit('${risk.id}')" title="클릭하여 개선 과제 입력">미입력</span>`;
     }
     tr.appendChild(td);
   });
