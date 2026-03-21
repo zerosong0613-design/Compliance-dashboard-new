@@ -2709,8 +2709,8 @@ function showHeatmapDrilldown(imp, li) {
 ═══════════════════════════════════════════════════════════ */
 let selMonthly = null;
 function renderMonthly() {
-  // 현업: 입력 대상만 (미제출/임시저장/제출완료), 평가완료는 evalresult 탭에서
-  const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam && r.submitStatus !== '평가완료');
+  // 현업: 내 팀 전체 리스크 (평가완료 포함 — 수정/추가제출 가능)
+  const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam);
   document.getElementById('monthly-psub').textContent = `${curYear}년 ${curMonth}월 · ${appRole === 'admin' ? '전체' : appTeam}`;
   const panelTitle = document.getElementById('monthly-panel-title');
   if (panelTitle) panelTitle.textContent = appRole === 'admin' ? '리스크 검토 목록' : '이번달 점검 리스크';
@@ -2950,11 +2950,33 @@ function selectMonthly(i) {
     // ── 현업 담당자 ──
     const hasExistingContent = r.content && r.content.trim();
     const isAlreadySubmitted = r.submitStatus === '제출완료';
+    const isEvaluated = r.submitStatus === '평가완료';
     const isDraft = r.submitStatus === '임시저장';
+    const editMode = window._userEditMode?.[r.id];
 
-    // 제출완료/임시저장 + 내용 있음 → 기존 내용 미리보기 + 수정 버튼
-    if ((isAlreadySubmitted || isDraft) && hasExistingContent && !window._userEditMode?.[r.id]) {
+    // 내용 있는 건 (제출완료/임시저장/평가완료) → 미리보기 + 수정/이의 버튼
+    if ((isAlreadySubmitted || isDraft || isEvaluated) && hasExistingContent && !editMode) {
+      // 평가 결과 표시 (평가완료인 경우)
+      const evalInfo = isEvaluated ? `
+        <div style="padding:12px 16px;background:${r.achieve>=80?'#ECFDF5':'#FEF2F2'};border:1px solid ${r.achieve>=80?'#86EFAC':'#FECACA'};border-radius:10px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:13px;font-weight:700;color:${r.achieve>=80?'var(--green)':'var(--red)'}">⚖ 평가완료 · 달성율 ${r.achieve}%</span>
+          </div>
+          ${r.evalComment ? `<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:6px">💬 ${r.evalComment}</div>` : ''}
+        </div>` : '';
+
+      // 이의신청 상태 표시
+      let revisionInfo = '';
+      if (r._revisionRequested && r._revisionStatus === 'pending') {
+        revisionInfo = `<div style="padding:10px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;margin-bottom:14px;font-size:12px;color:#92400E;font-weight:600">⏳ 이의신청 검토 중 (${r._revisionAt || ''})</div>`;
+      } else if (r._revisionRequested && r._revisionStatus === 'accepted') {
+        revisionInfo = `<div style="padding:10px 14px;background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;margin-bottom:14px;font-size:12px;color:#059669;font-weight:600">✅ 이의 수용됨 · 조정 달성율 ${r.achieve}%</div>`;
+      } else if (r._revisionRequested && r._revisionStatus === 'rejected') {
+        revisionInfo = `<div style="padding:10px 14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;margin-bottom:14px;font-size:12px;color:#DC2626;font-weight:600">❌ 이의 기각됨${r._revisionResponse ? ' · '+r._revisionResponse : ''}</div>`;
+      }
+
       const previewBody = `
+        ${evalInfo}${revisionInfo}
         <div style="margin-bottom:14px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
             <span class="status-chip ${stClass(r.submitStatus)}" style="font-size:11px">${stIcon(r.submitStatus)}${r.submitStatus}</span>
@@ -2968,9 +2990,23 @@ function selectMonthly(i) {
           <div style="font-size:13px;font-weight:700;color:var(--text);margin-top:12px;margin-bottom:6px">첨부파일</div>
           ${r.attachmentUrl ? `<a class="file-chip" href="${r.attachmentUrl}" target="_blank">📄 첨부파일 보기</a>` : '<div style="font-size:12px;color:var(--muted);padding:8px 12px;background:var(--bg);border-radius:8px">첨부된 파일이 없습니다</div>'}
         </div>`;
-      const previewFooter = `
-        <button class="btn btn-ghost" onclick="window._userEditMode=window._userEditMode||{};window._userEditMode['${r.id}']=true;selectMonthly(${i})">수정하기</button>
-        ${isDraft ? `<button class="btn btn-primary" id="submit-btn-${i}" onclick="submitMonthly(${i})">제출하기 →</button>` : ''}`;
+
+      let previewFooter = '';
+      if (isDraft) {
+        previewFooter = `
+          <button class="btn btn-ghost" onclick="window._userEditMode=window._userEditMode||{};window._userEditMode['${r.id}']=true;selectMonthly(${i})">수정하기</button>
+          <button class="btn btn-primary" id="submit-btn-${i}" onclick="submitMonthly(${i})">제출하기 →</button>`;
+      } else if (isAlreadySubmitted) {
+        previewFooter = `
+          <button class="btn btn-ghost" onclick="window._userEditMode=window._userEditMode||{};window._userEditMode['${r.id}']=true;selectMonthly(${i})">수정 재제출</button>`;
+      } else if (isEvaluated) {
+        const hasPendingRevision = r._revisionRequested && r._revisionStatus === 'pending';
+        previewFooter = hasPendingRevision
+          ? `<span style="font-size:13px;color:#92400E;font-weight:700">⏳ 이의신청 검토 대기 중</span>`
+          : `<button class="btn btn-ghost" onclick="window._userEditMode=window._userEditMode||{};window._userEditMode['${r.id}']=true;window._userRevisionMode=window._userRevisionMode||{};window._userRevisionMode['${r.id}']=true;selectMonthly(${i})">내용 수정 + 이의신청</button>
+             <button class="btn btn-ghost" onclick="window._userEditMode=window._userEditMode||{};window._userEditMode['${r.id}']=true;selectMonthly(${i})">추가 제출</button>`;
+      }
+
       if (isMobile()) {
         openSheet(r.id + ' · ' + r.cat, r.title, previewBody, previewFooter);
       } else {
@@ -2988,15 +3024,30 @@ function selectMonthly(i) {
     }
 
     // 수정 모드 진입 시 플래그 해제
-    if (window._userEditMode?.[r.id]) {
-      delete window._userEditMode[r.id];
-    }
+    const isRevisionMode = window._userRevisionMode?.[r.id];
+    if (editMode) delete window._userEditMode[r.id];
+    if (isRevisionMode) delete window._userRevisionMode[r.id];
 
-    // 미제출 또는 수정 모드 → 입력 폼
-    const formBody = buildMonthlyFormBody(r);
-    const formFooter = `
-      <button class="btn btn-ghost" onclick="saveDraft(${i})">임시저장</button>
-      <button class="btn btn-primary" id="submit-btn-${i}" onclick="submitMonthly(${i})">제출하기 →</button>`;
+    // 이의신청+수정 모드: 폼 상단에 사유 입력란 추가
+    const revisionFormSection = isRevisionMode ? `
+      <div style="margin-bottom:16px;padding:14px 16px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px">
+        <div style="font-size:13px;font-weight:700;color:#92400E;margin-bottom:8px">⚠ 이의신청 — 아래 내용을 수정한 후 제출하세요</div>
+        <label style="font-size:12px;font-weight:700;color:var(--text);display:block;margin-bottom:4px">이의신청 사유 <span style="color:var(--red)">*</span></label>
+        <textarea id="revision-reason-input" class="form-textarea" style="height:64px" placeholder="이의신청 사유를 작성하세요. 예: 실제 이행 내용이 반영되지 않았습니다..."></textarea>
+      </div>` : '';
+
+    // 미제출/수정 모드/이의신청+수정 → 입력 폼
+    const formBody = revisionFormSection + buildMonthlyFormBody(r);
+    let formFooter = '';
+    if (isRevisionMode) {
+      formFooter = `
+        <button class="btn btn-ghost" onclick="selectMonthly(${i})">취소</button>
+        <button class="btn btn-danger" id="submit-btn-${i}" onclick="submitWithRevision(${i})">수정 내용 + 이의신청 제출</button>`;
+    } else {
+      formFooter = `
+        <button class="btn btn-ghost" onclick="saveDraft(${i})">임시저장</button>
+        <button class="btn btn-primary" id="submit-btn-${i}" onclick="submitMonthly(${i})">제출하기 →</button>`;
+    }
     if (isMobile()) {
       openSheet(r.id + ' · ' + r.cat, r.title, formBody, formFooter);
     } else {
@@ -3059,6 +3110,68 @@ function getFormValues() {
   const content = document.getElementById('monthly-content')?.value.trim() || '';
   const note = document.getElementById('monthly-note')?.value.trim() || '';
   return { status, content, note };
+}
+
+/* ── 수정 내용 + 이의신청 동시 제출 ── */
+async function submitWithRevision(idx) {
+  const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam);
+  const r = base[idx];
+  const reasonEl = document.getElementById('revision-reason-input');
+  const reason = reasonEl ? reasonEl.value.trim() : '';
+  if (!reason) { toast('이의신청 사유를 입력해주세요.', 'warn'); reasonEl?.focus(); return; }
+
+  const content = document.getElementById('monthly-content')?.value.trim() || '';
+  const note = document.getElementById('monthly-note')?.value.trim() || '';
+  if (!content) { toast('이행 내용을 입력해주세요.', 'warn'); return; }
+
+  const ok = await showConfirmModal({
+    title: '수정 내용 + 이의신청 제출',
+    message: `이행 내용을 수정하고 이의신청을 동시에 접수합니다.<br><br>이의 사유: "${reason.substring(0, 50)}${reason.length > 50 ? '...' : ''}"`,
+    confirmText: '제출하기',
+  });
+  if (!ok) return;
+
+  try {
+    // 1. 수정된 내용 저장 (재제출)
+    r.content = content;
+    r.specialNote = note;
+    r.submitStatus = '제출완료';
+    r.status = '제출완료';
+
+    // 2. 이의신청 상태 저장
+    r._revisionRequested = true;
+    r._revisionReason = reason;
+    r._revisionAt = new Date().toISOString().split('T')[0];
+    r._revisionBy = appTeam;
+    r._revisionStatus = 'pending';
+    r.achieve = null; // 평가 리셋 (재평가 필요)
+    r.evalComment = '';
+
+    if (CONFIG.OFFLINE_MODE) {
+      _lsSave(curYear, curMonth, r.id, {
+        submitStatus: '제출완료', content, specialNote: note,
+        _revisionRequested: true, _revisionReason: reason,
+        _revisionAt: r._revisionAt, _revisionBy: appTeam, _revisionStatus: 'pending',
+        achieve: null, evalComment: ''
+      });
+    }
+
+    if (!CONFIG.OFFLINE_MODE && CONFIG.FLOW_REVISION_URL) {
+      await callFlow(CONFIG.FLOW_REVISION_URL, {
+        type: 'revision_with_update', riskId: String(r.spId || ''), riskTitle: r.title,
+        team: appTeam, year: parseInt(curYear), month: curMonth, reason, content, submittedBy: appTeam
+      });
+    }
+
+    _setDirty(false);
+    toast('수정 내용이 제출되고 이의신청이 접수되었습니다.', 'success', 5000);
+    updateBadges();
+    _computeTeamsData();
+    renderMonthly();
+    selectMonthly(idx);
+  } catch (e) {
+    toast('제출 실패: ' + e.message, 'error');
+  }
 }
 
 async function submitMonthly(idx) {
