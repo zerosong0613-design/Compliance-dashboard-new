@@ -1246,7 +1246,7 @@ const SAMPLE_RISKS = [
     task:'수출건 전수 사전 분류심사 + 규제 리스트 월 1회 업데이트',
     content:'3월 수출건 48건 중 사전 분류심사 실시 35건(73%). 미심사 13건은 기존 반복거래로 생략했으나, 4월부터는 전건 심사 체계 도입 예정.',
     evalComment:'73% 심사율은 기준 미달. 반복거래도 분류변경 가능성이 있으므로 전건 심사 필수. 다음 달 개선 필요.',
-    _revisionRequested:true},
+    _revisionRequested:true, _revisionReason:'반복거래 13건은 이미 사전 분류가 완료된 품목이며, 3월 중 관세청 사전심사 완료 건입니다. 실질 심사율은 100%에 해당합니다.', _revisionAt:'2026-03-18', _revisionBy:'영업팀', _revisionStatus:'pending'},
   {id:'R006',title:'반부패 교육 미이수',team:'품질팀',cat:'부패방지',score:9,impact:3,likelihood:3,status:'평가완료',submitStatus:'평가완료',achieve:95,owner:'정다은',selected:true,spId:6,
     task:'분기별 반부패 교육 실시 + 이수율 95% 이상 유지',
     content:'1분기 반부패 교육 3/10 실시. 품질팀 전원(8명) 이수 완료. 온라인 테스트 평균 92점. 미이수자 0명.',
@@ -2830,8 +2830,9 @@ function selectMonthly(i) {
         </div>`;
     }
 
-    // 평가 섹션 (제출완료 시만 활성)
-    const evalSection = isSubmitted ? `
+    // 평가 섹션 (제출완료 또는 이의신청 pending인 평가완료 건)
+    const needsReeval = isEvaluated && r._revisionRequested && r._revisionStatus === 'pending';
+    const evalSection = (isSubmitted || needsReeval) ? `
       <div style="margin-top:16px;padding-top:16px;border-top:2px solid var(--border)">
         <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">⚖ 이행 달성율 평가</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -2865,11 +2866,46 @@ function selectMonthly(i) {
         ${r.evalComment ? `<div style="font-size:12px;color:var(--muted);line-height:1.6">💬 ${r.evalComment}</div>` : ''}
       </div>` : '';
 
-    // 이의신청 이력
-    const revisionSection = r._revisionRequested ? `
-      <div style="margin-top:12px;padding:10px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;font-size:12px;color:#92400E">
-        ⚠ 이의신청이 접수되었습니다. 검토가 필요합니다.
-      </div>` : '';
+    // 이의신청 프로세스
+    let revisionSection = '';
+    if (r._revisionRequested) {
+      const isPending = r._revisionStatus === 'pending';
+      const isAccepted = r._revisionStatus === 'accepted';
+      const isRejected = r._revisionStatus === 'rejected';
+
+      revisionSection = `
+      <div style="margin-top:14px;border:1.5px solid ${isPending?'#FDE68A':isAccepted?'#86EFAC':'#FECACA'};border-radius:12px;overflow:hidden">
+        <div style="padding:12px 16px;background:${isPending?'#FFFBEB':isAccepted?'#F0FDF4':'#FEF2F2'};display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">${isPending?'⚠':isAccepted?'✅':'❌'}</span>
+          <span style="font-size:13px;font-weight:700;color:${isPending?'#92400E':isAccepted?'#059669':'#DC2626'}">
+            이의신청 ${isPending?'검토 필요':isAccepted?'수용됨 (점수 조정)':'기각됨 (점수 유지)'}
+          </span>
+          <span style="margin-left:auto;font-size:11px;color:var(--muted)">${r._revisionAt || ''} · ${r._revisionBy || ''}</span>
+        </div>
+        <div style="padding:14px 16px">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px">이의신청 사유</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.7;padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:12px">${r._revisionReason || '(사유 없음)'}</div>
+          ${r._revisionResponse ? `
+            <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px">검토 의견</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.6;padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:12px">${r._revisionResponse}</div>` : ''}
+          ${isPending ? `
+            <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">검토 의견 작성</div>
+            <textarea id="revision-response-input" class="form-textarea" style="height:64px;margin-bottom:10px" placeholder="이의신청에 대한 검토 의견을 작성하세요..."></textarea>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-primary" style="flex:1" onclick="handleRevisionAccept(${i})">
+                ✓ 이의 수용 (점수 조정)
+              </button>
+              <button class="btn btn-danger" style="flex:1" onclick="handleRevisionReject(${i})">
+                ✕ 이의 기각 (점수 유지)
+              </button>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">
+              · <strong>수용</strong>: 위 달성율 슬라이더를 조정한 후 "이의 수용" 클릭 → 새 점수로 반영<br>
+              · <strong>기각</strong>: 기존 평가 점수 유지, 사유 기록 후 종결
+            </div>` : ''}
+        </div>
+      </div>`;
+    }
 
     // 푸터 버튼
     let formFooter = '';
@@ -2877,6 +2913,8 @@ function selectMonthly(i) {
       formFooter = `
         <button class="btn btn-danger" onclick="requestEdit(${_findEvalIdx(r)})">수정 요청</button>
         <button class="btn btn-success" id="eval-complete-btn-${_findEvalIdx(r)}" onclick="completeEval(${_findEvalIdx(r)})">평가 완료</button>`;
+    } else if (needsReeval) {
+      formFooter = `<span style="font-size:13px;color:#D97706;font-weight:700">⚠ 이의신청 검토 중 — 위에서 수용/기각 처리하세요</span>`;
     } else if (isEvaluated) {
       formFooter = `<span style="font-size:13px;color:var(--green);font-weight:700">✓ 이번 월 평가 완료</span>`;
     } else {
@@ -2901,11 +2939,38 @@ function selectMonthly(i) {
     }
   } else {
     // ── 현업 담당자: 기존 입력 폼 ──
-    const formBody = buildMonthlyFormBody(r);
-    const formFooter = `
-      <button class="btn btn-ghost" onclick="saveDraft(${i})">임시저장</button>
-      <button class="btn btn-danger" onclick="requestRevision(${i})">이의신청</button>
-      <button class="btn btn-primary" id="submit-btn-${i}" onclick="submitMonthly(${i})">제출하기 →</button>`;
+    // 이의신청 결과 표시 (user가 볼 수 있도록)
+    let userRevisionInfo = '';
+    if (r._revisionRequested && r._revisionStatus !== 'pending') {
+      const isAccepted = r._revisionStatus === 'accepted';
+      userRevisionInfo = `
+        <div style="margin-bottom:14px;padding:12px 16px;border-radius:10px;border:1px solid ${isAccepted?'#86EFAC':'#FECACA'};background:${isAccepted?'#F0FDF4':'#FEF2F2'}">
+          <div style="font-size:13px;font-weight:700;color:${isAccepted?'#059669':'#DC2626'};margin-bottom:4px">${isAccepted?'✅ 이의신청이 수용되었습니다':'❌ 이의신청이 기각되었습니다'}</div>
+          ${r._revisionResponse ? `<div style="font-size:12px;color:var(--muted);line-height:1.6">💬 ${r._revisionResponse}</div>` : ''}
+          ${isAccepted ? `<div style="font-size:12px;color:var(--green);font-weight:700;margin-top:4px">달성율: ${r.achieve}%</div>` : ''}
+        </div>`;
+    } else if (r._revisionRequested && r._revisionStatus === 'pending') {
+      userRevisionInfo = `
+        <div style="margin-bottom:14px;padding:12px 16px;border-radius:10px;border:1px solid #FDE68A;background:#FFFBEB">
+          <div style="font-size:13px;font-weight:700;color:#92400E">⏳ 이의신청 검토 중</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">컴플라이언스팀에서 검토 중입니다. 결과는 이 화면에서 확인할 수 있습니다.</div>
+        </div>`;
+    }
+
+    const formBody = userRevisionInfo + buildMonthlyFormBody(r);
+    let formFooter = '';
+    if (r.submitStatus === '평가완료' && r._revisionRequested && r._revisionStatus === 'pending') {
+      formFooter = `<span style="font-size:13px;color:#92400E;font-weight:700">⏳ 이의신청 검토 대기 중</span>`;
+    } else if (r.submitStatus === '평가완료') {
+      formFooter = `
+        <button class="btn btn-danger" onclick="requestRevision(${i})">이의신청</button>
+        <span style="font-size:13px;color:var(--green);font-weight:700">✓ 평가 완료 (${r.achieve || 0}%)</span>`;
+    } else {
+      formFooter = `
+        <button class="btn btn-ghost" onclick="saveDraft(${i})">임시저장</button>
+        <button class="btn btn-danger" onclick="requestRevision(${i})">이의신청</button>
+        <button class="btn btn-primary" id="submit-btn-${i}" onclick="submitMonthly(${i})">제출하기 →</button>`;
+    }
     if (isMobile()) {
       openSheet(r.id + ' · ' + r.cat, r.title, formBody, formFooter);
     } else {
@@ -3091,12 +3156,103 @@ async function requestRevision(idx) {
       });
     }
     toast('이의신청이 접수되었습니다. 컴플라이언스팀에서 검토 후 연락드립니다.', 'success', 5000);
-    // 오프라인 모드: 상태를 localStorage에 반영
-    if (CONFIG.OFFLINE_MODE && r && r.submitStatus !== '이의신청') {
-      r._revisionRequested = true;
-      _lsSave(curYear, curMonth, r.id, { submitStatus: r.submitStatus, _revisionRequested: true });
+    // 이의신청 상태 반영
+    r._revisionRequested = true;
+    r._revisionReason = reason;
+    r._revisionAt = new Date().toISOString().split('T')[0];
+    r._revisionBy = appTeam;
+    r._revisionStatus = 'pending'; // pending → accepted / rejected
+    if (CONFIG.OFFLINE_MODE) {
+      _lsSave(curYear, curMonth, r.id, {
+        submitStatus: r.submitStatus, _revisionRequested: true,
+        _revisionReason: reason, _revisionAt: r._revisionAt,
+        _revisionBy: r._revisionBy, _revisionStatus: 'pending'
+      });
     }
+    renderMonthly();
   } catch (e) { toast('이의신청 실패: ' + e.message, 'error'); }
+}
+
+/* ── 이의신청 수용 (점수 조정) ── */
+async function handleRevisionAccept(idx) {
+  const base = RISKS;
+  const r = base[idx];
+  if (!r) return;
+
+  const sliderEl = document.getElementById('eval-sl');
+  const commentEl = document.getElementById('revision-response-input');
+  const newScore = sliderEl ? parseInt(sliderEl.value) : r.achieve;
+  const response = commentEl ? commentEl.value.trim() : '';
+
+  if (!response) {
+    toast('검토 의견을 입력해주세요.', 'warn');
+    commentEl?.focus();
+    return;
+  }
+
+  const ok = await showConfirmModal({
+    title: '이의신청 수용',
+    message: `달성율을 <strong>${r.achieve}% → ${newScore}%</strong>로 조정하시겠습니까?<br><br>검토 의견: "${response.substring(0, 50)}${response.length > 50 ? '...' : ''}"`,
+    confirmText: '수용 확정',
+  });
+  if (!ok) return;
+
+  const oldScore = r.achieve;
+  r.achieve = newScore;
+  r._revisionStatus = 'accepted';
+  r._revisionResponse = response;
+  r._revisionResolvedAt = new Date().toISOString().split('T')[0];
+
+  if (CONFIG.OFFLINE_MODE) {
+    _lsSave(curYear, curMonth, r.id, {
+      ...r, achieve: newScore,
+      _revisionStatus: 'accepted', _revisionResponse: response,
+      _revisionResolvedAt: r._revisionResolvedAt
+    });
+  }
+
+  toast(`이의 수용: ${r.id} 달성율 ${oldScore}% → ${newScore}%`, 'success');
+  _computeTeamsData();
+  selectMonthly(idx);
+}
+
+/* ── 이의신청 기각 (점수 유지) ── */
+async function handleRevisionReject(idx) {
+  const base = RISKS;
+  const r = base[idx];
+  if (!r) return;
+
+  const commentEl = document.getElementById('revision-response-input');
+  const response = commentEl ? commentEl.value.trim() : '';
+
+  if (!response) {
+    toast('기각 사유를 입력해주세요.', 'warn');
+    commentEl?.focus();
+    return;
+  }
+
+  const ok = await showConfirmModal({
+    title: '이의신청 기각',
+    message: `기존 평가 점수(${r.achieve}%)를 유지하시겠습니까?<br><br>기각 사유: "${response.substring(0, 50)}${response.length > 50 ? '...' : ''}"`,
+    confirmText: '기각 확정',
+    danger: true,
+  });
+  if (!ok) return;
+
+  r._revisionStatus = 'rejected';
+  r._revisionResponse = response;
+  r._revisionResolvedAt = new Date().toISOString().split('T')[0];
+
+  if (CONFIG.OFFLINE_MODE) {
+    _lsSave(curYear, curMonth, r.id, {
+      ...r,
+      _revisionStatus: 'rejected', _revisionResponse: response,
+      _revisionResolvedAt: r._revisionResolvedAt
+    });
+  }
+
+  toast(`이의 기각: ${r.id} 평가 점수 ${r.achieve}% 유지`, 'info');
+  selectMonthly(idx);
 }
 
 function handleAttach(input) {
