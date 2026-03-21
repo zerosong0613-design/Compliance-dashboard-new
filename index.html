@@ -5109,6 +5109,11 @@ function renderPhaseControl() {
           <div style="margin-top:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--muted);text-align:center;font-weight:600">
             🔒 위 조건을 모두 충족하면 완료 확정 버튼이 활성화됩니다
           </div>` : ''}
+        ${activeCompleted ? `
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding:10px 14px;background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px">
+            <span style="font-size:13px;font-weight:700;color:var(--green)">🎉 ${phaseStatus[ap.id]?.completedAt || ''} 확정 완료</span>
+            <button onclick="reopenPhase('${ap.id}');setTimeout(renderPhaseControl,300)" style="padding:5px 12px;border:1px solid #FECACA;border-radius:6px;background:#FEF2F2;color:#DC2626;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">해제</button>
+          </div>` : ''}
       </div>
     </div>`;
 
@@ -5211,6 +5216,88 @@ function renderPhaseControl() {
 
   el.innerHTML = html;
 }
+
+/* ── Selection 페이지: Phase 3 기간에 개선 과제 미입력 표시 ── */
+const _origRenderSelection = renderSelection;
+renderSelection = function() {
+  _origRenderSelection();
+
+  const rm = _getRealMonth();
+  // Phase 3 (3~4월) 기간에만 표시
+  if (rm < 3 || rm > 4) return;
+
+  const selected = RISKS.filter(r => r.selected !== false);
+  const withTask = selected.filter(r => r.task && r.task.trim() !== '');
+  const noTask = selected.filter(r => !r.task || r.task.trim() === '');
+
+  // 테이블 행에 미입력 표시 추가
+  const tbody = document.getElementById('sel-tbody');
+  if (!tbody) return;
+
+  tbody.querySelectorAll('tr').forEach(tr => {
+    const titleTd = tr.querySelectorAll('td')[2];
+    if (!titleTd) return;
+    const titleText = titleTd.textContent.trim();
+    const risk = RISKS.find(r => r.title === titleText);
+    if (!risk) return;
+
+    const isSelected = risk.selected !== false;
+    const hasTask = risk.task && risk.task.trim() !== '';
+
+    // 마지막 열(위험도) 뒤에 개선과제 상태 열 추가
+    const existingBadge = tr.querySelector('.task-status-cell');
+    if (existingBadge) existingBadge.remove();
+
+    const td = document.createElement('td');
+    td.className = 'task-status-cell';
+    td.style.cssText = 'text-align:center;font-size:11px;font-weight:700';
+    if (!isSelected) {
+      td.innerHTML = '<span style="color:var(--muted)">—</span>';
+    } else if (hasTask) {
+      td.innerHTML = '<span style="color:var(--green)">입력됨</span>';
+    } else {
+      td.innerHTML = '<span style="padding:2px 8px;border-radius:99px;background:#FEF2F2;color:#DC2626;cursor:pointer" onclick="event.stopPropagation();navigateTo(\'master\')" title="Master에서 개선 과제 입력">미입력</span>';
+    }
+    tr.appendChild(td);
+  });
+
+  // 테이블 헤더에 열 추가
+  const thead = tbody.closest('table')?.querySelector('thead tr');
+  if (thead && !thead.querySelector('.task-header-cell')) {
+    const th = document.createElement('th');
+    th.className = 'task-header-cell';
+    th.style.cssText = 'text-align:center;white-space:nowrap';
+    th.textContent = '개선과제';
+    thead.appendChild(th);
+  }
+
+  // 상단 요약 배너 추가
+  const selView = document.getElementById('view-selection');
+  if (selView && !selView.querySelector('.phase3-task-banner')) {
+    const banner = document.createElement('div');
+    banner.className = 'phase3-task-banner';
+    banner.style.cssText = 'display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:12px;margin-bottom:16px;flex-wrap:wrap;' +
+      (noTask.length > 0
+        ? 'background:#FFFBEB;border:1px solid #FDE68A'
+        : 'background:#F0FDF4;border:1px solid #BBF7D0');
+    banner.innerHTML = noTask.length > 0
+      ? `<span style="font-size:18px">🛡</span>
+         <div style="flex:1">
+           <div style="font-size:13px;font-weight:700;color:#92400E">Phase 3 · 통제수준 진단 — 개선 과제 입력 현황</div>
+           <div style="font-size:12px;color:#A16207;margin-top:2px">선정 리스크 중 <strong>${noTask.length}건</strong> 미입력 · Master에서 "개선 과제"를 기록하세요</div>
+         </div>
+         <div style="display:flex;align-items:baseline;gap:4px">
+           <span style="font-size:22px;font-weight:900;color:#D97706">${withTask.length}</span>
+           <span style="font-size:12px;color:#A16207;font-weight:700">/${selected.length}건</span>
+         </div>
+         <button onclick="navigateTo('master')" style="padding:7px 16px;border:1.5px solid #FDE68A;border-radius:8px;background:#fff;color:#92400E;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">Master 이동</button>`
+      : `<span style="font-size:18px">✅</span>
+         <span style="font-size:13px;font-weight:700;color:#059669">모든 선정 리스크(${selected.length}건)에 개선 과제가 입력되었습니다</span>`;
+    // 자동선정 카드 다음에 삽입
+    const autoCard = selView.querySelector('.card');
+    if (autoCard) autoCard.after(banner);
+  }
+};
 
 /* ── Master 수정 모달: Phase 3 기간에 "개선 과제" 필드 강조 ── */
 const _origOpenRiskEditModal = openRiskEditModal;
