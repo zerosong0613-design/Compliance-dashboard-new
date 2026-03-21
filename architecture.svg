@@ -1,0 +1,348 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 920" font-family="'Segoe UI', -apple-system, sans-serif">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="108%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.10"/>
+    </filter>
+    <filter id="shadowLg" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.12"/>
+    </filter>
+    <linearGradient id="headerGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1e3a5f"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="spGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0078d4"/>
+      <stop offset="100%" stop-color="#005a9e"/>
+    </linearGradient>
+    <linearGradient id="paGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#742774"/>
+      <stop offset="100%" stop-color="#5c2d91"/>
+    </linearGradient>
+    <linearGradient id="aiGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,3.5 L0,7z" fill="#64748b"/>
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,3.5 L0,7z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,3.5 L0,7z" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrowAmber" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,3.5 L0,7z" fill="#d97706"/>
+    </marker>
+    <pattern id="diag" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#e2e8f0" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="920" rx="16" fill="#f8fafc"/>
+
+  <!-- Title Bar -->
+  <rect x="0" y="0" width="1200" height="64" rx="16" fill="url(#headerGrad)"/>
+  <rect x="0" y="32" width="1200" height="32" fill="url(#headerGrad)"/>
+  <text x="40" y="40" fill="white" font-size="20" font-weight="700">SK Chemical Compliance RiskOps Dashboard — Architecture (v10.1)</text>
+  <text x="1160" y="40" fill="#93c5fd" font-size="13" text-anchor="end">index.html  ·  4,530 lines  ·  Single-File SPA</text>
+
+  <!-- ============================================================ -->
+  <!-- LAYER 1: Browser Client (index.html) -->
+  <!-- ============================================================ -->
+  <rect x="30" y="84" width="1140" height="460" rx="14" fill="white" stroke="#cbd5e1" stroke-width="1.5" filter="url(#shadowLg)"/>
+  <rect x="30" y="84" width="1140" height="38" rx="14" fill="#f1f5f9"/>
+  <rect x="30" y="108" width="1140" height="14" fill="#f1f5f9"/>
+  <circle cx="54" cy="103" r="6" fill="#f87171"/>
+  <circle cx="74" cy="103" r="6" fill="#fbbf24"/>
+  <circle cx="94" cy="103" r="6" fill="#34d399"/>
+  <text x="600" y="108" text-anchor="middle" fill="#334155" font-size="14" font-weight="700">BROWSER CLIENT — index.html (Single-File SPA)</text>
+
+  <!-- CSS Layer -->
+  <rect x="50" y="132" width="200" height="54" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="150" y="155" text-anchor="middle" fill="#1e40af" font-size="12" font-weight="600">CSS (L33–584)</text>
+  <text x="150" y="172" text-anchor="middle" fill="#64748b" font-size="10">Design Tokens · Responsive</text>
+
+  <!-- HTML Layer -->
+  <rect x="265" y="132" width="200" height="54" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+  <text x="365" y="155" text-anchor="middle" fill="#166534" font-size="12" font-weight="600">HTML (L588–1190)</text>
+  <text x="365" y="172" text-anchor="middle" fill="#64748b" font-size="10">Login · Shell · Modals</text>
+
+  <!-- JS Layer -->
+  <rect x="480" y="132" width="200" height="54" rx="8" fill="#fefce8" stroke="#fef08a" stroke-width="1"/>
+  <text x="580" y="155" text-anchor="middle" fill="#854d0e" font-size="12" font-weight="600">JS (L1191–4507)</text>
+  <text x="580" y="172" text-anchor="middle" fill="#64748b" font-size="10">CONFIG · Logic · Patches</text>
+
+  <!-- CDN Deps -->
+  <rect x="695" y="132" width="220" height="54" rx="8" fill="#fdf4ff" stroke="#f0abfc" stroke-width="1"/>
+  <text x="805" y="155" text-anchor="middle" fill="#86198f" font-size="12" font-weight="600">CDN Lazy-Load</text>
+  <text x="805" y="172" text-anchor="middle" fill="#64748b" font-size="10">SheetJS (xlsx) · PptxGenJS</text>
+
+  <!-- Monkey Patch -->
+  <rect x="930" y="132" width="220" height="54" rx="8" fill="#fff7ed" stroke="#fed7aa" stroke-width="1"/>
+  <text x="1040" y="155" text-anchor="middle" fill="#9a3412" font-size="12" font-weight="600">Monkey-Patches (L4036–4507)</text>
+  <text x="1040" y="172" text-anchor="middle" fill="#64748b" font-size="10">v9.2 / v9.3 / v10.1 wraps</text>
+
+  <!-- ── SPA Pages ── -->
+  <text x="60" y="210" fill="#475569" font-size="11" font-weight="700">SPA Pages (navigateTo)</text>
+
+  <!-- Page boxes row 1 -->
+  <rect x="50" y="220" width="115" height="48" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="107" y="240" text-anchor="middle" fill="#1e40af" font-size="11" font-weight="600">Dashboard</text>
+  <text x="107" y="254" text-anchor="middle" fill="#64748b" font-size="9">KPI · Heatmap</text>
+
+  <rect x="175" y="220" width="115" height="48" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="232" y="240" text-anchor="middle" fill="#1e40af" font-size="11" font-weight="600">Monthly Input</text>
+  <text x="232" y="254" text-anchor="middle" fill="#64748b" font-size="9">Submit · Draft</text>
+
+  <rect x="300" y="220" width="115" height="48" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="357" y="240" text-anchor="middle" fill="#1e40af" font-size="11" font-weight="600">Evaluation</text>
+  <text x="357" y="254" text-anchor="middle" fill="#64748b" font-size="9">Score · Comment</text>
+
+  <rect x="425" y="220" width="115" height="48" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="482" y="240" text-anchor="middle" fill="#1e40af" font-size="11" font-weight="600">Teams</text>
+  <text x="482" y="254" text-anchor="middle" fill="#64748b" font-size="9">Stat · Trend Chart</text>
+
+  <rect x="550" y="220" width="115" height="48" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="607" y="240" text-anchor="middle" fill="#1e40af" font-size="11" font-weight="600">Master</text>
+  <text x="607" y="254" text-anchor="middle" fill="#64748b" font-size="9">CRUD · Excel I/O</text>
+
+  <rect x="675" y="220" width="115" height="48" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="732" y="240" text-anchor="middle" fill="#1e40af" font-size="11" font-weight="600">Selection</text>
+  <text x="732" y="254" text-anchor="middle" fill="#64748b" font-size="9">Top-N Auto</text>
+
+  <rect x="800" y="220" width="115" height="48" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="857" y="240" text-anchor="middle" fill="#1e40af" font-size="11" font-weight="600">Reports</text>
+  <text x="857" y="254" text-anchor="middle" fill="#64748b" font-size="9">PPT Preview/Gen</text>
+
+  <rect x="925" y="220" width="115" height="48" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="982" y="240" text-anchor="middle" fill="#1e40af" font-size="11" font-weight="600">My Team</text>
+  <text x="982" y="254" text-anchor="middle" fill="#64748b" font-size="9">KPI · Status</text>
+
+  <rect x="1050" y="220" width="105" height="48" rx="6" fill="#fef3c7" stroke="#fbbf24"/>
+  <text x="1102" y="240" text-anchor="middle" fill="#92400e" font-size="11" font-weight="600">Archive</text>
+  <text x="1102" y="254" text-anchor="middle" fill="#92400e" font-size="9">Files · Law · AI</text>
+
+  <!-- ── State Management ── -->
+  <text x="60" y="295" fill="#475569" font-size="11" font-weight="700">In-Memory State</text>
+
+  <rect x="50" y="305" width="540" height="42" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="60" y="324" fill="#334155" font-size="10" font-weight="600">RISKS[]</text>
+  <text x="120" y="324" fill="#64748b" font-size="10">TEAMS_DATA[]</text>
+  <text x="215" y="324" fill="#64748b" font-size="10">TREND[]</text>
+  <text x="280" y="324" fill="#64748b" font-size="10">appRole</text>
+  <text x="335" y="324" fill="#64748b" font-size="10">appTeam</text>
+  <text x="395" y="324" fill="#64748b" font-size="10">curPage</text>
+  <text x="455" y="324" fill="#64748b" font-size="10">curYear/Month</text>
+  <text x="60" y="340" fill="#94a3b8" font-size="10">_hasDirtyForm   _archiveFiles[]   _archiveYearFilter   _lawCategoryFilter</text>
+
+  <!-- ── UI Components ── -->
+  <text x="610" y="295" fill="#475569" font-size="11" font-weight="700">UI Components</text>
+
+  <rect x="600" y="305" width="560" height="42" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="610" y="324" fill="#334155" font-size="10" font-weight="600">toast()</text>
+  <text x="660" y="324" fill="#64748b" font-size="10">showInputModal()</text>
+  <text x="775" y="324" fill="#64748b" font-size="10">showConfirmModal()</text>
+  <text x="905" y="324" fill="#64748b" font-size="10">showLoading()</text>
+  <text x="1005" y="324" fill="#64748b" font-size="10">drawChart()</text>
+  <text x="1090" y="324" fill="#64748b" font-size="10">_esc()</text>
+  <text x="610" y="340" fill="#94a3b8" font-size="10">stIcon()  stClass()  scClass()  scoreCol()  heatColor()  scoreStyle()</text>
+
+  <!-- ── Data Layer ── -->
+  <text x="60" y="375" fill="#475569" font-size="11" font-weight="700">Data Access Layer</text>
+
+  <!-- OFFLINE_MODE switch -->
+  <rect x="50" y="385" width="180" height="66" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="1.5" stroke-dasharray="6 3"/>
+  <text x="140" y="405" text-anchor="middle" fill="#854d0e" font-size="11" font-weight="700">CONFIG.OFFLINE_MODE</text>
+  <text x="140" y="422" text-anchor="middle" fill="#a16207" font-size="20" font-weight="700">?</text>
+  <text x="100" y="444" text-anchor="middle" fill="#65a30d" font-size="10" font-weight="600">true</text>
+  <text x="178" y="444" text-anchor="middle" fill="#dc2626" font-size="10" font-weight="600">false</text>
+
+  <!-- Offline path -->
+  <rect x="50" y="462" width="180" height="70" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+  <text x="140" y="482" text-anchor="middle" fill="#166534" font-size="11" font-weight="600">Offline Mode</text>
+  <text x="140" y="498" text-anchor="middle" fill="#16a34a" font-size="10">SAMPLE_RISKS / TREND</text>
+  <text x="140" y="513" text-anchor="middle" fill="#16a34a" font-size="10">localStorage persistence</text>
+  <text x="140" y="526" text-anchor="middle" fill="#64748b" font-size="9">_lsSave / _lsLoad / _lsGetAll</text>
+
+  <!-- Online path: SP Helpers -->
+  <rect x="260" y="385" width="330" height="66" rx="8" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="425" y="405" text-anchor="middle" fill="#1e40af" font-size="11" font-weight="700">SharePoint REST API Helpers</text>
+  <text x="290" y="428" fill="#2563eb" font-size="10" font-weight="600">spGetDigest()</text>
+  <text x="382" y="428" fill="#2563eb" font-size="10">spGet()</text>
+  <text x="432" y="428" fill="#2563eb" font-size="10">spPost()</text>
+  <text x="490" y="428" fill="#2563eb" font-size="10">spPatch()</text>
+  <text x="290" y="444" fill="#94a3b8" font-size="9">Digest caching 25min · credentials:include · $top=500</text>
+
+  <!-- Online path: Data Load -->
+  <rect x="260" y="462" width="160" height="70" rx="8" fill="#dbeafe" stroke="#60a5fa"/>
+  <text x="340" y="482" text-anchor="middle" fill="#1e40af" font-size="11" font-weight="600">_loadSPData()</text>
+  <text x="340" y="498" text-anchor="middle" fill="#3b82f6" font-size="10">RiskMaster list</text>
+  <text x="340" y="513" text-anchor="middle" fill="#3b82f6" font-size="10">MonthlyReport list</text>
+  <text x="340" y="526" text-anchor="middle" fill="#3b82f6" font-size="10">Evaluation list</text>
+
+  <!-- callFlow -->
+  <rect x="430" y="462" width="160" height="70" rx="8" fill="#f3e8ff" stroke="#c084fc"/>
+  <text x="510" y="482" text-anchor="middle" fill="#6b21a8" font-size="11" font-weight="600">callFlow()</text>
+  <text x="510" y="498" text-anchor="middle" fill="#7c3aed" font-size="10">F-01 Submit</text>
+  <text x="510" y="513" text-anchor="middle" fill="#7c3aed" font-size="10">F-04 Nudge · F-06 Draft</text>
+  <text x="510" y="526" text-anchor="middle" fill="#7c3aed" font-size="10">F-07 Revision</text>
+
+  <!-- File ops (NOT IMPLEMENTED) -->
+  <rect x="620" y="385" width="220" height="66" rx="8" fill="#fef2f2" stroke="#f87171" stroke-width="1.5" stroke-dasharray="6 3"/>
+  <text x="730" y="405" text-anchor="middle" fill="#dc2626" font-size="11" font-weight="700">File Upload/Download</text>
+  <text x="730" y="422" text-anchor="middle" fill="#ef4444" font-size="10">Archive · Attachments</text>
+  <text x="730" y="440" text-anchor="middle" fill="#dc2626" font-size="9" font-weight="600">NOT IMPLEMENTED</text>
+
+  <!-- Law Alerts (NOT IMPLEMENTED) -->
+  <rect x="620" y="462" width="220" height="70" rx="8" fill="#fef2f2" stroke="#f87171" stroke-width="1.5" stroke-dasharray="6 3"/>
+  <text x="730" y="482" text-anchor="middle" fill="#dc2626" font-size="11" font-weight="700">Law Alerts SP List</text>
+  <text x="730" y="498" text-anchor="middle" fill="#ef4444" font-size="10">규정 변경 인사이트</text>
+  <text x="730" y="520" text-anchor="middle" fill="#dc2626" font-size="9" font-weight="600">SAMPLE DATA ONLY</text>
+
+  <!-- Auth -->
+  <rect x="870" y="385" width="280" height="145" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="1010" y="405" text-anchor="middle" fill="#334155" font-size="11" font-weight="700">Auth &amp; Role</text>
+  <text x="1010" y="425" text-anchor="middle" fill="#64748b" font-size="10">Login screen → appRole (admin/user)</text>
+  <text x="1010" y="445" text-anchor="middle" fill="#64748b" font-size="10">Admin: all 9 pages</text>
+  <text x="1010" y="465" text-anchor="middle" fill="#64748b" font-size="10">User: monthly + myteam + archive</text>
+  <line x1="880" y1="478" x2="1140" y2="478" stroke="#e2e8f0"/>
+  <text x="1010" y="498" text-anchor="middle" fill="#334155" font-size="11" font-weight="700">XSS Defense</text>
+  <text x="1010" y="516" text-anchor="middle" fill="#64748b" font-size="10">_esc(s) on all innerHTML insertion</text>
+
+  <!-- ============================================================ -->
+  <!-- LAYER 2: External Services -->
+  <!-- ============================================================ -->
+  <text x="40" y="575" fill="#334155" font-size="14" font-weight="700">External Services</text>
+
+  <!-- SharePoint Online -->
+  <rect x="30" y="590" width="320" height="160" rx="12" fill="white" stroke="#0078d4" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="30" y="590" width="320" height="36" rx="12" fill="url(#spGrad)"/>
+  <rect x="30" y="614" width="320" height="12" fill="url(#spGrad)"/>
+  <text x="190" y="614" text-anchor="middle" fill="white" font-size="13" font-weight="700">SharePoint Online</text>
+  <text x="50" y="650" fill="#0078d4" font-size="11" font-weight="600">Lists (REST API)</text>
+  <rect x="50" y="658" width="86" height="26" rx="4" fill="#e0f2fe" stroke="#7dd3fc"/>
+  <text x="93" y="676" text-anchor="middle" fill="#0369a1" font-size="10">RiskMaster</text>
+  <rect x="145" y="658" width="96" height="26" rx="4" fill="#e0f2fe" stroke="#7dd3fc"/>
+  <text x="193" y="676" text-anchor="middle" fill="#0369a1" font-size="10">MonthlyReport</text>
+  <rect x="250" y="658" width="80" height="26" rx="4" fill="#e0f2fe" stroke="#7dd3fc"/>
+  <text x="290" y="676" text-anchor="middle" fill="#0369a1" font-size="10">Evaluation</text>
+  <text x="50" y="710" fill="#0078d4" font-size="11" font-weight="600">Document Library</text>
+  <rect x="50" y="718" width="130" height="22" rx="4" fill="#fef2f2" stroke="#fca5a5" stroke-dasharray="4 2"/>
+  <text x="115" y="733" text-anchor="middle" fill="#dc2626" font-size="9">Archive Files (미구현)</text>
+  <rect x="190" y="718" width="140" height="22" rx="4" fill="#fef2f2" stroke="#fca5a5" stroke-dasharray="4 2"/>
+  <text x="260" y="733" text-anchor="middle" fill="#dc2626" font-size="9">Attachments (미구현)</text>
+
+  <!-- Power Automate -->
+  <rect x="380" y="590" width="300" height="160" rx="12" fill="white" stroke="#742774" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="380" y="590" width="300" height="36" rx="12" fill="url(#paGrad)"/>
+  <rect x="380" y="614" width="300" height="12" fill="url(#paGrad)"/>
+  <text x="530" y="614" text-anchor="middle" fill="white" font-size="13" font-weight="700">Power Automate (Flows)</text>
+
+  <rect x="400" y="640" width="120" height="30" rx="5" fill="#f5f3ff" stroke="#c4b5fd"/>
+  <text x="460" y="660" text-anchor="middle" fill="#5b21b6" font-size="10" font-weight="600">F-01 Submit</text>
+
+  <rect x="540" y="640" width="120" height="30" rx="5" fill="#f5f3ff" stroke="#c4b5fd"/>
+  <text x="600" y="660" text-anchor="middle" fill="#5b21b6" font-size="10" font-weight="600">F-04 Nudge</text>
+
+  <rect x="400" y="682" width="120" height="30" rx="5" fill="#f5f3ff" stroke="#c4b5fd"/>
+  <text x="460" y="702" text-anchor="middle" fill="#5b21b6" font-size="10" font-weight="600">F-06 Draft Save</text>
+
+  <rect x="540" y="682" width="120" height="30" rx="5" fill="#f5f3ff" stroke="#c4b5fd"/>
+  <text x="600" y="702" text-anchor="middle" fill="#5b21b6" font-size="10" font-weight="600">F-07 Revision</text>
+
+  <text x="530" y="740" text-anchor="middle" fill="#94a3b8" font-size="9">HTTP Trigger → SP List Update → Email Notify</text>
+
+  <!-- AI / Copilot -->
+  <rect x="710" y="590" width="230" height="160" rx="12" fill="white" stroke="#d97706" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="710" y="590" width="230" height="36" rx="12" fill="url(#aiGrad)"/>
+  <rect x="710" y="614" width="230" height="12" fill="url(#aiGrad)"/>
+  <text x="825" y="614" text-anchor="middle" fill="white" font-size="13" font-weight="700">AI Services</text>
+
+  <rect x="730" y="640" width="190" height="30" rx="5" fill="#fffbeb" stroke="#fcd34d"/>
+  <text x="825" y="660" text-anchor="middle" fill="#92400e" font-size="10" font-weight="600">Claude API (Summary)</text>
+
+  <rect x="730" y="682" width="190" height="30" rx="5" fill="#fffbeb" stroke="#fcd34d"/>
+  <text x="825" y="702" text-anchor="middle" fill="#92400e" font-size="10" font-weight="600">Copilot Studio Agent</text>
+
+  <text x="825" y="740" text-anchor="middle" fill="#94a3b8" font-size="9">ANTHROPIC_API_KEY · COPILOT_AGENT_URL</text>
+
+  <!-- localStorage -->
+  <rect x="970" y="590" width="200" height="160" rx="12" fill="white" stroke="#16a34a" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="970" y="590" width="200" height="36" rx="12" fill="#16a34a"/>
+  <rect x="970" y="614" width="200" height="12" fill="#16a34a"/>
+  <text x="1070" y="614" text-anchor="middle" fill="white" font-size="13" font-weight="700">localStorage</text>
+
+  <text x="990" y="648" fill="#166534" font-size="10" font-weight="600">Key Pattern:</text>
+  <text x="990" y="666" fill="#16a34a" font-size="10" font-family="monospace">riskops_{y}_{m}_{id}</text>
+  <text x="990" y="690" fill="#166534" font-size="10" font-weight="600">Operations:</text>
+  <text x="990" y="708" fill="#64748b" font-size="10">_lsSave() · _lsLoad()</text>
+  <text x="990" y="724" fill="#64748b" font-size="10">_lsGetAll()</text>
+  <text x="990" y="744" fill="#94a3b8" font-size="9">Offline fallback + SP overlay</text>
+
+  <!-- ============================================================ -->
+  <!-- Connection Arrows -->
+  <!-- ============================================================ -->
+
+  <!-- OFFLINE_MODE true → Offline box -->
+  <line x1="100" y1="451" x2="100" y2="462" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- OFFLINE_MODE false → SP Helpers -->
+  <path d="M 178,440 L 260,418" stroke="#2563eb" stroke-width="1.5" fill="none" marker-end="url(#arrowBlue)"/>
+
+  <!-- SP Helpers → _loadSPData -->
+  <line x1="340" y1="451" x2="340" y2="462" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- SP Helpers → callFlow -->
+  <line x1="510" y1="451" x2="510" y2="462" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+
+  <!-- _loadSPData → SharePoint -->
+  <path d="M 340,532 L 340,558 L 190,558 L 190,590" stroke="#0078d4" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+
+  <!-- callFlow → Power Automate -->
+  <line x1="510" y1="532" x2="510" y2="590" stroke="#742774" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+  <!-- Offline → localStorage -->
+  <path d="M 140,532 L 140,558 L 1070,558 L 1070,590" stroke="#16a34a" stroke-width="2" fill="none" stroke-dasharray="6 3" marker-end="url(#arrow)"/>
+
+  <!-- Archive → SP Doc Library (dashed, not implemented) -->
+  <path d="M 730,532 L 730,558 L 250,558 L 250,590" stroke="#dc2626" stroke-width="1.5" fill="none" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- LEGEND -->
+  <!-- ============================================================ -->
+  <rect x="30" y="770" width="1140" height="140" rx="12" fill="white" stroke="#e2e8f0" filter="url(#shadow)"/>
+  <text x="60" y="798" fill="#334155" font-size="13" font-weight="700">Legend</text>
+
+  <!-- Implemented -->
+  <rect x="60" y="812" width="16" height="16" rx="3" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="84" y="825" fill="#334155" font-size="11">구현 완료 (SP 연동 준비)</text>
+
+  <!-- Not implemented -->
+  <rect x="260" y="812" width="16" height="16" rx="3" fill="#fef2f2" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4 2"/>
+  <text x="284" y="825" fill="#334155" font-size="11">미구현 (구현 필요)</text>
+
+  <!-- Offline -->
+  <rect x="460" y="812" width="16" height="16" rx="3" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+  <text x="484" y="825" fill="#334155" font-size="11">오프라인 전용</text>
+
+  <!-- Config -->
+  <rect x="620" y="812" width="16" height="16" rx="3" fill="#fef9c3" stroke="#eab308" stroke-width="1.5" stroke-dasharray="6 3"/>
+  <text x="644" y="825" fill="#334155" font-size="11">CONFIG 분기점</text>
+
+  <!-- Data flow descriptions -->
+  <text x="60" y="858" fill="#475569" font-size="11" font-weight="600">Data Flow:</text>
+  <line x1="140" y1="854" x2="180" y2="854" stroke="#0078d4" stroke-width="2"/>
+  <text x="188" y="858" fill="#64748b" font-size="10">SP REST API (spGet/spPost/spPatch)</text>
+  <line x1="400" y1="854" x2="440" y2="854" stroke="#742774" stroke-width="2"/>
+  <text x="448" y="858" fill="#64748b" font-size="10">Power Automate (callFlow)</text>
+  <line x1="640" y1="854" x2="680" y2="854" stroke="#16a34a" stroke-width="2" stroke-dasharray="6 3"/>
+  <text x="688" y="858" fill="#64748b" font-size="10">localStorage (offline fallback)</text>
+  <line x1="900" y1="854" x2="940" y2="854" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="948" y="858" fill="#64748b" font-size="10">미구현 연결</text>
+
+  <!-- Version info -->
+  <text x="60" y="895" fill="#94a3b8" font-size="10">v10.1 · Single-File SPA · No build tools · Vanilla HTML/CSS/JS · CDN lazy-load (SheetJS, PptxGenJS)</text>
+  <text x="1140" y="895" text-anchor="end" fill="#94a3b8" font-size="10">2026-03-21</text>
+</svg>
