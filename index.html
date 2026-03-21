@@ -4863,12 +4863,12 @@ previewPhase = function(idx) {
       <span style="font-size:12px;color:${c.met ? 'var(--green)' : 'var(--muted)'};font-weight:700;white-space:nowrap">${c.detail}</span>
     </div>`).join('');
 
-  // D-day 뱃지
-  const ddayHtml = dday !== null ? (() => {
+  // D-day 뱃지 (완료 확정된 단계에는 표시하지 않음)
+  const ddayHtml = dday !== null && dday >= 0 && !isCompleted ? (() => {
     const urgent = dday <= 7;
-    const color = dday < 0 ? '#DC2626' : urgent ? '#D97706' : '#64748B';
-    const bg = dday < 0 ? '#FEF2F2' : urgent ? '#FFFBEB' : '#F1F5F9';
-    const text = dday < 0 ? `D+${Math.abs(dday)} 초과` : dday === 0 ? 'D-DAY' : `D-${dday}`;
+    const color = urgent ? '#D97706' : '#64748B';
+    const bg = urgent ? '#FFFBEB' : '#F1F5F9';
+    const text = dday === 0 ? 'D-DAY' : `D-${dday}`;
     return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:3px 10px;border-radius:99px;background:${bg};color:${color};margin-left:8px">${text}</span>`;
   })() : '';
 
@@ -5038,7 +5038,7 @@ function renderPhaseControl() {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
         <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.2);backdrop-filter:blur(4px)">STEP ${activeIdx + 1} / 5</span>
         <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.15)">${ap.months}</span>
-        ${activeDday !== null ? `<span style="font-size:12px;font-weight:800;padding:3px 12px;border-radius:99px;background:${activeDday<=7?'rgba(251,191,36,.3)':'rgba(255,255,255,.15)'}">${activeDday<0?'D+'+Math.abs(activeDday):activeDday===0?'D-DAY':'D-'+activeDday}</span>` : ''}
+        ${!activeCompleted && activeDday !== null && activeDday >= 0 ? `<span style="font-size:12px;font-weight:800;padding:3px 12px;border-radius:99px;background:${activeDday<=7?'rgba(251,191,36,.3)':'rgba(255,255,255,.15)'}">D-${activeDday}</span>` : ''}
         ${activeCompleted ? '<span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(52,211,153,.3)">확정 완료</span>' : ''}
       </div>
       <div style="font-size:24px;font-weight:900;margin-bottom:6px;letter-spacing:-.5px">${ap.icon} ${ap.label}</div>
@@ -5158,10 +5158,10 @@ function renderPhaseControl() {
       headerBg = 'var(--surface)'; headerBorder = 'var(--border)';
     }
 
-    const ddayHtml = dday !== null && !isCompleted ? (() => {
-      const c = dday < 0 ? '#DC2626' : dday <= 14 ? '#D97706' : '#94A3B8';
-      const bg = dday < 0 ? '#FEF2F2' : dday <= 14 ? '#FFFBEB' : '#F1F5F9';
-      const t = dday < 0 ? `D+${Math.abs(dday)}` : dday === 0 ? 'D-DAY' : `D-${dday}`;
+    const ddayHtml = dday !== null && dday >= 0 && !isCompleted ? (() => {
+      const c = dday <= 14 ? '#D97706' : '#94A3B8';
+      const bg = dday <= 14 ? '#FFFBEB' : '#F1F5F9';
+      const t = dday === 0 ? 'D-DAY' : `D-${dday}`;
       return `<span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;background:${bg};color:${c}">${t}</span>`;
     })() : '';
 
