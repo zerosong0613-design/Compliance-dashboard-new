@@ -827,7 +827,7 @@ body.modal-open{overflow:hidden!important}
           <button class="f-btn" onclick="masterFilter('구매팀',this)">구매팀</button>
           <button class="f-btn" onclick="masterFilter('품질팀',this)">품질팀</button>
         </div>
-        <div class="table-card"><div class="overflow-x"><table class="tbl"><thead><tr><th>ID</th><th>리스크명</th><th>팀</th><th>유형</th><th>위험도</th><th>Owner</th><th>선정</th><th></th></tr></thead><tbody id="master-tbody"></tbody></table></div></div>
+        <div class="table-card"><div class="overflow-x"><table class="tbl"><thead><tr><th>ID</th><th>리스크명</th><th>팀</th><th>유형</th><th>위험도</th><th>Owner</th><th>개선과제</th><th>선정</th><th></th></tr></thead><tbody id="master-tbody"></tbody></table></div></div>
       </div>
 
       <!-- ═ SELECTION ═ -->
@@ -3077,6 +3077,7 @@ function renderMaster(data) {
       <td><span class="cat-tag">${_esc(r.cat)}</span></td>
       <td><span class="${scClass(r.score)}">${r.score}</span></td>
       <td class="tbl-muted">${_esc(r.owner)}</td>
+      <td style="max-width:120px"><span style="font-size:11px;color:${r.task&&r.task.trim()?'var(--green)':'var(--muted)'};cursor:pointer;${r.task&&r.task.trim()?'':'font-style:italic'}" onclick="openRiskEditModal('${r.id}')" title="${_esc(r.task||'')}">${r.task&&r.task.trim() ? (r.task.length>15?_esc(r.task.substring(0,15))+'…':_esc(r.task)) : '미입력'}</span></td>
       <td>${r.selected !== false ? '<span style="color:var(--green);font-weight:700">✓</span>' : '<span style="color:#94A3B8">미선정</span>'}</td>
       <td><button class="act-btn" onclick="openRiskEditModal('${r.id}')">수정</button></td>
     </tr>`).join('');
@@ -5436,6 +5437,130 @@ openRiskEditModal = function(id) {
     }
   }, 50);
 };
+
+/* ═══════════════════════════════════════════════════════════
+   🔗  Phase 간 의존성 검증
+   이전 단계 미완료 시 다음 단계 페이지 진입 경고
+═══════════════════════════════════════════════════════════ */
+const _origNavigateToPhaseCheck = navigateTo;
+navigateTo = function(id) {
+  const phaseStatus = _loadPhaseStatus(curYear);
+  const rm = _getRealMonth();
+
+  // Phase 페이지-의존성 매핑
+  const deps = {
+    selection: { need: 'identify', label: '위험 식별·분석(1단계)', when: rm >= 3 },
+    eval:      { need: 'control',  label: '통제수준 진단(3단계)',   when: rm >= 5 },
+  };
+
+  const dep = deps[id];
+  if (dep && dep.when && !phaseStatus[dep.need]?.completed) {
+    toast(`${dep.label}이 아직 완료 확정되지 않았습니다. 단계별 미션에서 확정해주세요.`, 'warn', 4000);
+  }
+
+  _origNavigateToPhaseCheck(id);
+};
+
+/* ═══════════════════════════════════════════════════════════
+   📊  대시보드 KPI에 Phase 진행 뱃지 반영
+═══════════════════════════════════════════════════════════ */
+const _origInitDash2 = initDash;
+initDash = function() {
+  _origInitDash2();
+
+  // 총 관리 KPI 카드 아래에 Phase 뱃지 추가
+  const phaseStatus = _loadPhaseStatus(curYear);
+  const { phases } = _getActivePhase();
+  const completedCount = phases.filter(p => phaseStatus[p.id]?.completed).length;
+
+  const kpiTotalSub = document.getElementById('kpi-submitted-sub');
+  if (kpiTotalSub) {
+    const existing = kpiTotalSub.parentElement.querySelector('.phase-kpi-badge');
+    if (existing) existing.remove();
+
+    const badge = document.createElement('div');
+    badge.className = 'phase-kpi-badge';
+    const color = completedCount >= 4 ? 'var(--green)' : completedCount >= 2 ? 'var(--accent)' : 'var(--muted)';
+    badge.style.cssText = `font-size:10px;font-weight:700;color:${color};margin-top:2px;cursor:pointer`;
+    badge.textContent = `사이클 ${completedCount}/5단계 확정`;
+    badge.onclick = () => navigateTo('phasecontrol');
+    badge.title = '단계별 미션 보기';
+    kpiTotalSub.parentElement.appendChild(badge);
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   📦  연도 전환 시 이전 연도 Phase 아카이빙
+   새해에 처음 로그인하면 이전 연도 사이클 요약을 아카이브에 기록
+═══════════════════════════════════════════════════════════ */
+(function _checkYearTransition() {
+  const ARCHIVE_LS_KEY = 'riskops_year_archive';
+  const thisYear = new Date().getFullYear();
+  const prevYear = thisYear - 1;
+
+  try {
+    const archived = JSON.parse(localStorage.getItem(ARCHIVE_LS_KEY) || '{}');
+    if (archived[prevYear]) return; // 이미 아카이빙 완료
+
+    const prevPhase = _loadPhaseStatus(String(prevYear));
+    if (!prevPhase || Object.keys(prevPhase).length === 0) return; // 이전 연도 데이터 없음
+
+    const phaseNames = {
+      identify: '위험 식별·분석', assess: '위험평가',
+      control: '통제수준 진단', implement: '개선방안 이행', audit: '점검·보고'
+    };
+
+    const completedPhases = Object.entries(prevPhase)
+      .filter(([k, v]) => v.completed)
+      .map(([k, v]) => ({ id: k, name: phaseNames[k] || k, completedAt: v.completedAt, completedBy: v.completedBy }));
+
+    // 아카이브 기록 저장
+    archived[prevYear] = {
+      year: prevYear,
+      archivedAt: new Date().toISOString().split('T')[0],
+      totalPhases: 5,
+      completedPhases: completedPhases.length,
+      phases: completedPhases,
+      summary: `${prevYear}년 위험평가 사이클: ${completedPhases.length}/5단계 완료`
+    };
+    localStorage.setItem(ARCHIVE_LS_KEY, JSON.stringify(archived));
+
+    // 아카이브 파일 목록에 추가
+    if (typeof _archiveFiles !== 'undefined') {
+      const alreadyExists = _archiveFiles.some(f => f.name.includes(`${prevYear}년_사이클_완료보고`));
+      if (!alreadyExists && completedPhases.length > 0) {
+        _archiveFiles.unshift({
+          id: 'af_archive_' + prevYear,
+          name: `${prevYear}년_사이클_완료보고_${completedPhases.length}단계.xlsx`,
+          year: String(prevYear),
+          type: 'excel',
+          status: 'done',
+          _isArchived: true
+        });
+      }
+    }
+
+    // 첫 로그인 시 알림
+    setTimeout(() => {
+      if (completedPhases.length > 0) {
+        toast(`${prevYear}년 사이클 (${completedPhases.length}/5단계 완료)이 아카이브되었습니다.`, 'info', 5000);
+      }
+    }, 2000);
+
+  } catch(e) {
+    console.warn('연도 전환 아카이빙 실패:', e);
+  }
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   📋  아카이브에서 이전 연도 사이클 요약 조회
+═══════════════════════════════════════════════════════════ */
+function getYearArchive(year) {
+  try {
+    const archived = JSON.parse(localStorage.getItem('riskops_year_archive') || '{}');
+    return archived[year] || null;
+  } catch(e) { return null; }
+}
 
 </script>
 </body>
