@@ -1540,10 +1540,18 @@ async function _loadOfflineData(year, month) {
     const yearBonus = (y - 2025) * 5;
     if (base.achieve != null && !hasScenarioData) base.achieve = Math.min(100, Math.max(5, base.achieve + yearBonus));
 
-    // localStorage 덮어쓰기
+    // localStorage 덮어쓰기 (시나리오 데이터가 있는 항목은 상태 필드 보호)
     const override = saved[r.id];
-    if (override) Object.assign(base, override);
-    base.status = base.submitStatus; // status 동기화 (override 후)
+    if (override) {
+      if (hasScenarioData) {
+        // 시나리오 항목: 사용자가 직접 수정한 필드만 반영 (상태/달성율은 원본 유지)
+        const { submitStatus, status, achieve, evalComment, content, specialNote, _revisionRequested, ...safeOverride } = override;
+        Object.assign(base, safeOverride);
+      } else {
+        Object.assign(base, override);
+      }
+    }
+    base.status = base.submitStatus;
     return base;
   });
 
