@@ -1517,6 +1517,7 @@ async function _loadOfflineData(year, month) {
     // localStorage 덮어쓰기
     const override = saved[r.id];
     if (override) Object.assign(base, override);
+    base.status = base.submitStatus; // status 동기화 (override 후)
     return base;
   });
 
@@ -1874,7 +1875,28 @@ function buildNav() {
     </button>`).join('');
 }
 
+/* ── 페이지 이탈 경고 시스템 (dirty form tracking) ── */
+let _hasDirtyForm = false;
+function _updateDirtyIndicator() {
+  const pt = document.getElementById('page-title');
+  if (pt) pt.classList.toggle('dirty-dot', _hasDirtyForm && ['monthly','eval','master'].includes(curPage));
+}
+function _setDirty(dirty) { _hasDirtyForm = dirty; _updateDirtyIndicator(); }
+
 function navigateTo(id) {
+  // dirty form 이탈 경고
+  if (_hasDirtyForm && id !== curPage) {
+    if (['monthly', 'eval', 'master'].includes(curPage)) {
+      showConfirmModal({
+        title: '이탈 확인',
+        message: '작성 중인 내용이 있습니다.<br>저장하지 않고 이동하시겠습니까?',
+        confirmText: '이동하기',
+        danger: true
+      }).then(ok => { if (ok) { _setDirty(false); navigateTo(id); } });
+      return;
+    }
+  }
+  // 라우팅 실행
   curPage = id;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
   const v = document.getElementById('view-' + id); if (v) v.classList.add('on');
@@ -1885,7 +1907,11 @@ function navigateTo(id) {
   const expBtn = document.querySelector('.export-btn');
   if (tbr) tbr.style.display = HIDE_TOPBAR_RIGHT.includes(id) ? 'none' : 'flex';
   if (expBtn) expBtn.style.display = HIDE_TOPBAR_RIGHT.includes(id) ? 'none' : 'block';
-  document.querySelectorAll('.sb-btn,.bnav-btn,.dr-btn').forEach(b => b.classList.toggle('on', b.dataset.id === id));
+  document.querySelectorAll('.sb-btn,.bnav-btn,.dr-btn').forEach(b => {
+    b.classList.toggle('on', b.dataset.id === id);
+    if (b.dataset.id === id) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
   if (id === 'monthly')   renderMonthly();
   if (id === 'eval')      renderEvalList();
   if (id === 'teams')     renderTeams();
@@ -1897,6 +1923,14 @@ function navigateTo(id) {
   if (id === 'reports')   renderReports();
   if (id === 'archive')   initArchive();
   document.getElementById('content').scrollTop = 0;
+  // 차트 지연 재렌더 (탭 전환 시 canvas 가시성 확보)
+  if (id === 'dash') setTimeout(() => drawChart('trend-canvas', TREND, TKEYS, TCOLORS, true), 120);
+  if (id === 'teams') setTimeout(() => drawTeamsChart(), 120);
+  if (id === 'myteam') {
+    const t = appTeam || '영업팀';
+    const myTrend = TREND.map(d => ({ month: d.month, [t]: d[t] || 0 }));
+    setTimeout(() => drawChart('myteam-canvas', myTrend, [t], ['#3B82F6'], false), 120);
+  }
 }
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
@@ -2461,6 +2495,7 @@ function showRiskDetail(riskId) {
 /* 차트 */
 function drawChart(cid, data, keys, colors, legend) {
   const canvas = document.getElementById(cid); if (!canvas) return;
+  if (canvas.offsetWidth < 10 || !canvas.offsetParent) return;
   const W = canvas.offsetWidth || 400, H = Math.round(W * 0.42);
   canvas.width = W * devicePixelRatio; canvas.height = H * devicePixelRatio;
   const ctx = canvas.getContext('2d'); ctx.scale(devicePixelRatio, devicePixelRatio);
@@ -2635,7 +2670,10 @@ function buildMonthlyFormBody(r) {
     <div class="form-group"><label class="form-label">이행 상태 <span style="color:var(--red)">*</span></label>
       <div class="radio-row" id="status-chips">${statuses.map(st => `<div class="radio-chip ${r.submitStatus === '제출완료' && st === '이행완료' ? 'on' : ''}" onclick="toggleChip(this)">${statusIcons[st]}${st}</div>`).join('')}</div>
     </div>
-    <div class="form-group"><label class="form-label">이행 내용 <span style="color:var(--red)">*</span></label>
+    <div class="form-group"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+       <label class="form-label" style="margin:0">이행 내용 <span style="color:var(--red)">*</span></label>
+       <button id="ai-summary-btn" class="btn btn-ghost" style="padding:5px 10px;font-size:11px;border-color:#8B5CF6;color:#7C3AED" onclick="generateAIContentSummary()">✨ AI 요약</button>
+     </div>
       <textarea class="form-textarea" id="monthly-content" placeholder="이번 달 이행 내용을 구체적으로 작성하세요..." maxlength="2000">${r.content || ''}</textarea>
       <div style="font-size:11px;color:var(--muted);text-align:right;margin-top:2px"><span id="content-chars">0</span>/2000</div>
     </div>
@@ -2810,7 +2848,17 @@ function renderEvalList() {
       <span class="status-chip s-sub" style="font-size:9px">✓ 제출완료</span>
     </div>`).join('');
   if (!pending.length) {
-    document.getElementById('eval-list').innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">평가 대기 항목이 없습니다<br><span style="font-size:11px;color:#94A3B8">제출완료 건이 생기면 여기 표시됩니다</span></div>';
+    const allEvaluated = RISKS.filter(r => r.submitStatus === '평가완료').length;
+    const notSubmitted = RISKS.filter(r => r.submitStatus === '미제출' || r.submitStatus === '임시저장').length;
+    let contextMsg = '';
+    if (allEvaluated > 0 && notSubmitted === 0) contextMsg = '모든 리스크의 평가가 완료되었습니다.';
+    else if (notSubmitted > 0) contextMsg = `팀에서 아직 ${notSubmitted}건을 제출하지 않았습니다.`;
+    else contextMsg = '제출완료 건이 생기면 여기에 표시됩니다.';
+    document.getElementById('eval-list').innerHTML = `<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">
+      <div style="font-size:32px;margin-bottom:8px">⚖</div>
+      평가 대기 항목이 없습니다
+      <div style="font-size:12px;color:#94A3B8;margin-top:8px">${contextMsg}</div>
+    </div>`;
   }
 }
 
@@ -2857,7 +2905,10 @@ function buildEvalBody(r, score) {
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label" id="eval-comment-label">평가 의견 <span id="eval-comment-required" style="color:var(--red);display:none">*</span></label>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+       <label class="form-label" style="margin:0" id="eval-comment-label">평가 의견 <span id="eval-comment-required" style="color:var(--red);display:none">*</span></label>
+       <button id="ai-eval-btn" class="btn btn-ghost" style="padding:5px 10px;font-size:11px;border-color:#8B5CF6;color:#7C3AED" onclick="generateAIEvalComment()">✨ AI 의견</button>
+     </div>
       <textarea class="form-textarea" id="eval-comment" style="height:80px" placeholder="평가 의견을 입력하세요 (달성율 70% 미만 시 필수)">${r.evalComment || ''}</textarea>
       <div id="eval-comment-hint" style="font-size:11px;color:var(--red);margin-top:4px;display:none">달성율이 70% 미만인 경우 평가 의견 입력이 필요합니다.</div>
     </div>`;
@@ -2979,6 +3030,7 @@ function highlightTeam(team) { teamsHighlight = team; renderTeams(); }
 
 function drawTeamsChart() {
   const canvas = document.getElementById('teams-canvas'); if (!canvas) return;
+  if (canvas.offsetWidth < 10 || !canvas.offsetParent) return;
   const tooltip = document.getElementById('teams-tooltip');
   const W = canvas.offsetWidth || 600, H = Math.round(W * 0.42), dpr = devicePixelRatio || 1;
   canvas.width = W * dpr; canvas.height = H * dpr;
@@ -3317,7 +3369,12 @@ function renderMyTeam() {
       ? `<div class="progress-wrap"><div class="progress-track" style="width:50px"><div class="progress-fill" style="width:${r.achieve}%;background:${r.achieve >= 80 ? 'var(--green)' : r.achieve >= 60 ? 'var(--amber)' : 'var(--red)'}"></div></div><span style="font-weight:700;font-size:12px">${r.achieve}%</span></div>`
       : '<span style="color:var(--red);font-size:12px;font-weight:700">미입력</span>';
     return `<div class="my-risk-row"><div class="my-risk-id">${r.id}</div><div class="my-risk-name">${r.title}</div><span class="status-chip ${stClass(r.submitStatus)}" style="font-size:9px;flex-shrink:0">${stIcon(r.submitStatus)}${r.submitStatus}</span>${pb}</div>`;
-  }).join('') : '<div style="text-align:center;color:var(--muted);padding:32px;font-size:13px">이번달 점검 리스크가 없습니다</div>';
+  }).join('') : `<div style="text-align:center;color:var(--muted);padding:32px;font-size:13px">
+      <div style="font-size:32px;margin-bottom:8px">📋</div>
+      이번달 점검 리스크가 없습니다
+      <div style="font-size:12px;color:#94A3B8;margin-top:8px">리스크 Master에서 리스크가 선정되면 여기에 표시됩니다.</div>
+      ${appRole === 'admin' ? '<button class="btn btn-ghost" style="margin-top:12px;font-size:12px" onclick="navigateTo(\'master\')">리스크 Master 이동</button>' : '<div style="font-size:11px;color:#94A3B8;margin-top:8px">관리자에게 문의하세요.</div>'}
+    </div>`;
   setTimeout(runCounters, 100);
 }
 
@@ -3332,6 +3389,11 @@ function renderReports() {
   if (warnMonthly) warnMonthly.style.display = CONFIG.OFFLINE_MODE ? 'flex' : 'none';
   if (warnAnnual)  warnAnnual.style.display  = CONFIG.OFFLINE_MODE ? 'flex' : 'none';
   switchRptTab(rptCurrentTab);
+  // 연도 셀렉터 동기화
+  const rptYear = document.getElementById('rpt-year');
+  const rptAnnYear = document.getElementById('rpt-ann-year');
+  if (rptYear) rptYear.value = curYear;
+  if (rptAnnYear) rptAnnYear.value = curYear;
 }
 function switchRptTab(tab) {
   rptCurrentTab = tab;
@@ -3767,6 +3829,7 @@ function openExcelModal() {
 }
 function closeExcelModal() { document.getElementById('excel-modal-overlay').classList.remove('on'); }
 function parseExcelFile(file) {
+  showLoading('엑셀 파일 파싱 중...');
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
@@ -3801,6 +3864,7 @@ function parseExcelFile(file) {
       }
       showExcelSelectStep(file.name, rows.length);
     } catch (err) { toast('파싱 오류: ' + err.message, 'error'); }
+    finally { hideLoading(); }
   };
   reader.readAsArrayBuffer(file);
 }
@@ -3833,8 +3897,11 @@ function emToggle(i, v) { emParsedRisks[i].selected = v; document.getElementById
 function emSelectAll(v) { emParsedRisks.forEach(r => r.selected = v); renderEmTable(); }
 function emSelectTop(n) { emParsedRisks.forEach((r, i) => r.selected = i < n); renderEmTable(); }
 async function confirmExcelImport() {
+  const btn = document.getElementById('em-confirm-btn');
+  if (btn && btn.disabled) return;
+  if (btn) { btn.disabled = true; btn.textContent = '등록 중...'; }
   const selected = emParsedRisks.filter(r => r.selected);
-  if (!selected.length) { toast('선정된 리스크가 없습니다.', 'warn'); return; }
+  if (!selected.length) { toast('선정된 리스크가 없습니다.', 'warn'); if (btn) { btn.disabled = false; btn.textContent = '✓ 선정 완료 · 등록하기'; } return; }
   showLoading('리스크 등록 중...');
   try {
     if (!CONFIG.OFFLINE_MODE) {
@@ -3866,7 +3933,7 @@ async function confirmExcelImport() {
     applyMaster();
     renderDash && renderDash();
     toast(`✓ ${selected.length}건의 리스크가 등록되었습니다.`, 'success');
-  } catch (e) { toast('등록 실패: ' + e.message, 'error'); } finally { hideLoading(); }
+  } catch (e) { toast('등록 실패: ' + e.message, 'error'); } finally { hideLoading(); const _btn = document.getElementById('em-confirm-btn'); if (_btn) { _btn.disabled = false; _btn.textContent = '✓ 선정 완료 · 등록하기'; } }
 }
 function renderDash() { initDash(); }
 
@@ -3883,8 +3950,9 @@ function openSheet(id, title, body, footer) {
   document.getElementById('sheet-footer').innerHTML = footer;
   document.getElementById('sheet-overlay').classList.add('on');
   document.getElementById('bottom-sheet').classList.add('on');
+  document.body.classList.add('sheet-open');
 }
-function closeSheet() { document.getElementById('sheet-overlay').classList.remove('on'); document.getElementById('bottom-sheet').classList.remove('on'); }
+function closeSheet() { document.getElementById('sheet-overlay').classList.remove('on'); document.getElementById('bottom-sheet').classList.remove('on'); document.body.classList.remove('sheet-open'); }
 
 /* ── 리사이즈 (디바운스) ── */
 let _resizeTimer;
@@ -4090,30 +4158,7 @@ async function generateAIEvalComment() {
   }
 }
 
-/* buildMonthlyFormBody / buildEvalBody 에 AI 버튼 주입 */
-const _origBuildMonthlyFormBody = buildMonthlyFormBody;
-buildMonthlyFormBody = function(r) {
-  const html = _origBuildMonthlyFormBody(r);
-  return html.replace(
-    '<label class="form-label">이행 내용 <span style="color:var(--red)">*</span></label>',
-    `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-       <label class="form-label" style="margin:0">이행 내용 <span style="color:var(--red)">*</span></label>
-       <button id="ai-summary-btn" class="btn btn-ghost" style="padding:5px 10px;font-size:11px;border-color:#8B5CF6;color:#7C3AED" onclick="generateAIContentSummary()">✨ AI 요약</button>
-     </div>`
-  );
-};
-
-const _origBuildEvalBody = buildEvalBody;
-buildEvalBody = function(r, score) {
-  const html = _origBuildEvalBody(r, score);
-  return html.replace(
-    '<label class="form-label">평가 의견</label>',
-    `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-       <label class="form-label" style="margin:0">평가 의견</label>
-       <button id="ai-eval-btn" class="btn btn-ghost" style="padding:5px 10px;font-size:11px;border-color:#8B5CF6;color:#7C3AED" onclick="generateAIEvalComment()">✨ AI 의견</button>
-     </div>`
-  );
-};
+/* (v9.2 AI 버튼은 buildMonthlyFormBody / buildEvalBody 원본에 직접 통합됨) */
 
 
 /* ═══════════════════════════════════════════════════════════
@@ -4229,21 +4274,23 @@ window.addEventListener('DOMContentLoaded', function() {
 /* ── 월 변경: HTML onchange="setMonth()"로 직접 연결 완료 (v9.3) ── */
 
 /* ═══════════════════════════════════════════════════════════
-   🛡  페이지 이탈 경고 — 입력 중 새로고침/탭 닫기 방지
+   🔧  이벤트 리스너 & 유틸리티 (v9.2/v9.3에서 원본 통합 후 잔여)
+   ※ monkey-patch 래핑은 모두 원본 함수에 직접 통합 완료
 ═══════════════════════════════════════════════════════════ */
-let _hasDirtyForm = false;
-function _setDirty(dirty) { _hasDirtyForm = dirty; }
 
-// 월간 폼 textarea 변경 시 dirty 마킹
+/* ── dirty form 추적: 입력 변경 시 dirty 마킹 ── */
 document.addEventListener('input', function(e) {
-  if (e.target.id === 'monthly-content' || e.target.id === 'monthly-note') {
-    _setDirty(true);
-  }
+  if (e.target.id === 'monthly-content' || e.target.id === 'monthly-note') _setDirty(true);
+  if (e.target.id === 'eval-comment' || e.target.id === 'eval-sl') _setDirty(true);
+  if (e.target.id && e.target.id.startsWith('edit-risk-')) _setDirty(true);
 });
-// 제출/임시저장 완료 시 dirty 해제
-const _origSaveDraft = typeof saveDraft !== 'undefined' ? saveDraft : null;
-const _origSubmitMonthly = typeof submitMonthly !== 'undefined' ? submitMonthly : null;
-
+document.addEventListener('click', function(e) {
+  if (e.target.classList && e.target.classList.contains('radio-chip') && curPage === 'monthly') _setDirty(true);
+});
+document.addEventListener('change', function(e) {
+  if (e.target.id === 'attach-input') _setDirty(true);
+  if (e.target.id === 'eval-sl' || e.target.id === 'eval-comment') _setDirty(true);
+});
 window.addEventListener('beforeunload', function(e) {
   if (_hasDirtyForm && ['monthly','eval','master'].includes(curPage)) {
     const msg = '작성 중인 내용이 있습니다. 페이지를 벗어나면 내용이 사라질 수 있습니다.';
@@ -4252,41 +4299,6 @@ window.addEventListener('beforeunload', function(e) {
     return msg;
   }
 });
-
-// ── dirty form 추적 확장: 상태칩, 파일첨부, 평가폼 ──
-document.addEventListener('click', function(e) {
-  if (e.target.classList && e.target.classList.contains('radio-chip') && curPage === 'monthly') _setDirty(true);
-});
-document.addEventListener('change', function(e) {
-  if (e.target.id === 'attach-input') _setDirty(true);
-  if (e.target.id === 'eval-sl' || e.target.id === 'eval-comment') _setDirty(true);
-});
-// ── dirty 표시 dot ──
-function _updateDirtyIndicator() {
-  const pt = document.getElementById('page-title');
-  if (pt) pt.classList.toggle('dirty-dot', _hasDirtyForm && ['monthly','eval','master'].includes(curPage));
-}
-const _origSetDirty = _setDirty;
-_setDirty = function(dirty) { _hasDirtyForm = dirty; _updateDirtyIndicator(); };
-
-// 네비게이션 이탈 시 (SPA 내부 이동) — 통합 패치
-const _origNavigateTo = navigateTo;
-
-/* ═══════════════════════════════════════════════════════════
-   🔧  일괄 적용 패치 — PM/Designer Agent 개선사항
-═══════════════════════════════════════════════════════════ */
-
-/* ── Bottom Sheet body scroll lock ── */
-const _origOpenSheet = openSheet;
-openSheet = function(id, title, body, footer) {
-  _origOpenSheet(id, title, body, footer);
-  document.body.classList.add('sheet-open');
-};
-const _origCloseSheet = closeSheet;
-closeSheet = function() {
-  _origCloseSheet();
-  document.body.classList.remove('sheet-open');
-};
 
 /* ── 라디오칩 키보드 내비게이션 (ArrowLeft/Right) ── */
 document.addEventListener('keydown', function(e) {
@@ -4317,139 +4329,6 @@ function emInvertSelection() {
   renderEmTable();
 }
 
-/* ── Chart canvas width=0 방어 ── */
-const _origDrawChart = drawChart;
-drawChart = function(cid, data, keys, colors, legend) {
-  const canvas = document.getElementById(cid);
-  if (!canvas) return;
-  if (canvas.offsetWidth < 10 || !canvas.offsetParent) { console.warn('Chart skipped: canvas not visible', cid); return; }
-  _origDrawChart(cid, data, keys, colors, legend);
-};
-const _origDrawTeamsChart = drawTeamsChart;
-drawTeamsChart = function() {
-  const canvas = document.getElementById('teams-canvas');
-  if (!canvas || canvas.offsetWidth < 10 || !canvas.offsetParent) { console.warn('TeamsChart skipped: canvas not visible'); return; }
-  _origDrawTeamsChart();
-};
-
-/* ── Empty State 개선: 액션 유도 링크 ── */
-const _origRenderMyTeam = renderMyTeam;
-renderMyTeam = function() {
-  _origRenderMyTeam();
-  const risksEl = document.getElementById('myteam-risks');
-  if (risksEl && risksEl.querySelector('[style*="text-align:center"]') && risksEl.textContent.includes('없습니다')) {
-    risksEl.innerHTML = `<div style="text-align:center;color:var(--muted);padding:32px;font-size:13px">
-      <div style="font-size:32px;margin-bottom:8px">📋</div>
-      이번달 점검 리스크가 없습니다
-      <div style="font-size:12px;color:#94A3B8;margin-top:8px">리스크 Master에서 리스크가 선정되면 여기에 표시됩니다.</div>
-      ${appRole === 'admin' ? '<button class="btn btn-ghost" style="margin-top:12px;font-size:12px" onclick="navigateTo(\'master\')">리스크 Master 이동</button>' : '<div style="font-size:11px;color:#94A3B8;margin-top:8px">관리자에게 문의하세요.</div>'}
-    </div>`;
-  }
-};
-
-/* ── 평가 완료 목록 Empty State 개선 ── */
-const _origRenderEvalList = renderEvalList;
-renderEvalList = function() {
-  _origRenderEvalList();
-  const listEl = document.getElementById('eval-list');
-  if (listEl && listEl.textContent.includes('평가 대기 항목이 없습니다')) {
-    const allEvaluated = RISKS.filter(r => r.submitStatus === '평가완료').length;
-    const notSubmitted = RISKS.filter(r => r.submitStatus === '미제출' || r.submitStatus === '임시저장').length;
-    let contextMsg = '';
-    if (allEvaluated > 0 && notSubmitted === 0) contextMsg = '모든 리스크의 평가가 완료되었습니다.';
-    else if (notSubmitted > 0) contextMsg = `팀에서 아직 ${notSubmitted}건을 제출하지 않았습니다.`;
-    else contextMsg = '제출완료 건이 생기면 여기에 표시됩니다.';
-    listEl.innerHTML = `<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">
-      <div style="font-size:32px;margin-bottom:8px">⚖</div>
-      평가 대기 항목이 없습니다
-      <div style="font-size:12px;color:#94A3B8;margin-top:8px">${contextMsg}</div>
-    </div>`;
-  }
-};
-
-/* ── 제출 완료 버튼 CSS class 사용 ── */
-const _origSubmitMonthlyBtn = submitMonthly;
-/* already patched inline — just ensure btn uses class */
-
-/* ── ARIA: 모달 role=dialog ── */
-const _origShowConfirmModal = showConfirmModal;
-showConfirmModal = function(opts) {
-  return _origShowConfirmModal(opts).then(function(result) {
-    return result;
-  });
-};
-
-/* ── ARIA: 사이드바 nav aria-current — 통합 navigateTo에 포함 ── */
-
-/* ── Excel/PPT 로딩 상태 개선 ── */
-const _origParseExcelFile = parseExcelFile;
-parseExcelFile = function(file) {
-  showLoading('엑셀 파일 파싱 중...');
-  setTimeout(function() {
-    _origParseExcelFile(file);
-    hideLoading();
-  }, 50);
-};
-
-/* ═══════════════════════════════════════════════════════════
-   🔧  v9.3 패치 — PM Agent 4차 개선
-═══════════════════════════════════════════════════════════ */
-
-/* ── Excel import 더블클릭 방어 ── */
-const _origConfirmExcelImport = confirmExcelImport;
-confirmExcelImport = async function() {
-  const btn = document.getElementById('em-confirm-btn');
-  if (btn && btn.disabled) return;
-  if (btn) { btn.disabled = true; btn.textContent = '등록 중...'; }
-  try { await _origConfirmExcelImport(); }
-  finally { if (btn) { btn.disabled = false; btn.textContent = '✓ 선정 완료 · 등록하기'; } }
-};
-
-/* ── Dirty form 추적 확장: eval + master 페이지 ── */
-document.addEventListener('input', function(e) {
-  if (e.target.id === 'eval-comment' || e.target.id === 'eval-sl') _setDirty(true);
-  if (e.target.id && e.target.id.startsWith('edit-risk-')) _setDirty(true);
-});
-
-/* ── 페이지 이탈 경고 확장 — 통합 navigateTo에 포함 ── */
-
-/* ── navigator.onLine 체크 — 오프라인 상태 안내 개선 ── */
-window.addEventListener('online', function() { toast('네트워크가 연결되었습니다.', 'success'); });
-window.addEventListener('offline', function() { toast('네트워크 연결이 끊어졌습니다. 오프라인 모드로 전환됩니다.', 'warn', 5000); });
-
-/* ── 통합 navigateTo 패치 (dirty form + ARIA + 차트 재렌더) ── */
-navigateTo = function(id) {
-  // 1) dirty form 이탈 경고 (monthly / eval / master)
-  if (_hasDirtyForm && id !== curPage) {
-    const dirtyPages = ['monthly', 'eval', 'master'];
-    if (dirtyPages.includes(curPage)) {
-      showConfirmModal({
-        title: '이탈 확인',
-        message: '작성 중인 내용이 있습니다.<br>저장하지 않고 이동하시겠습니까?',
-        confirmText: '이동하기',
-        danger: true
-      }).then(ok => { if (ok) { _setDirty(false); navigateTo(id); } });
-      return;
-    }
-  }
-  // 2) 원본 navigateTo 실행
-  _origNavigateTo(id);
-  // 3) ARIA aria-current
-  document.querySelectorAll('.sb-btn,.bnav-btn,.dr-btn').forEach(b => {
-    if (b.dataset.id === id) b.setAttribute('aria-current', 'page');
-    else b.removeAttribute('aria-current');
-  });
-  // 4) 차트 재렌더 (탭 전환 시)
-  if (id === 'dash') setTimeout(() => drawChart('trend-canvas', TREND, TKEYS, TCOLORS, true), 120);
-  if (id === 'teams') setTimeout(() => drawTeamsChart(), 120);
-  if (id === 'archive') initArchive();
-  if (id === 'myteam') {
-    const t = appTeam || '영업팀';
-    const myTrend = TREND.map(d => ({ month: d.month, [t]: d[t] || 0 }));
-    setTimeout(() => drawChart('myteam-canvas', myTrend, [t], ['#3B82F6'], false), 120);
-  }
-};
-
 /* ── 글자수 카운터 ── */
 document.addEventListener('input', function(e) {
   if (e.target.id === 'monthly-content') {
@@ -4458,24 +4337,9 @@ document.addEventListener('input', function(e) {
   }
 });
 
-/* ── submitStatus/status 통합 — 항상 동기화 ── */
-const _origLoadOffline = _loadOfflineData;
-_loadOfflineData = async function(year, month) {
-  await _origLoadOffline(year, month);
-  RISKS.forEach(r => { if (r.submitStatus && r.status !== r.submitStatus) r.status = r.submitStatus; });
-};
-
-/* ── 보고서 연도 셀렉터 동적 기본값 ── */
-const _origRenderReports = renderReports;
-renderReports = function() {
-  _origRenderReports();
-  const rptYear = document.getElementById('rpt-year');
-  const rptAnnYear = document.getElementById('rpt-ann-year');
-  if (rptYear) rptYear.value = curYear;
-  if (rptAnnYear) rptAnnYear.value = curYear;
-};
-
-/* ── 월 셀렉터 패치 삭제 (이제 HTML에서 직접 onchange 연결) ── */
+/* ── 네트워크 상태 알림 ── */
+window.addEventListener('online', function() { toast('네트워크가 연결되었습니다.', 'success'); });
+window.addEventListener('offline', function() { toast('네트워크 연결이 끊어졌습니다. 오프라인 모드로 전환됩니다.', 'warn', 5000); });
 
 /* ═══════════════════════════════════════════════════════════
    🔧  v10.1 패치 — PM/Designer Agent 5차 분석 개선
