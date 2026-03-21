@@ -3095,7 +3095,7 @@ function openRiskEditModal(id) {
           <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:3px">${r.id}</div>
           <div style="font-size:16px;font-weight:800;color:var(--text)">리스크 수정</div>
         </div>
-        <button onclick="document.getElementById('edit-risk-modal').remove()" style="width:30px;height:30px;border:none;background:var(--bg);border-radius:8px;font-size:16px;cursor:pointer;color:var(--muted)">✕</button>
+        <button onclick="_setDirty(false);document.getElementById('edit-risk-modal').remove()" style="width:30px;height:30px;border:none;background:var(--bg);border-radius:8px;font-size:16px;cursor:pointer;color:var(--muted)">✕</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
         <div>
@@ -3155,7 +3155,7 @@ function openRiskEditModal(id) {
         </div>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
-        <button class="btn btn-ghost" onclick="document.getElementById('edit-risk-modal').remove()">취소</button>
+        <button class="btn btn-ghost" onclick="_setDirty(false);document.getElementById('edit-risk-modal').remove()">취소</button>
         <button class="btn btn-primary" onclick="confirmEditRisk('${r.id}')">저장하기</button>
       </div>
     </div>`;
@@ -3188,6 +3188,7 @@ async function confirmEditRisk(riskId) {
       _lsSave(curYear, curMonth, r.id, { title, team, cat, impact, likelihood, score, owner, task, selected, submitStatus: r.submitStatus });
     }
     document.getElementById('edit-risk-modal').remove();
+    _setDirty(false);
     applyMaster();
     _computeTeamsData();
     toast(`[${riskId}] 수정이 저장되었습니다.`, 'success');
@@ -4489,7 +4490,7 @@ document.addEventListener('keydown', function(e) {
     { id: 'kpi-modal',        close: () => document.getElementById('kpi-modal')?.remove() },
     { id: 'risk-detail-modal',close: () => document.getElementById('risk-detail-modal')?.remove() },
     { id: 'hm-drill-modal',   close: () => document.getElementById('hm-drill-modal')?.remove() },
-    { id: 'edit-risk-modal',  close: () => document.getElementById('edit-risk-modal')?.remove() },
+    { id: 'edit-risk-modal',  close: () => { _setDirty(false); document.getElementById('edit-risk-modal')?.remove(); } },
     { id: 'add-risk-modal',   close: () => { const m = document.getElementById('add-risk-modal'); if (m) m.style.display = 'none'; } },
   ];
   for (const m of modals) {
