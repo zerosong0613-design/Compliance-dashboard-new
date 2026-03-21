@@ -2795,23 +2795,31 @@ function selectMonthly(i) {
     // 제출/임시저장 내용 표시
     const hasContent = r.content && r.content.trim();
     let submittedSection;
+    // 이행 상태 표시 헬퍼
+    const statusChips = {'이행완료':'✓ 이행완료','이행중':'↗ 이행중','미이행':'✕ 미이행','해당없음':'— 해당없음'};
+    const statusChip = r._statusChip ? `<span class="status-chip ${stClass(r._statusChip)}" style="font-size:11px">${statusChips[r._statusChip]||r._statusChip}</span>` : '';
+
     if (r.submitStatus === '제출완료' || r.submitStatus === '평가완료') {
       submittedSection = `
         <div class="submitted-box">
           <div class="submitted-lbl">📝 팀 제출 내용</div>
+          ${statusChip ? `<div style="margin-bottom:8px">${statusChip}</div>` : ''}
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">이행 내용</div>
           <div class="submitted-txt">${r.content || '(제출 내용 없음)'}</div>
-          ${r.specialNote ? `<div style="margin-top:8px;font-size:12px;color:var(--muted)">💬 특이사항: ${r.specialNote}</div>` : ''}
-          ${r.attachmentUrl ? `<a class="file-chip" href="${r.attachmentUrl}" target="_blank">📄 첨부파일 보기</a>` : ''}
+          ${r.specialNote ? `<div style="margin-top:10px"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">특이사항</div><div style="font-size:13px;color:var(--muted);line-height:1.6">${r.specialNote}</div></div>` : ''}
+          <div style="margin-top:10px"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">첨부파일</div>${r.attachmentUrl ? `<a class="file-chip" href="${r.attachmentUrl}" target="_blank">📄 첨부파일 보기</a>` : '<div style="font-size:12px;color:var(--muted);padding:8px 12px;background:var(--bg);border-radius:8px">첨부된 파일이 없습니다</div>'}</div>
         </div>`;
     } else if (r.submitStatus === '임시저장' && hasContent) {
       submittedSection = `
         <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:16px;margin-bottom:16px">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
             <span style="font-size:14px">✏</span>
             <span style="font-size:12px;font-weight:700;color:#92400E">임시저장 — 아직 제출 전입니다</span>
           </div>
+          ${statusChip ? `<div style="margin-bottom:8px">${statusChip}</div>` : ''}
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">이행 내용</div>
           <div style="font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap">${r.content}</div>
-          ${r.specialNote ? `<div style="margin-top:8px;font-size:12px;color:var(--muted)">💬 ${r.specialNote}</div>` : ''}
+          ${r.specialNote ? `<div style="margin-top:10px"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">특이사항</div><div style="font-size:12px;color:var(--muted);line-height:1.6">${r.specialNote}</div></div>` : ''}
         </div>`;
     } else {
       submittedSection = `
@@ -2833,10 +2841,10 @@ function selectMonthly(i) {
         <input type="range" min="0" max="100" value="${initScore}" class="eval-slider" id="eval-sl" style="accent-color:${sc}" oninput="updateScore(this.value)">
         <div class="slider-ticks"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
         <div class="qs-grid" style="margin-top:8px">
-          <button class="qs-btn" style="border-color:#EF4444;color:#EF4444;background:#FEF2F2" onclick="setScore(20)">미달성</button>
-          <button class="qs-btn" style="border-color:#F59E0B;color:#D97706;background:#FFFBEB" onclick="setScore(60)">부분달성</button>
-          <button class="qs-btn" style="border-color:#3B82F6;color:#2563EB;background:#EFF6FF" onclick="setScore(85)">달성</button>
-          <button class="qs-btn" style="border-color:#10B981;color:#059669;background:#ECFDF5" onclick="setScore(97)">우수</button>
+          <button class="qs-btn" style="border-color:#EF4444;color:#EF4444;background:#FEF2F2" onclick="setScore(20)">미달성<div style="font-size:11px;font-weight:400;margin-top:2px">0–40%</div></button>
+          <button class="qs-btn" style="border-color:#F59E0B;color:#D97706;background:#FFFBEB" onclick="setScore(60)">부분달성<div style="font-size:11px;font-weight:400;margin-top:2px">40–80%</div></button>
+          <button class="qs-btn" style="border-color:#3B82F6;color:#2563EB;background:#EFF6FF" onclick="setScore(85)">달성<div style="font-size:11px;font-weight:400;margin-top:2px">80–90%</div></button>
+          <button class="qs-btn" style="border-color:#10B981;color:#059669;background:#ECFDF5" onclick="setScore(97)">우수<div style="font-size:11px;font-weight:400;margin-top:2px">90–100%</div></button>
         </div>
         <div class="form-group" style="margin-top:12px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -3163,10 +3171,10 @@ function buildEvalBody(r, score) {
       <input type="range" min="0" max="100" value="${score}" class="eval-slider" id="eval-sl" style="accent-color:${sc}" oninput="updateScore(this.value)">
       <div class="slider-ticks"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
       <div class="qs-grid">
-        <button class="qs-btn" style="border-color:#EF4444;color:#EF4444;background:#FEF2F2" onclick="setScore(20)">미달성 (0–40%)</button>
-        <button class="qs-btn" style="border-color:#F59E0B;color:#D97706;background:#FFFBEB" onclick="setScore(60)">부분달성 (40–80%)</button>
-        <button class="qs-btn" style="border-color:#3B82F6;color:#2563EB;background:#EFF6FF" onclick="setScore(85)">달성 (80–90%)</button>
-        <button class="qs-btn" style="border-color:#10B981;color:#059669;background:#ECFDF5" onclick="setScore(97)">우수 (90–100%)</button>
+        <button class="qs-btn" style="border-color:#EF4444;color:#EF4444;background:#FEF2F2" onclick="setScore(20)">미달성<div style="font-size:11px;font-weight:400;margin-top:2px">0–40%</div></button>
+        <button class="qs-btn" style="border-color:#F59E0B;color:#D97706;background:#FFFBEB" onclick="setScore(60)">부분달성<div style="font-size:11px;font-weight:400;margin-top:2px">40–80%</div></button>
+        <button class="qs-btn" style="border-color:#3B82F6;color:#2563EB;background:#EFF6FF" onclick="setScore(85)">달성<div style="font-size:11px;font-weight:400;margin-top:2px">80–90%</div></button>
+        <button class="qs-btn" style="border-color:#10B981;color:#059669;background:#ECFDF5" onclick="setScore(97)">우수<div style="font-size:11px;font-weight:400;margin-top:2px">90–100%</div></button>
       </div>
     </div>
     <div class="form-group">
