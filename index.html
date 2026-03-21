@@ -1509,35 +1509,36 @@ async function _loadOfflineData(year, month) {
   RISKS = SAMPLE_RISKS.map((r, idx) => {
     const base = { ...r };
     const rng = _rng(idx);
-    const riskOrder = idx; // 리스크별 제출 우선순위 (앞쪽이 먼저 제출)
+    const riskOrder = idx;
 
-    if (riskOrder < expectedDone - 1) {
-      // 이미 평가까지 완료된 건
-      base.submitStatus = '평가완료';
-      base.achieve = Math.round(40 + progress * 50 + rng * 15);
-    } else if (riskOrder < expectedDone) {
-      // 이번 달 제출 완료 (아직 평가 대기)
-      base.submitStatus = '제출완료';
-      base.achieve = Math.round(35 + progress * 45 + rng * 15);
-    } else if (riskOrder === expectedDone) {
-      // 현재 작성 중
-      base.submitStatus = '임시저장';
-      base.achieve = null;
-    } else {
-      // 아직 미제출
-      base.submitStatus = '미제출';
-      base.achieve = null;
+    // 샘플 데이터에 content/evalComment가 있으면 원본 상태 유지 (시나리오 데이터)
+    const hasScenarioData = r.content || r.evalComment || r._revisionRequested;
+    if (!hasScenarioData) {
+      // 월별 진행률 기반 상태 자동 생성
+      if (riskOrder < expectedDone - 1) {
+        base.submitStatus = '평가완료';
+        base.achieve = Math.round(40 + progress * 50 + rng * 15);
+      } else if (riskOrder < expectedDone) {
+        base.submitStatus = '제출완료';
+        base.achieve = Math.round(35 + progress * 45 + rng * 15);
+      } else if (riskOrder === expectedDone) {
+        base.submitStatus = '임시저장';
+        base.achieve = null;
+      } else {
+        base.submitStatus = '미제출';
+        base.achieve = null;
+      }
     }
     base.status = base.submitStatus;
 
-    // 달성율 범위 보정 (1월=35~55, 6월=60~80, 12월=85~100)
-    if (base.achieve != null) {
+    // 달성율 범위 보정
+    if (base.achieve != null && !hasScenarioData) {
       base.achieve = Math.min(100, Math.max(10, base.achieve));
     }
 
-    // 연도별 보정: 2024년은 전반적으로 낮음, 2026년은 높음
+    // 연도별 보정
     const yearBonus = (y - 2025) * 5;
-    if (base.achieve != null) base.achieve = Math.min(100, Math.max(5, base.achieve + yearBonus));
+    if (base.achieve != null && !hasScenarioData) base.achieve = Math.min(100, Math.max(5, base.achieve + yearBonus));
 
     // localStorage 덮어쓰기
     const override = saved[r.id];
