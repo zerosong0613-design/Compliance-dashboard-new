@@ -812,6 +812,7 @@ body.modal-open{overflow:hidden!important}
 
       <!-- ═ MASTER ═ -->
       <div class="view" id="view-master">
+        <div id="master-guide-banner"></div>
         <div class="master-toolbar">
           <div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" placeholder="리스크 검색..." oninput="masterSearch(this.value)"></div>
           <select class="fm-sel" style="min-width:110px" onchange="masterFilter(this.value, null, this)"><option value="전체">전체 팀</option><option>영업팀</option><option>생산팀</option><option>연구개발팀</option><option>구매팀</option><option>품질팀</option></select>
@@ -835,7 +836,7 @@ body.modal-open{overflow:hidden!important}
       <div class="view" id="view-selection">
         <div style="margin-bottom:20px">
           <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">🎯 점검대상 리스크 선정</div>
-          <div style="font-size:13px;color:var(--muted)">위험도(영향도×가능성) 점수 기준으로 이번 연도 점검 대상 리스크를 선정합니다.</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.6">위험도(영향도×가능성) 점수 기준으로 이번 연도 점검 대상 리스크를 선정합니다.<br>선정 후 <strong style="color:var(--text)">단계별 미션</strong>에서 확정하면 각 팀에 배정 알림이 발송됩니다.</div>
         </div>
         <!-- Auto-select card -->
         <div class="card" style="margin-bottom:16px">
@@ -2746,6 +2747,29 @@ function renderMonthly() {
             <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--accent);font-weight:700;flex-shrink:0">3.</span> 제출 후 평가 결과와 이의신청은 <strong style="color:var(--text)">평가결과·이력</strong> 탭에서 확인합니다.</div>
           </div>
         </div>`;
+    } else if (appRole === 'admin') {
+      const pendingRevCount = base.filter(r => r._revisionRequested && r._revisionStatus === 'pending').length;
+      const submittedCount = base.filter(r => r.submitStatus === '제출완료').length;
+      const missingCount = base.filter(r => r.submitStatus === '미제출').length;
+      guideBanner.innerHTML = `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+            <span style="font-size:18px">⚖</span>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:800;color:var(--text)">이행현황 검토</div>
+              <div style="font-size:12px;color:var(--muted)">${curYear}년 ${curMonth}월 · 전체 ${base.length}건</div>
+            </div>
+            <div style="display:flex;gap:12px">
+              ${submittedCount > 0 ? `<span style="font-size:12px;font-weight:700;color:var(--accent)">평가 대기 ${submittedCount}건</span>` : ''}
+              ${pendingRevCount > 0 ? `<span style="font-size:12px;font-weight:700;color:#D97706">이의 검토 ${pendingRevCount}건</span>` : ''}
+              ${missingCount > 0 ? `<span style="font-size:12px;font-weight:700;color:var(--red)">미제출 ${missingCount}건</span>` : ''}
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.7">
+            좌측 목록에서 리스크를 선택하면 <strong style="color:var(--text)">팀 제출 내용을 확인</strong>하고 <strong style="color:var(--text)">달성율을 평가</strong>할 수 있습니다.
+            이의신청이 접수된 건은 <strong style="color:#D97706">사유를 검토</strong>한 후 수용(점수 조정) 또는 기각(점수 유지)합니다.
+          </div>
+        </div>`;
     } else {
       guideBanner.innerHTML = '';
     }
@@ -3860,6 +3884,31 @@ let masterQ = '', masterTeam = '전체';
 function masterFilter(f, btn, sel) { masterTeam = f; if (btn) { document.querySelectorAll('#master-filt .f-btn').forEach(b => b.classList.remove('on')); btn.classList.add('on'); } applyMaster(); }
 function masterSearch(q) { masterQ = q; applyMaster(); }
 function applyMaster() {
+  // 관리자 가이드 배너
+  const mgb = document.getElementById('master-guide-banner');
+  if (mgb && appRole === 'admin') {
+    const teamsWithRisks = new Set(RISKS.map(r => r.team));
+    const noOwner = RISKS.filter(r => !r.owner || r.owner.trim() === '' || r.owner === '-');
+    const noTask = RISKS.filter(r => r.selected !== false && (!r.task || !r.task.trim()));
+    mgb.innerHTML = `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 20px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+          <span style="font-size:16px">📋</span>
+          <div style="font-size:14px;font-weight:800;color:var(--text)">리스크 Master</div>
+          <div style="display:flex;gap:10px;margin-left:auto;font-size:12px">
+            <span style="color:var(--accent);font-weight:700">${RISKS.length}건 등록</span>
+            <span style="color:${teamsWithRisks.size>=5?'var(--green)':'var(--red)'};font-weight:700">${teamsWithRisks.size}/5팀 배분</span>
+            ${noOwner.length > 0 ? `<span style="color:var(--red);font-weight:700">Owner 미지정 ${noOwner.length}건</span>` : ''}
+            ${noTask.length > 0 ? `<span style="color:#D97706;font-weight:700">개선과제 미입력 ${noTask.length}건</span>` : ''}
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">
+          리스크를 등록하고 각 팀에 배분합니다. <strong style="color:var(--text)">Owner 지정</strong>과 <strong style="color:var(--text)">개선과제 입력</strong>까지 완료하면
+          단계별 미션에서 <strong style="color:var(--accent)">Phase 확정 → 팀 알림 발송</strong>이 가능합니다.
+        </div>
+      </div>`;
+  }
+
   let d = RISKS;
   if (masterTeam !== '전체') d = d.filter(r => r.team === masterTeam);
   if (masterQ) { const q = masterQ.toLowerCase(); d = d.filter(r => r.title.toLowerCase().includes(q) || r.id.toLowerCase().includes(q) || (r.cat||'').toLowerCase().includes(q) || (r.desc||'').toLowerCase().includes(q) || (r.task||'').toLowerCase().includes(q) || (r.owner||'').toLowerCase().includes(q)); }
@@ -5263,10 +5312,19 @@ async function confirmPhaseComplete(phaseId) {
     control:'통제수준 진단', implement:'개선방안 이행', audit:'점검·보고'
   };
 
+  // Phase별 팀 발송 안내 메시지
+  const phaseNotice = {
+    identify: '완료 확정 시 <strong>각 팀에 리스크 배정 알림</strong>이 발송됩니다. 팀 담당자는 배정된 리스크를 확인한 후 이행을 시작합니다.',
+    assess: '위험평가가 확정되면 <strong>선정된 리스크 목록이 팀에 공유</strong>됩니다.',
+    control: '통제수준 진단이 확정되면 <strong>개선과제가 확정</strong>되고, 팀 담당자의 매월 이행 입력이 시작됩니다.',
+    implement: '이번 달 이행 관리가 완료됩니다.',
+    audit: '연간 위험평가 사이클이 종료되고 결과가 아카이브됩니다.',
+  };
+
   const ok = await showConfirmModal({
     title: `${phaseLabels[phaseId]} 단계 완료 확정`,
-    message: `모든 조건이 충족되었습니다. 이 단계를 완료 처리하시겠습니까?\n\n완료 후에도 데이터는 수정 가능하지만, 다음 단계로 진행됩니다.`,
-    confirmText: '완료 확정',
+    message: `모든 조건이 충족되었습니다. 이 단계를 완료 처리하시겠습니까?<br><br>📢 ${phaseNotice[phaseId] || ''}<br><br><span style="color:var(--muted);font-size:12px">완료 후에도 데이터는 수정 가능합니다.</span>`,
+    confirmText: '완료 확정 + 팀 알림 발송',
   });
 
   if (!ok) return;
@@ -5278,7 +5336,8 @@ async function confirmPhaseComplete(phaseId) {
     completedBy: appRole === 'admin' ? '관리자' : appTeam,
   });
 
-  toast(`${phaseLabels[phaseId]} 단계가 완료 확정되었습니다.`, 'success');
+  const teamCount = new Set(RISKS.map(r => r.team)).size;
+  toast(`${phaseLabels[phaseId]} 단계 완료! ${teamCount}개 팀에 알림이 발송됩니다.`, 'success', 5000);
 
   // 대시보드 리렌더
   renderPhaseStepBar();
@@ -5398,11 +5457,16 @@ function _renderPhaseActionBanner() {
       }
     }
   } else if (m <= 9) {
-    // Phase 4: 이행 관리 — 달성율 중심 (제출/평가는 각 페이지에서 처리)
+    // Phase 4: 이행 관리 — 달성율 + 이의신청 알림
     const achRisks = RISKS.filter(r => r.achieve != null);
     const avgAch = achRisks.length ? Math.round(achRisks.reduce((s,r) => s + r.achieve, 0) / achRisks.length) : 0;
+    const pendingRevisions = RISKS.filter(r => r._revisionRequested && r._revisionStatus === 'pending');
+    if (pendingRevisions.length > 0) {
+      items.push({ icon:'⚠', color:'#FFFBEB', border:'#FDE68A', text:'#D97706',
+        msg:`이의신청 <strong>${pendingRevisions.length}건</strong> 검토 필요 — 이행현황 검토에서 처리하세요`, action:`navigateTo('monthly')`, btn:'검토하러 가기' });
+    }
     if (avgAch < 60) {
-      items.push({ icon:'⚠', color:'#FEF2F2', border:'#FECACA', text:'#DC2626',
+      items.push({ icon:'📊', color:'#FEF2F2', border:'#FECACA', text:'#DC2626',
         msg:`전사 달성율 <strong>${avgAch}%</strong> — 60% 미달, 이행 독려 필요`, action:`navigateTo('teams')`, btn:'팀 현황 보기' });
     } else {
       items.push({ icon:'✅', color:'#F0FDF4', border:'#BBF7D0', text:'#059669',
