@@ -829,7 +829,7 @@ body.modal-open{overflow:hidden!important}
           <button class="f-btn" onclick="masterFilter('구매팀',this)">구매팀</button>
           <button class="f-btn" onclick="masterFilter('품질팀',this)">품질팀</button>
         </div>
-        <div class="table-card"><div class="overflow-x"><table class="tbl"><thead><tr><th>ID</th><th>리스크명</th><th>팀</th><th>유형</th><th>위험도</th><th>Owner</th><th>개선과제</th><th>선정</th><th></th></tr></thead><tbody id="master-tbody"></tbody></table></div></div>
+        <div class="table-card"><div class="overflow-x"><table class="tbl"><thead><tr><th>ID</th><th>리스크명</th><th>팀</th><th>유형</th><th>위험도</th><th>담당자</th><th>개선과제</th><th>선정</th><th></th></tr></thead><tbody id="master-tbody"></tbody></table></div></div>
       </div>
 
       <!-- ═ SELECTION ═ -->
@@ -2056,7 +2056,7 @@ function _getActivePhase() {
          why:'올해 관리할 전체 리스크 목록을 엑셀로 업로드하여 시스템에 등록합니다.',
          nav:'master', count:()=>RISKS.length, unit:'건 등록됨', color:'var(--accent)'},
         {icon:'🏷', title:'팀별 담당 배분 확인',
-         why:'각 팀이 어떤 리스크를 담당하는지 확인하고 Owner를 지정합니다.',
+         why:'각 팀이 어떤 리스크를 담당하는지 확인하고 담당자를 지정합니다.',
          nav:'master', count:()=>new Set(RISKS.map(r=>r.team)).size, unit:'개 팀 배정', color:'var(--text)'},
       ]},
     { id:'assess', label:'위험평가', shortLabel:'위험평가',
@@ -3905,12 +3905,12 @@ function applyMaster() {
           <div style="display:flex;gap:10px;margin-left:auto;font-size:12px">
             <span style="color:var(--accent);font-weight:700">${RISKS.length}건 등록</span>
             <span style="color:${teamsWithRisks.size>=5?'var(--green)':'var(--red)'};font-weight:700">${teamsWithRisks.size}/5팀 배분</span>
-            ${noOwner.length > 0 ? `<span style="color:var(--red);font-weight:700">Owner 미지정 ${noOwner.length}건</span>` : ''}
+            ${noOwner.length > 0 ? `<span style="color:var(--red);font-weight:700">담당자 미지정 ${noOwner.length}건</span>` : ''}
             ${noTask.length > 0 ? `<span style="color:#D97706;font-weight:700">개선과제 미입력 ${noTask.length}건</span>` : ''}
           </div>
         </div>
         <div style="font-size:12px;color:var(--muted);line-height:1.6">
-          리스크를 등록하고 각 팀에 배분합니다. <strong style="color:var(--text)">Owner 지정</strong>과 <strong style="color:var(--text)">개선과제 입력</strong>까지 완료하면
+          리스크를 등록하고 각 팀에 배분합니다. <strong style="color:var(--text)">담당자 지정</strong>과 <strong style="color:var(--text)">개선과제 입력</strong>까지 완료하면
           단계별 미션에서 <strong style="color:var(--accent)">Phase 확정 → 팀 알림 발송</strong>이 가능합니다.
         </div>
       </div>`;
@@ -5233,7 +5233,7 @@ function _checkPhaseConditions(phaseId) {
       return [
         { label: '리스크 1건 이상 등록', met: hasRisks, detail: `${RISKS.length}건 등록됨` },
         { label: '모든 팀에 1건 이상 배분', met: allTeamsCovered, detail: `${teamsWithRisks.size}/${allTeams.length}개 팀` },
-        { label: '전체 리스크 Owner 지정', met: allOwnersSet, detail: `${risksWithOwner.length}/${RISKS.length}건 지정` },
+        { label: '전체 리스크 담당자 지정', met: allOwnersSet, detail: `${risksWithOwner.length}/${RISKS.length}건 지정` },
       ];
     }
     case 'assess': {
@@ -5414,7 +5414,7 @@ function _renderPhaseActionBanner() {
         }
         if (noOwner.length > 0) {
           items.push({ icon:'👤', color:'#FEF2F2', border:'#FECACA', text:'#DC2626',
-            msg:`Owner 미지정 <strong>${noOwner.length}건</strong> — 담당자를 지정하세요`,
+            msg:`담당자 미지정 <strong>${noOwner.length}건</strong> — 담당자를 지정하세요`,
             action:`navigateTo('master')`, btn:'지정하러 가기' });
         }
         if (missingTeams.length === 0 && noOwner.length === 0) {
