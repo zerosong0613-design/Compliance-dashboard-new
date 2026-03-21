@@ -5149,7 +5149,7 @@ function renderPhaseControl() {
 
   // ═══ SECTION 4: 나머지 단계 (아코디언) ═══
   phases.forEach((p, i) => {
-    if (i === effectiveIdx) return; // 현재 표시 중인 단계는 위 히어로에서 표시
+    const isHeroPhase = i === effectiveIdx; // 히어로에 표시 중인 단계도 아코디언에 포함
 
     const isCompleted = phaseStatus[p.id]?.completed;
     const isPast = i < effectiveIdx;
@@ -5161,7 +5161,10 @@ function renderPhaseControl() {
 
     // 접힌 상태 헤더 아이콘
     let statusIcon, statusText, headerBg, headerBorder;
-    if (isCompleted) {
+    if (isHeroPhase && !isCompleted) {
+      statusIcon = '🔵'; statusText = '현재 단계';
+      headerBg = '#EFF6FF'; headerBorder = '#93C5FD';
+    } else if (isCompleted) {
       statusIcon = '✅'; statusText = `확정 · ${phaseStatus[p.id].completedAt}`;
       headerBg = '#F0FDF4'; headerBorder = '#86EFAC';
     } else if (isPast) {
@@ -5206,17 +5209,17 @@ function renderPhaseControl() {
     }
 
     html += `
-      <div style="border:1px solid ${headerBorder};border-radius:12px;margin-bottom:8px;overflow:hidden;background:${headerBg};${isFuture ? 'opacity:.7' : ''}">
+      <div style="border:${isHeroPhase&&!isCompleted?'2px':'1px'} solid ${headerBorder};border-radius:12px;margin-bottom:8px;overflow:hidden;background:${headerBg};${isFuture ? 'opacity:.7' : ''}">
         <div onclick="const b=document.getElementById('${collapseId}');const a=this.querySelector('.pc-arrow');if(b.style.display==='none'){b.style.display='block';a.textContent='▼'}else{b.style.display='none';a.textContent='▶'}" style="display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none;transition:background .1s" onmouseover="this.style.background='rgba(0,0,0,.02)'" onmouseout="this.style.background='transparent'">
-          <span class="pc-arrow" style="font-size:10px;color:var(--muted);flex-shrink:0;width:14px">${isPast ? '▶' : '▶'}</span>
+          <span class="pc-arrow" style="font-size:10px;color:var(--muted);flex-shrink:0;width:14px">${isHeroPhase ? '▼' : '▶'}</span>
           <span style="font-size:18px;flex-shrink:0">${statusIcon}</span>
-          <span style="font-size:11px;font-weight:800;color:var(--muted);flex-shrink:0">STEP ${i+1}</span>
+          <span style="font-size:11px;font-weight:800;color:${isHeroPhase?'var(--accent)':'var(--muted)'};flex-shrink:0">STEP ${i+1}</span>
           <span style="font-size:14px;font-weight:800;color:var(--text);flex:1">${p.label}</span>
           <span style="font-size:11px;color:var(--muted);flex-shrink:0">${p.months}</span>
           ${ddayHtml}
-          <span style="font-size:11px;font-weight:700;color:${isCompleted?'var(--green)':isPast?'#D97706':'var(--muted)'};flex-shrink:0">${statusText}</span>
+          <span style="font-size:11px;font-weight:700;color:${isHeroPhase&&!isCompleted?'var(--accent)':isCompleted?'var(--green)':isPast?'#D97706':'var(--muted)'};flex-shrink:0">${statusText}</span>
         </div>
-        <div id="${collapseId}" style="display:none;padding:0 18px 14px;border-top:1px solid ${headerBorder}">
+        <div id="${collapseId}" style="display:${isHeroPhase ? 'block' : 'none'};padding:0 18px 14px;border-top:1px solid ${headerBorder}">
           <div style="font-size:12px;color:var(--muted);line-height:1.6;margin:10px 0">${p.desc}</div>
           ${conditions.length > 0 ? `
             <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px 14px;margin-bottom:4px">${checkHtml}</div>` : ''}
