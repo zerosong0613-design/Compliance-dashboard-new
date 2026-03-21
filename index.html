@@ -773,6 +773,7 @@ body.modal-open{overflow:hidden!important}
 
       <!-- ═ MONTHLY ═ -->
       <div class="view" id="view-monthly">
+        <div id="monthly-guide-banner"></div>
         <div class="split-view">
           <div class="risk-panel"><div class="panel-hd"><div class="panel-title">이번달 점검 리스크</div><div class="panel-sub" id="monthly-psub">2025년 3월</div></div><div class="panel-list" id="monthly-list"></div></div>
           <div class="form-panel" id="monthly-form"><div class="empty-panel"><div class="empty-icon">📝</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측 목록에서 점검할 리스크를<br>선택하면 입력 폼이 열립니다</div></div></div>
@@ -2230,16 +2231,27 @@ let _archiveYearFilter = '전체';
 let _lawCategoryFilter = '전체';
 
 function initArchive() {
-  // User 모드: 올해 연도 탭 숨김 (이전 연도 이력만 열람)
+  const thisYear = String(new Date().getFullYear());
   if (appRole === 'user') {
-    const thisYear = String(new Date().getFullYear());
+    // User 모드: 올해 연도 탭 숨김 + 법령/Copilot 섹션 숨김
     document.querySelectorAll('#archive-year-tabs .f-btn').forEach(btn => {
       if (btn.textContent.includes(thisYear)) btn.style.display = 'none';
     });
+    const bottomGrid = document.getElementById('archive-bottom-grid');
+    if (bottomGrid) bottomGrid.style.display = 'none';
+    // 아카이브 설명 변경
+    const descEl = document.querySelector('#view-archive > div:first-child > div:last-child');
+    if (descEl) descEl.textContent = '이전 연도 컴플라이언스 위험평가 이력을 확인할 수 있습니다.';
+  } else {
+    // Admin 모드: 모든 섹션 표시
+    const bottomGrid = document.getElementById('archive-bottom-grid');
+    if (bottomGrid) bottomGrid.style.display = '';
   }
   renderArchiveFiles();
-  renderLawAlerts();
-  initCopilotAgent();
+  if (appRole === 'admin') {
+    renderLawAlerts();
+    initCopilotAgent();
+  }
 }
 function renderArchiveFiles() {
   const el = document.getElementById('archive-file-list'); if (!el) return;
@@ -2658,6 +2670,36 @@ let selMonthly = null;
 function renderMonthly() {
   const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam);
   document.getElementById('monthly-psub').textContent = `${curYear}년 ${curMonth}월 · ${appRole === 'admin' ? '전체' : appTeam}`;
+
+  // 안내 배너 (user 모드 — 처음 사용자를 위한 가이드)
+  const guideBanner = document.getElementById('monthly-guide-banner');
+  if (guideBanner) {
+    if (appRole === 'user') {
+      const dday = (() => { const n = new Date(); const end = new Date(n.getFullYear(), n.getMonth() + 1, 0); return Math.ceil((end - n) / 86400000); })();
+      const submitted = base.filter(r => r.submitStatus === '제출완료' || r.submitStatus === '평가완료').length;
+      const total = base.length;
+      guideBanner.innerHTML = `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+            <span style="font-size:20px">📝</span>
+            <div style="flex:1">
+              <div style="font-size:15px;font-weight:800;color:var(--text)">월간 이행현황 입력</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">${curYear}년 ${curMonth}월 · ${appTeam} · 제출 ${submitted}/${total}건</div>
+            </div>
+            <span style="font-size:12px;font-weight:800;padding:4px 12px;border-radius:99px;background:${dday<=5?'#FEF2F2;color:#DC2626':'#EFF6FF;color:var(--accent)'}">마감 D-${dday}</span>
+          </div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.8">
+            <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:4px"><span style="color:var(--accent);font-weight:700;flex-shrink:0">1.</span> 좌측 목록에서 리스크를 선택하고, <strong style="color:var(--text)">이행 상태</strong>와 <strong style="color:var(--text)">이행 내용</strong>을 작성해 주세요.</div>
+            <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:4px"><span style="color:var(--accent);font-weight:700;flex-shrink:0">2.</span> <strong style="color:var(--text)">매월 말일</strong>까지 모든 리스크의 이행현황을 제출해 주세요. (임시저장 가능)</div>
+            <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:4px"><span style="color:var(--accent);font-weight:700;flex-shrink:0">3.</span> 제출 후 <strong style="color:var(--text)">컴플라이언스팀</strong>에서 달성율을 평가합니다. 결과는 "내 팀 이행현황"에서 확인하세요.</div>
+            <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--accent);font-weight:700;flex-shrink:0">4.</span> 평가 결과에 이의가 있으면 <strong style="color:var(--text)">이의신청</strong> 버튼으로 사유를 제출할 수 있습니다.</div>
+          </div>
+        </div>`;
+    } else {
+      guideBanner.innerHTML = '';
+    }
+  }
+
   document.getElementById('monthly-list').innerHTML = base.map((r, i) => `
     <div class="r-item ${selMonthly === i ? 'on' : ''}" onclick="selectMonthly(${i})">
       <div class="r-item-id">${r.id} · ${r.cat}</div>
