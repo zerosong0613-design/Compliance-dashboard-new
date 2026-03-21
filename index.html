@@ -1896,6 +1896,19 @@ function navigateTo(id) {
       return;
     }
   }
+  // Phase 간 의존성 경고
+  if (typeof _loadPhaseStatus === 'function') {
+    const _ps = _loadPhaseStatus(curYear);
+    const _rm = typeof _getRealMonth === 'function' ? _getRealMonth() : curMonth;
+    const _deps = {
+      selection: { need: 'identify', label: '위험 식별·분석(1단계)', when: _rm >= 3 },
+      eval:      { need: 'control',  label: '통제수준 진단(3단계)',   when: _rm >= 5 },
+    };
+    const _dep = _deps[id];
+    if (_dep && _dep.when && !_ps[_dep.need]?.completed) {
+      toast(`${_dep.label}이 아직 완료 확정되지 않았습니다. 단계별 미션에서 확정해주세요.`, 'warn', 4000);
+    }
+  }
   // 라우팅 실행
   curPage = id;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
@@ -4819,12 +4832,29 @@ renderPhaseStepBar = function() {
   }
 };
 
-/* ── initDash 래핑: Phase-aware 배너로 교체 ── */
+/* ── initDash 래핑: Phase-aware 배너 + KPI 뱃지 ── */
 const _origInitDash = initDash;
 initDash = function() {
   _origInitDash();
-  // 기존 배너를 Phase-aware 배너로 덮어쓰기
+  // Phase-aware 배너로 교체
   _renderPhaseActionBanner();
+  // KPI 카드에 Phase 진행 뱃지 추가
+  const _ps = _loadPhaseStatus(curYear);
+  const { phases: _ph } = _getActivePhase();
+  const _cc = _ph.filter(p => _ps[p.id]?.completed).length;
+  const kpiTotalSub = document.getElementById('kpi-submitted-sub');
+  if (kpiTotalSub) {
+    const existing = kpiTotalSub.parentElement.querySelector('.phase-kpi-badge');
+    if (existing) existing.remove();
+    const badge = document.createElement('div');
+    badge.className = 'phase-kpi-badge';
+    const color = _cc >= 4 ? 'var(--green)' : _cc >= 2 ? 'var(--accent)' : 'var(--muted)';
+    badge.style.cssText = `font-size:10px;font-weight:700;color:${color};margin-top:2px;cursor:pointer`;
+    badge.textContent = `사이클 ${_cc}/5단계 확정`;
+    badge.onclick = () => navigateTo('phasecontrol');
+    badge.title = '단계별 미션 보기';
+    kpiTotalSub.parentElement.appendChild(badge);
+  }
 };
 
 /* ── 보고서 생성 시 Phase 상태 업데이트 훅 ── */
@@ -5291,56 +5321,8 @@ openRiskEditModal = function(id) {
   }, 50);
 };
 
-/* ═══════════════════════════════════════════════════════════
-   🔗  Phase 간 의존성 검증
-   이전 단계 미완료 시 다음 단계 페이지 진입 경고
-═══════════════════════════════════════════════════════════ */
-const _origNavigateToPhaseCheck = navigateTo;
-navigateTo = function(id) {
-  const phaseStatus = _loadPhaseStatus(curYear);
-  const rm = _getRealMonth();
-
-  // Phase 페이지-의존성 매핑
-  const deps = {
-    selection: { need: 'identify', label: '위험 식별·분석(1단계)', when: rm >= 3 },
-    eval:      { need: 'control',  label: '통제수준 진단(3단계)',   when: rm >= 5 },
-  };
-
-  const dep = deps[id];
-  if (dep && dep.when && !phaseStatus[dep.need]?.completed) {
-    toast(`${dep.label}이 아직 완료 확정되지 않았습니다. 단계별 미션에서 확정해주세요.`, 'warn', 4000);
-  }
-
-  _origNavigateToPhaseCheck(id);
-};
-
-/* ═══════════════════════════════════════════════════════════
-   📊  대시보드 KPI에 Phase 진행 뱃지 반영
-═══════════════════════════════════════════════════════════ */
-const _origInitDash2 = initDash;
-initDash = function() {
-  _origInitDash2();
-
-  // 총 관리 KPI 카드 아래에 Phase 뱃지 추가
-  const phaseStatus = _loadPhaseStatus(curYear);
-  const { phases } = _getActivePhase();
-  const completedCount = phases.filter(p => phaseStatus[p.id]?.completed).length;
-
-  const kpiTotalSub = document.getElementById('kpi-submitted-sub');
-  if (kpiTotalSub) {
-    const existing = kpiTotalSub.parentElement.querySelector('.phase-kpi-badge');
-    if (existing) existing.remove();
-
-    const badge = document.createElement('div');
-    badge.className = 'phase-kpi-badge';
-    const color = completedCount >= 4 ? 'var(--green)' : completedCount >= 2 ? 'var(--accent)' : 'var(--muted)';
-    badge.style.cssText = `font-size:10px;font-weight:700;color:${color};margin-top:2px;cursor:pointer`;
-    badge.textContent = `사이클 ${completedCount}/5단계 확정`;
-    badge.onclick = () => navigateTo('phasecontrol');
-    badge.title = '단계별 미션 보기';
-    kpiTotalSub.parentElement.appendChild(badge);
-  }
-};
+/* (Phase 의존성 검증은 원본 navigateTo에 직접 통합됨) */
+/* (KPI Phase 뱃지는 initDash 래핑에 통합됨) */
 
 /* ═══════════════════════════════════════════════════════════
    📦  연도 전환 시 이전 연도 Phase 아카이빙
