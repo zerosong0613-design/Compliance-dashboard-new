@@ -1103,7 +1103,10 @@ body.modal-open{overflow:hidden!important}
 
       <!-- ═ EVAL RESULT (User) ═ -->
       <div class="view" id="view-evalresult">
-        <div id="evalresult-content"></div>
+        <div class="split-view">
+          <div class="risk-panel"><div class="panel-hd"><div class="panel-title" id="er-panel-title">내 리스크 목록</div><div class="panel-sub" id="er-psub">전체</div></div><div class="panel-list" id="er-list"></div></div>
+          <div class="form-panel" id="er-detail"><div class="empty-panel"><div class="empty-icon">📊</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측 목록에서 리스크를 선택하면<br>평가 결과와 월별 이력을 확인합니다</div></div></div>
+        </div>
       </div>
 
       <!-- ═ MY TEAM ═ -->
@@ -1788,13 +1791,13 @@ const NAV_ADMIN = [
   {sec:'정보'},{id:'archive',icon:'📚',label:'아카이브'},
 ];
 const NAV_USER = [
-  {sec:'업무'},{id:'monthly',icon:'📝',label:'월간 현황 입력',badge:0},{id:'evalresult',icon:'📊',label:'평가 결과 확인'},
+  {sec:'업무'},{id:'monthly',icon:'📝',label:'이행현황 입력',badge:0},{id:'evalresult',icon:'📊',label:'평가결과·이력'},
   {sec:'현황'},{id:'myteam',icon:'📈',label:'내 팀 이행현황'},
   {sec:'정보'},{id:'archive',icon:'📚',label:'아카이브'},
 ];
 const BNAV_ADMIN = [{id:'dash',icon:'▦',label:'대시보드'},{id:'monthly',icon:'⚖',label:'검토',badge:true},{id:'teams',icon:'👥',label:'팀현황'},{id:'master',icon:'📋',label:'Master'},{id:'archive',icon:'📚',label:'아카이브'}];
-const BNAV_USER  = [{id:'monthly',icon:'📝',label:'입력',badge:true},{id:'evalresult',icon:'📊',label:'평가결과'},{id:'myteam',icon:'📈',label:'내 팀'},{id:'archive',icon:'📚',label:'아카이브'}];
-const PAGE_TITLES = {dash:'전사 대시보드',phasecontrol:'단계별 미션',monthly_admin:'이행현황 검토',monthly:'월간 현황 입력',evalresult:'평가 결과 확인',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성',archive:'아카이브'};
+const BNAV_USER  = [{id:'monthly',icon:'📝',label:'입력',badge:true},{id:'evalresult',icon:'📊',label:'평가·이력'},{id:'myteam',icon:'📈',label:'내 팀'},{id:'archive',icon:'📚',label:'아카이브'}];
+const PAGE_TITLES = {dash:'전사 대시보드',phasecontrol:'단계별 미션',monthly_admin:'이행현황 검토',monthly:'이행현황 입력',evalresult:'평가결과·이력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성',archive:'아카이브'};
 // 관리자가 monthly 탭 진입 시 제목 오버라이드
 const _getPageTitle = (id) => id === 'monthly' && appRole === 'admin' ? PAGE_TITLES.monthly_admin : (PAGE_TITLES[id] || id);
 const SHOW_FILTER = ['dash','teams','eval','master','monthly'];
@@ -2738,10 +2741,9 @@ function renderMonthly() {
             <span style="font-size:12px;font-weight:800;padding:4px 12px;border-radius:99px;background:${dday<=5?'#FEF2F2;color:#DC2626':'#EFF6FF;color:var(--accent)'}">마감 D-${dday}</span>
           </div>
           <div style="font-size:13px;color:var(--muted);line-height:1.8">
-            <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:4px"><span style="color:var(--accent);font-weight:700;flex-shrink:0">1.</span> 좌측 목록에서 리스크를 선택하고, <strong style="color:var(--text)">이행 상태</strong>와 <strong style="color:var(--text)">이행 내용</strong>을 작성해 주세요.</div>
-            <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:4px"><span style="color:var(--accent);font-weight:700;flex-shrink:0">2.</span> <strong style="color:var(--text)">매월 말일</strong>까지 모든 리스크의 이행현황을 제출해 주세요. (임시저장 가능)</div>
-            <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:4px"><span style="color:var(--accent);font-weight:700;flex-shrink:0">3.</span> 제출 후 <strong style="color:var(--text)">컴플라이언스팀</strong>에서 달성율을 평가합니다. 결과는 "내 팀 이행현황"에서 확인하세요.</div>
-            <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--accent);font-weight:700;flex-shrink:0">4.</span> 평가 결과에 이의가 있으면 <strong style="color:var(--text)">이의신청</strong> 버튼으로 사유를 제출할 수 있습니다.</div>
+            <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:4px"><span style="color:var(--accent);font-weight:700;flex-shrink:0">1.</span> 좌측에서 리스크를 선택하고 <strong style="color:var(--text)">이행 상태</strong>와 <strong style="color:var(--text)">이행 내용</strong>을 작성합니다.</div>
+            <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:4px"><span style="color:var(--accent);font-weight:700;flex-shrink:0">2.</span> <strong style="color:var(--text)">매월 말일</strong>까지 제출하세요. 임시저장도 가능합니다.</div>
+            <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--accent);font-weight:700;flex-shrink:0">3.</span> 제출 후 평가 결과와 이의신청은 <strong style="color:var(--text)">평가결과·이력</strong> 탭에서 확인합니다.</div>
           </div>
         </div>`;
     } else {
@@ -3157,102 +3159,173 @@ async function saveDraft(idx) {
 /* ═══════════════════════════════════════════════════════════
    📊  평가 결과 확인 (현업 담당자 전용)
 ═══════════════════════════════════════════════════════════ */
+let _selEvalResult = null;
 function renderEvalResult() {
-  const el = document.getElementById('evalresult-content');
-  if (!el) return;
   const team = appTeam || '영업팀';
-  const evaluated = RISKS.filter(r => r.team === team && r.submitStatus === '평가완료');
-  const achRisks = evaluated.filter(r => r.achieve != null);
-  const avgAch = achRisks.length ? Math.round(achRisks.reduce((s,r) => s + r.achieve, 0) / achRisks.length) : 0;
-  const pendingRevision = evaluated.filter(r => r._revisionRequested && r._revisionStatus === 'pending');
+  const myRisks = RISKS.filter(r => r.team === team);
+  document.getElementById('er-psub').textContent = `${curYear}년 ${curMonth}월 · ${team}`;
 
-  let html = `
-    <div style="margin-bottom:16px">
-      <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">📊 평가 결과 확인</div>
-      <div style="font-size:13px;color:var(--muted)">${curYear}년 ${curMonth}월 · ${team} · 평가완료 ${evaluated.length}건</div>
-    </div>`;
-
-  // 요약 카드
-  html += `
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
-      <div class="card" style="text-align:center;padding:16px">
-        <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px">평균 달성율</div>
-        <div style="font-size:28px;font-weight:900;color:${avgAch>=80?'var(--green)':avgAch>=60?'var(--amber)':'var(--red)'}">${avgAch}%</div>
-      </div>
-      <div class="card" style="text-align:center;padding:16px">
-        <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px">평가 완료</div>
-        <div style="font-size:28px;font-weight:900;color:var(--accent)">${evaluated.length}건</div>
-      </div>
-      <div class="card" style="text-align:center;padding:16px">
-        <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px">이의신청</div>
-        <div style="font-size:28px;font-weight:900;color:${pendingRevision.length?'#D97706':'var(--muted)'}">${pendingRevision.length}건</div>
-      </div>
-    </div>`;
-
-  if (!evaluated.length) {
-    html += `
-      <div class="card" style="text-align:center;padding:40px">
-        <div style="font-size:32px;margin-bottom:10px">📋</div>
-        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">아직 평가 완료된 건이 없습니다</div>
-        <div style="font-size:13px;color:var(--muted)">제출 후 컴플라이언스팀에서 평가하면 여기에 결과가 표시됩니다.</div>
+  // 좌측 리스크 목록 (전체 — 상태별 아이콘으로 구분)
+  document.getElementById('er-list').innerHTML = myRisks.length ? myRisks.map((r, i) => {
+    const achText = r.achieve != null ? `${r.achieve}%` : '';
+    const achColor = r.achieve >= 80 ? 'var(--green)' : r.achieve >= 60 ? 'var(--amber)' : r.achieve != null ? 'var(--red)' : 'var(--muted)';
+    const hasPending = r._revisionRequested && r._revisionStatus === 'pending';
+    return `
+      <div class="r-item ${_selEvalResult === i ? 'on' : ''}" onclick="selectEvalResult(${i})">
+        <div class="r-item-id">${r.id} · ${r.cat}</div>
+        <div class="r-item-name">${r.title}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+          <span class="status-chip ${stClass(r.submitStatus)}" style="font-size:11px">${stIcon(r.submitStatus)}${r.submitStatus}</span>
+          ${achText ? `<span style="font-size:12px;font-weight:800;color:${achColor}">${achText}</span>` : ''}
+          ${hasPending ? '<span style="font-size:11px;color:#D97706;font-weight:700">⚠이의</span>' : ''}
+        </div>
       </div>`;
-    el.innerHTML = html;
-    return;
-  }
+  }).join('') : '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">할당된 리스크가 없습니다</div>';
+  // 선택된 항목 없으면 placeholder 유지
+}
 
-  // 리스크별 결과 카드
-  evaluated.forEach((r, i) => {
-    const achColor = r.achieve >= 80 ? 'var(--green)' : r.achieve >= 60 ? 'var(--amber)' : 'var(--red)';
-    const achLabel = r.achieve >= 80 ? '양호' : r.achieve >= 60 ? '주의' : '미달';
-    const hasPendingRevision = r._revisionRequested && r._revisionStatus === 'pending';
-    const hasResolvedRevision = r._revisionRequested && r._revisionStatus !== 'pending';
-    const isAccepted = r._revisionStatus === 'accepted';
+function selectEvalResult(i) {
+  _selEvalResult = i;
+  const team = appTeam || '영업팀';
+  const myRisks = RISKS.filter(r => r.team === team);
+  const r = myRisks[i];
+  if (!r) return;
 
-    html += `
-      <div class="card" style="margin-bottom:12px;${hasPendingRevision ? 'border-color:#FDE68A' : ''}">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:2px">${r.id} · ${r.cat}</div>
-            <div style="font-size:14px;font-weight:700;color:var(--text)">${r.title}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-            <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:${achColor==='var(--green)'?'#ECFDF5':achColor==='var(--amber)'?'#FFFBEB':'#FEF2F2'};color:${achColor}">${achLabel}</span>
-            <span style="font-size:24px;font-weight:900;color:${achColor}">${r.achieve}%</span>
+  const achColor = r.achieve >= 80 ? 'var(--green)' : r.achieve >= 60 ? 'var(--amber)' : r.achieve != null ? 'var(--red)' : 'var(--muted)';
+  const achLabel = r.achieve >= 80 ? '양호' : r.achieve >= 60 ? '주의' : r.achieve != null ? '미달' : '—';
+  const hasPendingRevision = r._revisionRequested && r._revisionStatus === 'pending';
+  const hasResolvedRevision = r._revisionRequested && r._revisionStatus !== 'pending' && r._revisionStatus;
+  const isAccepted = r._revisionStatus === 'accepted';
+
+  // ── 개선과제 정보 ──
+  const taskSection = `
+    <div style="padding:14px 16px;background:var(--accent-l);border:1px solid #BFDBFE;border-radius:10px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px">📌 개선과제</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.6">${r.task || '(개선과제 미지정)'}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">위험도 ${r.score}점 (영향${r.impact} × 가능성${r.likelihood})</div>
+    </div>`;
+
+  // ── 이번달 평가결과 ──
+  let evalSection = '';
+  if (r.submitStatus === '평가완료') {
+    evalSection = `
+      <div style="margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">⚖ ${curMonth}월 평가 결과</div>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+          <span style="font-size:36px;font-weight:900;color:${achColor}">${r.achieve}%</span>
+          <div>
+            <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:${achColor==='var(--green)'?'#ECFDF5':achColor==='var(--amber)'?'#FFFBEB':'#FEF2F2'};color:${achColor}">${achLabel}</span>
           </div>
         </div>
-
-        <div style="height:6px;background:#EEF2F7;border-radius:99px;overflow:hidden;margin-bottom:12px">
+        <div style="height:8px;background:#EEF2F7;border-radius:99px;overflow:hidden;margin-bottom:12px">
           <div style="height:100%;width:${r.achieve}%;background:${achColor};border-radius:99px;transition:width .6s"></div>
         </div>
-
         ${r.evalComment ? `
-          <div style="padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:10px">
+          <div style="padding:10px 14px;background:var(--bg);border-radius:8px">
             <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px">컴플라이언스팀 평가 의견</div>
             <div style="font-size:13px;color:var(--text);line-height:1.6">${r.evalComment}</div>
           </div>` : ''}
-
-        ${hasPendingRevision ? `
-          <div style="padding:10px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;margin-bottom:10px">
-            <div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:4px">⏳ 이의신청 검토 중 (${r._revisionAt || ''})</div>
-            <div style="font-size:12px;color:var(--muted);line-height:1.5">${r._revisionReason || ''}</div>
-          </div>` : ''}
-
-        ${hasResolvedRevision ? `
-          <div style="padding:10px 14px;background:${isAccepted?'#F0FDF4':'#FEF2F2'};border:1px solid ${isAccepted?'#86EFAC':'#FECACA'};border-radius:8px;margin-bottom:10px">
-            <div style="font-size:12px;font-weight:700;color:${isAccepted?'#059669':'#DC2626'};margin-bottom:4px">${isAccepted?'✅ 이의 수용됨':'❌ 이의 기각됨'} (${r._revisionResolvedAt || ''})</div>
-            ${r._revisionResponse ? `<div style="font-size:12px;color:var(--muted);line-height:1.5">💬 ${r._revisionResponse}</div>` : ''}
-          </div>` : ''}
-
-        <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:8px;border-top:1px solid var(--border)">
-          ${!hasPendingRevision && r.achieve < 80 ? `<button class="btn btn-danger" style="font-size:12px;padding:7px 14px" onclick="navigateTo('monthly');setTimeout(()=>{const idx=RISKS.filter(r2=>r2.team===appTeam&&r2.submitStatus!=='평가완료').length;},100)">이의신청</button>` : ''}
-          ${hasPendingRevision ? `<span style="font-size:12px;color:#92400E;font-weight:700">검토 대기 중</span>` : ''}
-          ${!r._revisionRequested && r.achieve < 80 ? `<button class="btn btn-danger" style="font-size:12px;padding:7px 14px" onclick="_evalResultRevision('${r.id}')">이의신청</button>` : ''}
-        </div>
       </div>`;
-  });
+  } else if (r.submitStatus === '제출완료') {
+    evalSection = `
+      <div style="margin-bottom:14px;padding:16px;background:var(--bg);border-radius:10px;text-align:center">
+        <span style="font-size:20px">⏳</span>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-top:6px">평가 대기 중</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">제출 완료 · 컴플라이언스팀 검토 후 결과가 표시됩니다</div>
+      </div>`;
+  } else {
+    evalSection = `
+      <div style="margin-bottom:14px;padding:16px;background:var(--bg);border-radius:10px;text-align:center">
+        <span style="font-size:20px">${r.submitStatus === '미제출' ? '📭' : '✏'}</span>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-top:6px">${r.submitStatus === '미제출' ? '미제출' : '임시저장 중'}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">이행현황 입력 탭에서 먼저 제출해주세요</div>
+      </div>`;
+  }
 
-  el.innerHTML = html;
+  // ── 이번달 제출 내용 (있으면) ──
+  let contentSection = '';
+  if (r.content && r.content.trim()) {
+    contentSection = `
+      <div style="margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">📝 ${curMonth}월 제출 내용</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.7;padding:10px 14px;background:var(--bg);border-radius:8px;white-space:pre-wrap">${r.content}</div>
+        ${r.specialNote ? `<div style="font-size:12px;color:var(--muted);margin-top:6px;padding:8px 14px;background:var(--bg);border-radius:8px">💬 ${r.specialNote}</div>` : ''}
+      </div>`;
+  }
+
+  // ── 이의신청 영역 ──
+  let revisionSection = '';
+  if (hasPendingRevision) {
+    revisionSection = `
+      <div style="padding:12px 16px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:#92400E;margin-bottom:4px">⏳ 이의신청 검토 중 (${r._revisionAt || ''})</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5">${r._revisionReason || ''}</div>
+      </div>`;
+  } else if (hasResolvedRevision) {
+    revisionSection = `
+      <div style="padding:12px 16px;background:${isAccepted?'#F0FDF4':'#FEF2F2'};border:1px solid ${isAccepted?'#86EFAC':'#FECACA'};border-radius:10px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:${isAccepted?'#059669':'#DC2626'};margin-bottom:4px">${isAccepted?'✅ 이의 수용됨':'❌ 이의 기각됨'} (${r._revisionResolvedAt || ''})</div>
+        ${r._revisionResponse ? `<div style="font-size:12px;color:var(--muted);line-height:1.5">💬 ${r._revisionResponse}</div>` : ''}
+      </div>`;
+  }
+
+  // ── 이전 월 이력 (SAMPLE_TREND 기반 간이 표시) ──
+  let historySection = '';
+  const months = [];
+  for (let m = curMonth - 1; m >= 1 && months.length < 3; m--) {
+    months.push(m);
+  }
+  if (months.length > 0) {
+    const historyRows = months.map(m => {
+      // 오프라인 모드: 간이 이력 생성 (실제 SP에서는 API 조회)
+      const seed = parseInt(curYear) * 100 + m;
+      const rng = ((seed + RISKS.indexOf(r) * 137) * 1103515245 + 12345) >>> 16 & 0x7fff;
+      const progress = m / 12;
+      const simAch = Math.min(100, Math.max(30, Math.round(35 + progress * 50 + (rng / 0x7fff) * 15)));
+      const simStatus = m < curMonth - 1 ? '평가완료' : '제출완료';
+      const simColor = simAch >= 80 ? 'var(--green)' : simAch >= 60 ? 'var(--amber)' : 'var(--red)';
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;${months.indexOf(m) < months.length-1 ? 'border-bottom:1px solid var(--border)' : ''}">
+          <span style="font-size:13px;font-weight:700;color:var(--text);width:36px">${m}월</span>
+          <span class="status-chip ${stClass(simStatus)}" style="font-size:11px">${stIcon(simStatus)}${simStatus}</span>
+          <div style="flex:1;height:6px;background:#EEF2F7;border-radius:99px;overflow:hidden">
+            <div style="height:100%;width:${simAch}%;background:${simColor};border-radius:99px"></div>
+          </div>
+          <span style="font-size:13px;font-weight:800;color:${simColor}">${simAch}%</span>
+        </div>`;
+    }).join('');
+    historySection = `
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">📅 이전 월 이력</div>
+        <div style="padding:4px 14px;background:var(--bg);border-radius:10px">${historyRows}</div>
+      </div>`;
+  }
+
+  // ── 이의신청 버튼 ──
+  let actionFooter = '';
+  if (r.submitStatus === '평가완료' && !hasPendingRevision) {
+    actionFooter = `<button class="btn btn-danger" style="font-size:12px" onclick="_evalResultRevision('${r.id}')">이의신청</button>`;
+  } else if (hasPendingRevision) {
+    actionFooter = `<span style="font-size:12px;color:#92400E;font-weight:700">⏳ 이의신청 검토 대기 중</span>`;
+  }
+
+  const body = `${taskSection}${contentSection}${evalSection}${revisionSection}${historySection}`;
+
+  if (isMobile()) {
+    openSheet(r.id + ' · ' + r.cat, r.title, body, actionFooter);
+  } else {
+    renderEvalResult();
+    document.getElementById('er-detail').innerHTML = `
+      <div class="form-hd">
+        <div class="form-hd-id">${r.id} · ${r.cat} · ${r.team}</div>
+        <div class="form-hd-title">${r.title}</div>
+      </div>
+      <div class="form-body">${body}</div>
+      ${actionFooter ? `<div class="form-footer">${actionFooter}</div>` : ''}`;
+  }
 }
+
+/* (기존 카드 방식 renderEvalResult는 split-view로 대체됨) */
 
 /* ── 평가결과 화면에서 이의신청 ── */
 async function _evalResultRevision(riskId) {
