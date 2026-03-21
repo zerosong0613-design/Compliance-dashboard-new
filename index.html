@@ -5010,129 +5010,202 @@ function renderPhaseControl() {
   const { phases, activeIdx } = _getActivePhase();
   const phaseStatus = _loadPhaseStatus(curYear);
   const completedCount = phases.filter(p => phaseStatus[p.id]?.completed).length;
-
-  // 전체 진행률
   const progressPct = Math.round((completedCount / phases.length) * 100);
+  const ap = phases[activeIdx];
+  const activeCompleted = phaseStatus[ap.id]?.completed;
+  const activeConditions = _checkPhaseConditions(ap.id);
+  const activeAllMet = activeConditions.length > 0 && activeConditions.every(c => c.met);
+  const activeMetCount = activeConditions.filter(c => c.met).length;
+  const activeDday = _getDday(ap.id, curYear);
 
-  // 헤더
+  // ─── 지금 해야 할 일 CTA 결정 ───
+  let ctaNav = ap.cards[0]?.nav || 'dash';
+  let ctaLabel = ap.cards[0]?.title || '작업 시작';
+  let ctaIcon = ap.cards[0]?.icon || '→';
+  const firstUnmet = activeConditions.find(c => !c.met);
+  if (firstUnmet && ap.cards.length > 0) {
+    // 미충족 조건과 가장 관련 있는 카드 찾기
+    const card = ap.cards[0];
+    ctaNav = card.nav;
+    ctaLabel = card.title;
+    ctaIcon = card.icon;
+  }
+
+  // ═══ SECTION 1: 현재 단계 히어로 ═══
   let html = `
-    <div style="margin-bottom:20px">
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px">
-        <span style="font-size:13px;font-weight:700;background:#EFF6FF;color:var(--accent);padding:4px 12px;border-radius:99px">${curYear}년 위험평가 사이클</span>
-        <span style="font-size:13px;color:var(--muted)">5단계 중 <strong style="color:var(--accent)">${completedCount}단계</strong> 확정 완료</span>
+    <div style="background:linear-gradient(135deg,#1E3A5F 0%,#2563EB 100%);border-radius:16px;padding:28px 28px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-30px;right:-20px;font-size:120px;opacity:.08;pointer-events:none">${ap.icon}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.2);backdrop-filter:blur(4px)">STEP ${activeIdx + 1} / 5</span>
+        <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.15)">${ap.months}</span>
+        ${activeDday !== null ? `<span style="font-size:12px;font-weight:800;padding:3px 12px;border-radius:99px;background:${activeDday<=7?'rgba(251,191,36,.3)':'rgba(255,255,255,.15)'}">${activeDday<0?'D+'+Math.abs(activeDday):activeDday===0?'D-DAY':'D-'+activeDday}</span>` : ''}
+        ${activeCompleted ? '<span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(52,211,153,.3)">확정 완료</span>' : ''}
       </div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
-        <div style="flex:1;height:10px;background:#EEF2F7;border-radius:99px;overflow:hidden">
-          <div style="height:100%;width:${progressPct}%;background:linear-gradient(90deg,var(--accent),#60A5FA);border-radius:99px;transition:width .8s cubic-bezier(.4,0,.2,1)"></div>
+      <div style="font-size:24px;font-weight:900;margin-bottom:6px;letter-spacing:-.5px">${ap.icon} ${ap.label}</div>
+      <div style="font-size:13px;opacity:.85;line-height:1.7;max-width:600px;margin-bottom:20px">${ap.desc}</div>
+
+      ${!activeCompleted ? `
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button onclick="navigateTo('${ctaNav}')" style="padding:12px 24px;border:none;border-radius:10px;background:#fff;color:#1E3A5F;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:all .15s"
+            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            ${ctaIcon} ${ctaLabel} <span style="font-size:16px">→</span>
+          </button>
+          ${activeAllMet ? `
+            <button onclick="confirmPhaseComplete('${ap.id}');setTimeout(renderPhaseControl,300)" style="padding:12px 24px;border:2px solid rgba(255,255,255,.4);border-radius:10px;background:rgba(255,255,255,.1);backdrop-filter:blur(4px);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;transition:all .15s"
+              onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">
+              🚀 단계 완료 확정
+            </button>` : ''}
+        </div>` : `
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:20px">🎉</span>
+          <span style="font-size:14px;font-weight:700">이 단계는 ${phaseStatus[ap.id]?.completedAt || ''} 완료되었습니다</span>
+          <button onclick="reopenPhase('${ap.id}');setTimeout(renderPhaseControl,300)" style="margin-left:auto;padding:6px 14px;border:1px solid rgba(255,255,255,.3);border-radius:7px;background:transparent;color:rgba(255,255,255,.7);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">해제</button>
+        </div>`}
+    </div>`;
+
+  // ═══ SECTION 2: 현재 단계 체크리스트 + 액션 카드 (펼쳐진 상태) ═══
+  const activeCardsHtml = ap.cards.map(c => {
+    const cnt = c.count();
+    const unitText = c.unit_fn ? c.unit_fn() : c.unit;
+    return `
+      <div style="flex:1;min-width:180px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .15s" onclick="navigateTo('${c.nav}')" onmouseover="this.style.borderColor='var(--accent)';this.style.boxShadow='0 2px 8px rgba(59,130,246,.1)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:18px">${c.icon}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text)">${c.title}</span>
+          <span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--accent)">이동 →</span>
         </div>
-        <span style="font-size:14px;font-weight:800;color:var(--accent);min-width:40px;text-align:right">${progressPct}%</span>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">${c.why}</div>
+        <div style="display:flex;align-items:baseline;gap:5px">
+          <span style="font-size:24px;font-weight:900;color:${c.color||'var(--accent)'}">${cnt}</span>
+          <span style="font-size:11px;color:var(--muted)">${unitText}</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  const activeCheckHtml = activeConditions.map((c, ci) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;${ci < activeConditions.length-1 ? 'border-bottom:1px solid var(--border)' : ''}">
+      <span style="font-size:16px;flex-shrink:0;width:22px;text-align:center">${c.met ? '✅' : '⬜'}</span>
+      <span style="flex:1;font-size:13px;font-weight:600;color:${c.met ? 'var(--green)' : 'var(--text)'}">${c.label}</span>
+      <span style="font-size:12px;color:${c.met ? 'var(--green)' : 'var(--muted)'};font-weight:700;white-space:nowrap">${c.detail}</span>
+    </div>`).join('');
+
+  html += `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">지금 해야 할 일</div>
+        <div style="display:flex;flex-direction:column;gap:10px">${activeCardsHtml}</div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">완료 조건</span>
+          <span style="font-size:11px;font-weight:800;color:${activeAllMet?'var(--green)':'var(--accent)'}">${activeMetCount}/${activeConditions.length}</span>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px 16px">${activeCheckHtml}</div>
+        ${!activeCompleted && activeAllMet ? `
+          <button onclick="confirmPhaseComplete('${ap.id}');setTimeout(renderPhaseControl,300)" style="width:100%;margin-top:12px;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 8px rgba(59,130,246,.3)">
+            🚀 ${ap.shortLabel} 단계 완료 확정
+          </button>` : ''}
+        ${!activeCompleted && !activeAllMet ? `
+          <div style="margin-top:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--muted);text-align:center;font-weight:600">
+            🔒 위 조건을 모두 충족하면 완료 확정 버튼이 활성화됩니다
+          </div>` : ''}
       </div>
     </div>`;
 
-  // 각 Phase 카드
+  // 모바일 대응
+  html += `<style>@media(max-width:768px){#pc-content [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}}</style>`;
+
+  // ═══ SECTION 3: 전체 사이클 프로그레스 ═══
+  html += `
+    <div style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <span style="font-size:13px;font-weight:800;color:var(--text)">${curYear}년 전체 진행</span>
+        <span style="font-size:12px;font-weight:800;color:var(--accent)">${completedCount}/5 확정</span>
+        <div style="flex:1;height:8px;background:#EEF2F7;border-radius:99px;overflow:hidden;max-width:200px">
+          <div style="height:100%;width:${progressPct}%;background:linear-gradient(90deg,var(--accent),#60A5FA);border-radius:99px;transition:width .8s"></div>
+        </div>
+        <span style="font-size:12px;font-weight:800;color:var(--accent)">${progressPct}%</span>
+      </div>
+    </div>`;
+
+  // ═══ SECTION 4: 나머지 단계 (아코디언) ═══
   phases.forEach((p, i) => {
-    const isActive = i === activeIdx;
+    if (i === activeIdx) return; // 현재 단계는 이미 위에 표시
+
     const isCompleted = phaseStatus[p.id]?.completed;
+    const isPast = i < activeIdx;
+    const isFuture = i > activeIdx;
     const conditions = _checkPhaseConditions(p.id);
     const allMet = conditions.length > 0 && conditions.every(c => c.met);
     const metCount = conditions.filter(c => c.met).length;
     const dday = _getDday(p.id, curYear);
 
-    // 상태 결정
-    let statusBadge, borderColor, bgColor;
+    // 접힌 상태 헤더 아이콘
+    let statusIcon, statusText, headerBg, headerBorder;
     if (isCompleted) {
-      statusBadge = `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:#ECFDF5;color:#059669">확정 완료</span>`;
-      borderColor = '#86EFAC';
-      bgColor = '#F0FDF4';
-    } else if (isActive) {
-      statusBadge = `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:#EFF6FF;color:var(--accent)">현재 진행 중</span>`;
-      borderColor = '#93C5FD';
-      bgColor = '#FAFCFF';
-    } else if (i < activeIdx) {
-      statusBadge = `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:#FFFBEB;color:#D97706">미확정</span>`;
-      borderColor = '#FDE68A';
-      bgColor = '#FFFEF5';
+      statusIcon = '✅'; statusText = `확정 · ${phaseStatus[p.id].completedAt}`;
+      headerBg = '#F0FDF4'; headerBorder = '#86EFAC';
+    } else if (isPast) {
+      statusIcon = '⚠'; statusText = '미확정';
+      headerBg = '#FFFEF5'; headerBorder = '#FDE68A';
     } else {
-      statusBadge = `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:#F1F5F9;color:#94A3B8">예정</span>`;
-      borderColor = 'var(--border)';
-      bgColor = 'var(--surface)';
+      statusIcon = '⏳'; statusText = '예정';
+      headerBg = 'var(--surface)'; headerBorder = 'var(--border)';
     }
 
-    // D-day
-    const ddayHtml = dday !== null ? (() => {
-      const color = dday < 0 ? '#DC2626' : dday <= 7 ? '#D97706' : '#64748B';
-      const bg = dday < 0 ? '#FEF2F2' : dday <= 7 ? '#FFFBEB' : '#F1F5F9';
-      const text = dday < 0 ? `D+${Math.abs(dday)}` : dday === 0 ? 'D-DAY' : `D-${dday}`;
-      return `<span style="font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:${bg};color:${color}">${text}</span>`;
+    const ddayHtml = dday !== null && !isCompleted ? (() => {
+      const c = dday < 0 ? '#DC2626' : dday <= 14 ? '#D97706' : '#94A3B8';
+      const bg = dday < 0 ? '#FEF2F2' : dday <= 14 ? '#FFFBEB' : '#F1F5F9';
+      const t = dday < 0 ? `D+${Math.abs(dday)}` : dday === 0 ? 'D-DAY' : `D-${dday}`;
+      return `<span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;background:${bg};color:${c}">${t}</span>`;
     })() : '';
 
-    // 체크리스트
-    const checklistHtml = conditions.map(c => `
-      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;${conditions.indexOf(c) < conditions.length-1 ? 'border-bottom:1px solid var(--border)' : ''}">
-        <span style="font-size:15px;flex-shrink:0;width:20px;text-align:center">${c.met ? '✅' : '⬜'}</span>
+    const collapseId = `pc-phase-${p.id}`;
+
+    // 체크리스트 (접힌 내용)
+    const checkHtml = conditions.map((c, ci) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;${ci < conditions.length-1 ? 'border-bottom:1px solid var(--border)' : ''}">
+        <span style="font-size:14px;width:18px;text-align:center">${c.met ? '✅' : '⬜'}</span>
         <span style="flex:1;font-size:12px;font-weight:600;color:${c.met ? 'var(--green)' : 'var(--text)'}">${c.label}</span>
-        <span style="font-size:11px;color:${c.met ? 'var(--green)' : 'var(--muted)'};font-weight:700;white-space:nowrap">${c.detail}</span>
+        <span style="font-size:11px;color:${c.met ? 'var(--green)' : 'var(--muted)'};font-weight:700">${c.detail}</span>
       </div>`).join('');
 
-    // 액션 카드
-    const cardsHtml = p.cards.map(c => {
-      const cnt = c.count();
-      const unitText = c.unit_fn ? c.unit_fn() : c.unit;
-      return `
-        <div style="flex:1;min-width:160px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .15s" onclick="navigateTo('${c.nav}')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-            <span style="font-size:16px">${c.icon}</span>
-            <span style="font-size:12px;font-weight:700;color:var(--text)">${c.title}</span>
-          </div>
-          <div style="display:flex;align-items:baseline;gap:4px">
-            <span style="font-size:20px;font-weight:900;color:${c.color||'var(--accent)'}">${cnt}</span>
-            <span style="font-size:10px;color:var(--muted)">${unitText}</span>
-          </div>
-        </div>`;
-    }).join('');
-
-    // 완료/해제 버튼
-    let actionBtn = '';
+    // 액션 버튼 (접힌 내용 안)
+    let innerAction = '';
     if (isCompleted) {
-      actionBtn = `
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:16px">🎉</span>
-            <span style="font-size:12px;font-weight:700;color:var(--green)">${phaseStatus[p.id].completedAt} 확정</span>
-          </div>
+      innerAction = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">
+          <span style="font-size:12px;color:var(--green);font-weight:700">🎉 ${phaseStatus[p.id].completedAt} 확정</span>
           <button onclick="reopenPhase('${p.id}');setTimeout(renderPhaseControl,300)" style="padding:5px 12px;border:1px solid #FECACA;border-radius:6px;background:#FEF2F2;color:#DC2626;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">해제</button>
         </div>`;
     } else if (allMet) {
-      actionBtn = `
-        <button onclick="confirmPhaseComplete('${p.id}');setTimeout(renderPhaseControl,300)" style="width:100%;margin-top:12px;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 8px rgba(59,130,246,.25)">
-          <span>🚀</span> ${p.shortLabel} 단계 완료 확정
-        </button>`;
-    } else if (isActive || i < activeIdx) {
-      actionBtn = `
-        <div style="margin-top:12px;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);text-align:center;font-weight:600">
-          🔒 조건 충족 후 완료 가능 (${metCount}/${conditions.length})
-        </div>`;
+      innerAction = `
+        <button onclick="confirmPhaseComplete('${p.id}');setTimeout(renderPhaseControl,300)" style="width:100%;margin-top:10px;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">🚀 완료 확정</button>`;
+    } else if (isPast) {
+      innerAction = `
+        <div style="margin-top:10px;padding:8px;background:var(--bg);border-radius:8px;font-size:11px;color:var(--muted);text-align:center;font-weight:600">🔒 조건 충족 필요 (${metCount}/${conditions.length})</div>`;
     }
 
     html += `
-      <div style="background:${bgColor};border:1.5px solid ${borderColor};border-radius:14px;padding:20px 24px;margin-bottom:14px;${isActive ? 'box-shadow:0 2px 12px rgba(59,130,246,.1)' : ''}">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-          <span style="font-size:22px">${p.icon}</span>
-          <div style="flex:1">
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <span style="font-size:16px;font-weight:800;color:var(--text)">${p.label}</span>
-              ${statusBadge}
-              ${ddayHtml}
-            </div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px">${p.months} · ${p.desc.substring(0, 60)}...</div>
-          </div>
+      <div style="border:1px solid ${headerBorder};border-radius:12px;margin-bottom:8px;overflow:hidden;background:${headerBg};${isFuture ? 'opacity:.7' : ''}">
+        <div onclick="const b=document.getElementById('${collapseId}');const a=this.querySelector('.pc-arrow');if(b.style.display==='none'){b.style.display='block';a.textContent='▼'}else{b.style.display='none';a.textContent='▶'}" style="display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none;transition:background .1s" onmouseover="this.style.background='rgba(0,0,0,.02)'" onmouseout="this.style.background='transparent'">
+          <span class="pc-arrow" style="font-size:10px;color:var(--muted);flex-shrink:0;width:14px">${isPast ? '▶' : '▶'}</span>
+          <span style="font-size:18px;flex-shrink:0">${statusIcon}</span>
+          <span style="font-size:11px;font-weight:800;color:var(--muted);flex-shrink:0">STEP ${i+1}</span>
+          <span style="font-size:14px;font-weight:800;color:var(--text);flex:1">${p.label}</span>
+          <span style="font-size:11px;color:var(--muted);flex-shrink:0">${p.months}</span>
+          ${ddayHtml}
+          <span style="font-size:11px;font-weight:700;color:${isCompleted?'var(--green)':isPast?'#D97706':'var(--muted)'};flex-shrink:0">${statusText}</span>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">${cardsHtml}</div>
-        ${conditions.length > 0 ? `
-          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">완료 체크리스트</div>
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px 14px">${checklistHtml}</div>
-        ` : ''}
-        ${actionBtn}
+        <div id="${collapseId}" style="display:none;padding:0 18px 14px;border-top:1px solid ${headerBorder}">
+          <div style="font-size:12px;color:var(--muted);line-height:1.6;margin:10px 0">${p.desc}</div>
+          ${conditions.length > 0 ? `
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px 14px;margin-bottom:4px">${checkHtml}</div>` : ''}
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+            ${p.cards.map(c => `<button onclick="navigateTo('${c.nav}')" style="padding:6px 14px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .1s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">${c.icon} ${c.title}</button>`).join('')}
+          </div>
+          ${innerAction}
+        </div>
       </div>`;
   });
 
