@@ -1114,6 +1114,11 @@ body.modal-open{overflow:hidden!important}
         </div>
       </div>
 
+      <!-- ═ PHASE CONTROL ═ -->
+      <div class="view" id="view-phasecontrol">
+        <div id="pc-content"></div>
+      </div>
+
     </div><!-- /content -->
   </div><!-- /main -->
 
@@ -1736,7 +1741,7 @@ function _loadLib(urls, done) {
    📊  공통 상수 & 상태
 ═══════════════════════════════════════════════════════════ */
 const NAV_ADMIN = [
-  {sec:'대시보드'},{id:'dash',icon:'▦',label:'전사 대시보드'},
+  {sec:'대시보드'},{id:'dash',icon:'▦',label:'전사 대시보드'},{id:'phasecontrol',icon:'🎯',label:'단계별 미션'},
   {sec:'관리'},{id:'master',icon:'📋',label:'리스크 Master'},{id:'selection',icon:'🎯',label:'점검대상 리스크 선정'},{id:'eval',icon:'⚖',label:'이행 달성율 평가',badge:0},
   {sec:'현황'},{id:'teams',icon:'👥',label:'팀 이행현황'},{id:'monthly',icon:'📝',label:'월간 현황 입력',badge:0},
   {sec:'보고서'},{id:'reports',icon:'📊',label:'보고서 생성'},
@@ -1749,9 +1754,9 @@ const NAV_USER = [
 ];
 const BNAV_ADMIN = [{id:'dash',icon:'▦',label:'대시보드'},{id:'monthly',icon:'📝',label:'입력',badge:true},{id:'eval',icon:'⚖',label:'평가',badge:true},{id:'teams',icon:'👥',label:'팀현황'},{id:'archive',icon:'📚',label:'아카이브'}];
 const BNAV_USER  = [{id:'monthly',icon:'📝',label:'현황 입력',badge:true},{id:'myteam',icon:'📈',label:'내 팀 현황'},{id:'archive',icon:'📚',label:'아카이브'}];
-const PAGE_TITLES = {dash:'전사 대시보드',monthly:'월간 현황 입력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성',archive:'아카이브'};
+const PAGE_TITLES = {dash:'전사 대시보드',phasecontrol:'단계별 미션',monthly:'월간 현황 입력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성',archive:'아카이브'};
 const SHOW_FILTER = ['dash','teams','eval','master','monthly'];
-const HIDE_TOPBAR_RIGHT = ['reports','selection','myteam','archive','eval'];
+const HIDE_TOPBAR_RIGHT = ['reports','selection','myteam','archive','eval','phasecontrol'];
 
 let appRole = '', appTeam = '', loginRole = '', loginTeam = '', curPage = '', curYear = '2025', curMonth = 3;
 const isMobile = () => window.innerWidth <= 768;
@@ -1888,6 +1893,7 @@ function navigateTo(id) {
   if (id === 'selection') renderSelection();
   if (id === 'myteam')    renderMyTeam();
   if (id === 'dash')      { initDash(); runCounters(); }
+  if (id === 'phasecontrol') renderPhaseControl();
   if (id === 'reports')   renderReports();
   if (id === 'archive')   initArchive();
   document.getElementById('content').scrollTop = 0;
@@ -4599,19 +4605,9 @@ function _checkPhaseConditions(phaseId) {
       ];
     }
     case 'implement': {
-      // 현재 로드된 데이터 월(curMonth) 기준 — 실제 월과 무관하게 선택된 월의 현황을 표시
-      const dm = curMonth;
-      const rm = _getRealMonth();
-      const submitted = RISKS.filter(r => r.submitStatus === '제출완료' || r.submitStatus === '평가완료');
-      const allSubmitted = RISKS.length > 0 && submitted.length === RISKS.length;
-      const evaluated = RISKS.filter(r => r.submitStatus === '평가완료');
-      const allEvaluated = RISKS.length > 0 && evaluated.length === RISKS.length;
       const achRisks = RISKS.filter(r => r.achieve != null);
       const avgAch = achRisks.length ? Math.round(achRisks.reduce((s,r) => s + r.achieve, 0) / achRisks.length) : 0;
-      const monthLabel = dm === rm ? `${dm}월(이번 달)` : `${dm}월(조회 중)`;
       return [
-        { label: `${monthLabel} 전체 제출 완료`, met: allSubmitted, detail: `${submitted.length}/${RISKS.length}건 제출됨` },
-        { label: `${monthLabel} 전체 평가 완료`, met: allEvaluated, detail: `${evaluated.length}/${RISKS.length}건 평가됨` },
         { label: '전사 평균 달성율 60% 이상', met: avgAch >= 60, detail: `현재 ${avgAch}%` },
       ];
     }
@@ -4805,18 +4801,15 @@ function _renderPhaseActionBanner() {
       }
     }
   } else if (m <= 9) {
-    // Phase 4: 이행 관리 — 현재 선택된 데이터 월(curMonth) 기준 제출/평가 현황
-    const dm = curMonth; // 데이터 조회 월
-    const missingCount = RISKS.filter(r => r.submitStatus === '미제출').length;
-    const pendingEval = RISKS.filter(r => r.submitStatus === '제출완료').length;
-    if (missingCount > 0) items.push({ icon:'⚠', color:'#FEF2F2', border:'#FECACA', text:'#DC2626',
-      msg:`${dm}월 미제출 <strong>${missingCount}건</strong> — 독촉 메일 필요`, action:`navigateTo('monthly')`, btn:'입력 현황 보기' });
-    if (pendingEval > 0) items.push({ icon:'⏳', color:'#FFFBEB', border:'#FDE68A', text:'#D97706',
-      msg:`${dm}월 평가 대기 <strong>${pendingEval}건</strong> — 즉시 평가 필요`, action:`navigateTo('eval')`, btn:'평가 화면 이동' });
-    if (missingCount === 0 && pendingEval === 0) {
-      items.push({ icon:'🔔', color:'#EFF6FF', border:'#BFDBFE', text:'#1D4ED8',
-        msg:`${dm}월 전체 이행·평가 완료 — 아래에서 <strong>단계 완료 확정</strong> 가능`,
-        action:`document.getElementById('phase-hero').scrollIntoView({behavior:'smooth'})`, btn:'확정하러 가기' });
+    // Phase 4: 이행 관리 — 달성율 중심 (제출/평가는 각 페이지에서 처리)
+    const achRisks = RISKS.filter(r => r.achieve != null);
+    const avgAch = achRisks.length ? Math.round(achRisks.reduce((s,r) => s + r.achieve, 0) / achRisks.length) : 0;
+    if (avgAch < 60) {
+      items.push({ icon:'⚠', color:'#FEF2F2', border:'#FECACA', text:'#DC2626',
+        msg:`전사 달성율 <strong>${avgAch}%</strong> — 60% 미달, 이행 독려 필요`, action:`navigateTo('teams')`, btn:'팀 현황 보기' });
+    } else {
+      items.push({ icon:'✅', color:'#F0FDF4', border:'#BBF7D0', text:'#059669',
+        msg:`전사 달성율 <strong>${avgAch}%</strong> — 양호`, action:`navigateTo('phasecontrol')`, btn:'단계별 미션' });
     }
   } else {
     // Phase 5: 점검·보고
@@ -5006,6 +4999,145 @@ if (typeof renderReports === 'function') {
   `;
   document.head.appendChild(style);
 })();
+
+/* ═══════════════════════════════════════════════════════════
+   🎯  단계별 미션 전용 탭 (Phase Control Page)
+═══════════════════════════════════════════════════════════ */
+function renderPhaseControl() {
+  const el = document.getElementById('pc-content');
+  if (!el) return;
+
+  const { phases, activeIdx } = _getActivePhase();
+  const phaseStatus = _loadPhaseStatus(curYear);
+  const completedCount = phases.filter(p => phaseStatus[p.id]?.completed).length;
+
+  // 전체 진행률
+  const progressPct = Math.round((completedCount / phases.length) * 100);
+
+  // 헤더
+  let html = `
+    <div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px">
+        <span style="font-size:13px;font-weight:700;background:#EFF6FF;color:var(--accent);padding:4px 12px;border-radius:99px">${curYear}년 위험평가 사이클</span>
+        <span style="font-size:13px;color:var(--muted)">5단계 중 <strong style="color:var(--accent)">${completedCount}단계</strong> 확정 완료</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+        <div style="flex:1;height:10px;background:#EEF2F7;border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:${progressPct}%;background:linear-gradient(90deg,var(--accent),#60A5FA);border-radius:99px;transition:width .8s cubic-bezier(.4,0,.2,1)"></div>
+        </div>
+        <span style="font-size:14px;font-weight:800;color:var(--accent);min-width:40px;text-align:right">${progressPct}%</span>
+      </div>
+    </div>`;
+
+  // 각 Phase 카드
+  phases.forEach((p, i) => {
+    const isActive = i === activeIdx;
+    const isCompleted = phaseStatus[p.id]?.completed;
+    const conditions = _checkPhaseConditions(p.id);
+    const allMet = conditions.length > 0 && conditions.every(c => c.met);
+    const metCount = conditions.filter(c => c.met).length;
+    const dday = _getDday(p.id, curYear);
+
+    // 상태 결정
+    let statusBadge, borderColor, bgColor;
+    if (isCompleted) {
+      statusBadge = `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:#ECFDF5;color:#059669">확정 완료</span>`;
+      borderColor = '#86EFAC';
+      bgColor = '#F0FDF4';
+    } else if (isActive) {
+      statusBadge = `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:#EFF6FF;color:var(--accent)">현재 진행 중</span>`;
+      borderColor = '#93C5FD';
+      bgColor = '#FAFCFF';
+    } else if (i < activeIdx) {
+      statusBadge = `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:#FFFBEB;color:#D97706">미확정</span>`;
+      borderColor = '#FDE68A';
+      bgColor = '#FFFEF5';
+    } else {
+      statusBadge = `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:#F1F5F9;color:#94A3B8">예정</span>`;
+      borderColor = 'var(--border)';
+      bgColor = 'var(--surface)';
+    }
+
+    // D-day
+    const ddayHtml = dday !== null ? (() => {
+      const color = dday < 0 ? '#DC2626' : dday <= 7 ? '#D97706' : '#64748B';
+      const bg = dday < 0 ? '#FEF2F2' : dday <= 7 ? '#FFFBEB' : '#F1F5F9';
+      const text = dday < 0 ? `D+${Math.abs(dday)}` : dday === 0 ? 'D-DAY' : `D-${dday}`;
+      return `<span style="font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:${bg};color:${color}">${text}</span>`;
+    })() : '';
+
+    // 체크리스트
+    const checklistHtml = conditions.map(c => `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;${conditions.indexOf(c) < conditions.length-1 ? 'border-bottom:1px solid var(--border)' : ''}">
+        <span style="font-size:15px;flex-shrink:0;width:20px;text-align:center">${c.met ? '✅' : '⬜'}</span>
+        <span style="flex:1;font-size:12px;font-weight:600;color:${c.met ? 'var(--green)' : 'var(--text)'}">${c.label}</span>
+        <span style="font-size:11px;color:${c.met ? 'var(--green)' : 'var(--muted)'};font-weight:700;white-space:nowrap">${c.detail}</span>
+      </div>`).join('');
+
+    // 액션 카드
+    const cardsHtml = p.cards.map(c => {
+      const cnt = c.count();
+      const unitText = c.unit_fn ? c.unit_fn() : c.unit;
+      return `
+        <div style="flex:1;min-width:160px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .15s" onclick="navigateTo('${c.nav}')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <span style="font-size:16px">${c.icon}</span>
+            <span style="font-size:12px;font-weight:700;color:var(--text)">${c.title}</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:4px">
+            <span style="font-size:20px;font-weight:900;color:${c.color||'var(--accent)'}">${cnt}</span>
+            <span style="font-size:10px;color:var(--muted)">${unitText}</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    // 완료/해제 버튼
+    let actionBtn = '';
+    if (isCompleted) {
+      actionBtn = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:16px">🎉</span>
+            <span style="font-size:12px;font-weight:700;color:var(--green)">${phaseStatus[p.id].completedAt} 확정</span>
+          </div>
+          <button onclick="reopenPhase('${p.id}');setTimeout(renderPhaseControl,300)" style="padding:5px 12px;border:1px solid #FECACA;border-radius:6px;background:#FEF2F2;color:#DC2626;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">해제</button>
+        </div>`;
+    } else if (allMet) {
+      actionBtn = `
+        <button onclick="confirmPhaseComplete('${p.id}');setTimeout(renderPhaseControl,300)" style="width:100%;margin-top:12px;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 8px rgba(59,130,246,.25)">
+          <span>🚀</span> ${p.shortLabel} 단계 완료 확정
+        </button>`;
+    } else if (isActive || i < activeIdx) {
+      actionBtn = `
+        <div style="margin-top:12px;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);text-align:center;font-weight:600">
+          🔒 조건 충족 후 완료 가능 (${metCount}/${conditions.length})
+        </div>`;
+    }
+
+    html += `
+      <div style="background:${bgColor};border:1.5px solid ${borderColor};border-radius:14px;padding:20px 24px;margin-bottom:14px;${isActive ? 'box-shadow:0 2px 12px rgba(59,130,246,.1)' : ''}">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <span style="font-size:22px">${p.icon}</span>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-size:16px;font-weight:800;color:var(--text)">${p.label}</span>
+              ${statusBadge}
+              ${ddayHtml}
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">${p.months} · ${p.desc.substring(0, 60)}...</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">${cardsHtml}</div>
+        ${conditions.length > 0 ? `
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">완료 체크리스트</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px 14px">${checklistHtml}</div>
+        ` : ''}
+        ${actionBtn}
+      </div>`;
+  });
+
+  el.innerHTML = html;
+}
 
 /* ── Master 수정 모달: Phase 3 기간에 "개선 과제" 필드 강조 ── */
 const _origOpenRiskEditModal = openRiskEditModal;
