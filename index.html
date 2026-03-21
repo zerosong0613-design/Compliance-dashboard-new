@@ -5011,7 +5011,22 @@ function renderPhaseControl() {
   const phaseStatus = _loadPhaseStatus(curYear);
   const completedCount = phases.filter(p => phaseStatus[p.id]?.completed).length;
   const progressPct = Math.round((completedCount / phases.length) * 100);
-  const ap = phases[activeIdx];
+
+  // ─── 효과적 현재 단계 결정 ───
+  // 달력 기반 activeIdx에서 시작하여 완료된 단계를 건너뜀
+  // 예: 3월에 Phase 2+3 완료 → Phase 3 표시 (최신 완료)
+  //     4월에 Phase 3 완료 → Phase 4 표시 (다음 단계)
+  let effectiveIdx = activeIdx;
+  while (effectiveIdx < phases.length - 1 && phaseStatus[phases[effectiveIdx].id]?.completed) {
+    effectiveIdx++;
+  }
+  // 2단계 이상 건너뛴 경우: 마지막 완료 단계를 보여줌 (앞서 완료한 성과)
+  // 1단계만 건너뛴 경우: 다음 단계를 보여줌 (이제 할 일)
+  if (effectiveIdx > activeIdx + 1 && !phaseStatus[phases[effectiveIdx].id]?.completed) {
+    effectiveIdx--;
+  }
+
+  const ap = phases[effectiveIdx];
   const activeCompleted = phaseStatus[ap.id]?.completed;
   const activeConditions = _checkPhaseConditions(ap.id);
   const activeAllMet = activeConditions.length > 0 && activeConditions.every(c => c.met);
@@ -5024,7 +5039,6 @@ function renderPhaseControl() {
   let ctaIcon = ap.cards[0]?.icon || '→';
   const firstUnmet = activeConditions.find(c => !c.met);
   if (firstUnmet && ap.cards.length > 0) {
-    // 미충족 조건과 가장 관련 있는 카드 찾기
     const card = ap.cards[0];
     ctaNav = card.nav;
     ctaLabel = card.title;
@@ -5036,7 +5050,7 @@ function renderPhaseControl() {
     <div style="background:linear-gradient(135deg,#1E3A5F 0%,#2563EB 100%);border-radius:16px;padding:28px 28px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden">
       <div style="position:absolute;top:-30px;right:-20px;font-size:120px;opacity:.08;pointer-events:none">${ap.icon}</div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-        <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.2);backdrop-filter:blur(4px)">STEP ${activeIdx + 1} / 5</span>
+        <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.2);backdrop-filter:blur(4px)">STEP ${effectiveIdx + 1} / 5</span>
         <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.15)">${ap.months}</span>
         ${!activeCompleted && activeDday !== null && activeDday >= 0 ? `<span style="font-size:12px;font-weight:800;padding:3px 12px;border-radius:99px;background:${activeDday<=7?'rgba(251,191,36,.3)':'rgba(255,255,255,.15)'}">D-${activeDday}</span>` : ''}
         ${activeCompleted ? '<span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(52,211,153,.3)">확정 완료</span>' : ''}
@@ -5135,11 +5149,11 @@ function renderPhaseControl() {
 
   // ═══ SECTION 4: 나머지 단계 (아코디언) ═══
   phases.forEach((p, i) => {
-    if (i === activeIdx) return; // 현재 단계는 이미 위에 표시
+    if (i === effectiveIdx) return; // 현재 표시 중인 단계는 위 히어로에서 표시
 
     const isCompleted = phaseStatus[p.id]?.completed;
-    const isPast = i < activeIdx;
-    const isFuture = i > activeIdx;
+    const isPast = i < effectiveIdx;
+    const isFuture = i > effectiveIdx;
     const conditions = _checkPhaseConditions(p.id);
     const allMet = conditions.length > 0 && conditions.every(c => c.met);
     const metCount = conditions.filter(c => c.met).length;
