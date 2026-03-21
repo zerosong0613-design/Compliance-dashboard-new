@@ -1228,14 +1228,34 @@ const CONFIG = {
    📊  샘플 데이터 (OFFLINE_MODE=true 일 때만 사용)
 ═══════════════════════════════════════════════════════════ */
 const SAMPLE_RISKS = [
-  {id:'R001',title:'개인정보 수집·이용 동의 누락',team:'영업팀',cat:'개인정보',score:20,impact:4,likelihood:5,status:'제출완료',submitStatus:'제출완료',achieve:85,owner:'김지훈',selected:true,spId:1},
-  {id:'R002',title:'하도급 거래 서면 미교부',team:'구매팀',cat:'공정거래',score:16,impact:4,likelihood:4,status:'미제출',submitStatus:'미제출',achieve:null,owner:'박성민',selected:true,spId:2},
-  {id:'R003',title:'화학물질 보관 기준 미준수',team:'생산팀',cat:'환경안전',score:15,impact:5,likelihood:3,status:'제출완료',submitStatus:'제출완료',achieve:72,owner:'이현수',selected:true,spId:3},
-  {id:'R004',title:'영업비밀 보호협약 미체결',team:'연구개발팀',cat:'지식재산',score:12,impact:3,likelihood:4,status:'평가완료',submitStatus:'평가완료',achieve:92,owner:'최민준',selected:true,spId:4},
-  {id:'R005',title:'수출통제 분류 검토 누락',team:'영업팀',cat:'수출규제',score:20,impact:4,likelihood:5,status:'제출완료',submitStatus:'제출완료',achieve:78,owner:'김지훈',selected:true,spId:5},
-  {id:'R006',title:'반부패 교육 미이수',team:'품질팀',cat:'부패방지',score:9,impact:3,likelihood:3,status:'평가완료',submitStatus:'평가완료',achieve:95,owner:'정다은',selected:true,spId:6},
-  {id:'R007',title:'근로계약서 필수조항 누락',team:'생산팀',cat:'노무',score:12,impact:3,likelihood:4,status:'임시저장',submitStatus:'임시저장',achieve:null,owner:'이현수',selected:true,spId:7},
-  {id:'R008',title:'수입물품 관세분류 오류',team:'구매팀',cat:'수출규제',score:9,impact:3,likelihood:3,status:'미제출',submitStatus:'미제출',achieve:null,owner:'박성민',selected:true,spId:8},
+  {id:'R001',title:'개인정보 수집·이용 동의 누락',team:'영업팀',cat:'개인정보',score:20,impact:4,likelihood:5,status:'제출완료',submitStatus:'제출완료',achieve:null,owner:'김지훈',selected:true,spId:1,
+    task:'분기별 동의서 양식 점검 + 마케팅 수신 동의 프로세스 자동화',
+    content:'3월 마케팅 수신 동의 양식을 전면 개정하여 배포 완료. 영업부 전원 교육 실시(3/15). 기존 고객 DB 중 동의 누락 건 142건을 일괄 재동의 요청 발송함.',
+    specialNote:'4월 중 개인정보보호법 시행령 개정 예고에 따른 추가 검토 예정'},
+  {id:'R002',title:'하도급 거래 서면 미교부',team:'구매팀',cat:'공정거래',score:16,impact:4,likelihood:4,status:'미제출',submitStatus:'미제출',achieve:null,owner:'박성민',selected:true,spId:2,
+    task:'하도급 계약서 교부 프로세스 전산화 + 월 1회 자체 점검'},
+  {id:'R003',title:'화학물질 보관 기준 미준수',team:'생산팀',cat:'환경안전',score:15,impact:5,likelihood:3,status:'제출완료',submitStatus:'제출완료',achieve:null,owner:'이현수',selected:true,spId:3,
+    task:'보관시설 안전점검 월 2회 실시 + MSDS 최신본 비치 확인',
+    content:'3월 보관시설 안전점검 2회 실시(3/5, 3/20). 1건 경미 지적사항(라벨 훼손) 즉시 시정 완료. MSDS 갱신 대상 5건 중 3건 완료, 2건은 제조사 회신 대기 중.',
+    specialNote:'잔여 2건은 해외 제조사로 회신 지연 중, 4월 초 완료 예상'},
+  {id:'R004',title:'영업비밀 보호협약 미체결',team:'연구개발팀',cat:'지식재산',score:12,impact:3,likelihood:4,status:'평가완료',submitStatus:'평가완료',achieve:92,owner:'최민준',selected:true,spId:4,
+    task:'신규 입사자/협력사 보호협약 체결 100% + 기존 직원 갱신',
+    content:'3월 신규 입사자 2명 보호협약 체결 완료. 기존 연구원 12명 중 10명 갱신 완료, 2명 해외 출장 중으로 4월 초 서명 예정. 협력사 3곳 NDA 갱신 완료.',
+    evalComment:'전반적으로 우수한 이행 상태. 해외 출장 건은 사유가 타당하며 4월 초 완료 예상.'},
+  {id:'R005',title:'수출통제 분류 검토 누락',team:'영업팀',cat:'수출규제',score:20,impact:4,likelihood:5,status:'평가완료',submitStatus:'평가완료',achieve:65,owner:'김지훈',selected:true,spId:5,
+    task:'수출건 전수 사전 분류심사 + 규제 리스트 월 1회 업데이트',
+    content:'3월 수출건 48건 중 사전 분류심사 실시 35건(73%). 미심사 13건은 기존 반복거래로 생략했으나, 4월부터는 전건 심사 체계 도입 예정.',
+    evalComment:'73% 심사율은 기준 미달. 반복거래도 분류변경 가능성이 있으므로 전건 심사 필수. 다음 달 개선 필요.',
+    _revisionRequested:true},
+  {id:'R006',title:'반부패 교육 미이수',team:'품질팀',cat:'부패방지',score:9,impact:3,likelihood:3,status:'평가완료',submitStatus:'평가완료',achieve:95,owner:'정다은',selected:true,spId:6,
+    task:'분기별 반부패 교육 실시 + 이수율 95% 이상 유지',
+    content:'1분기 반부패 교육 3/10 실시. 품질팀 전원(8명) 이수 완료. 온라인 테스트 평균 92점. 미이수자 0명.',
+    evalComment:'전원 이수 완료로 우수한 이행 상태.'},
+  {id:'R007',title:'근로계약서 필수조항 누락',team:'생산팀',cat:'노무',score:12,impact:3,likelihood:4,status:'임시저장',submitStatus:'임시저장',achieve:null,owner:'이현수',selected:true,spId:7,
+    task:'근로계약서 표준양식 개정 + 신규 채용 시 체크리스트 적용',
+    content:'표준양식 개정 초안 작성 중. 법무팀 검토 요청 예정.'},
+  {id:'R008',title:'수입물품 관세분류 오류',team:'구매팀',cat:'수출규제',score:9,impact:3,likelihood:3,status:'미제출',submitStatus:'미제출',achieve:null,owner:'박성민',selected:true,spId:8,
+    task:'관세분류 사전심사 신청 + HS코드 검증 체크리스트 도입'},
 ];
 const SAMPLE_TREND = [
   {month:'10월',영업팀:80,생산팀:65,연구개발팀:88,구매팀:55,품질팀:82},
@@ -2763,18 +2783,35 @@ function selectMonthly(i) {
     const initScore = r.achieve || 80;
     const sc = scoreCol(initScore);
 
-    // 제출 내용 (읽기 전용)
-    const submittedSection = (r.submitStatus === '제출완료' || r.submitStatus === '평가완료') ? `
-      <div class="submitted-box">
-        <div class="submitted-lbl">📝 팀 제출 내용</div>
-        <div class="submitted-txt">${r.content || '(제출 내용 없음)'}</div>
-        ${r.specialNote ? `<div style="margin-top:8px;font-size:12px;color:var(--muted)">💬 특이사항: ${r.specialNote}</div>` : ''}
-        ${r.attachmentUrl ? `<a class="file-chip" href="${r.attachmentUrl}" target="_blank">📄 첨부파일 보기</a>` : ''}
-      </div>` : `
-      <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;background:var(--bg);border-radius:10px;margin-bottom:16px">
-        <div style="font-size:24px;margin-bottom:6px">${r.submitStatus === '미제출' ? '📭' : '✏'}</div>
-        ${r.submitStatus === '미제출' ? '아직 제출되지 않았습니다.' : '임시저장 상태입니다.'}
-      </div>`;
+    // 제출/임시저장 내용 표시
+    const hasContent = r.content && r.content.trim();
+    let submittedSection;
+    if (r.submitStatus === '제출완료' || r.submitStatus === '평가완료') {
+      submittedSection = `
+        <div class="submitted-box">
+          <div class="submitted-lbl">📝 팀 제출 내용</div>
+          <div class="submitted-txt">${r.content || '(제출 내용 없음)'}</div>
+          ${r.specialNote ? `<div style="margin-top:8px;font-size:12px;color:var(--muted)">💬 특이사항: ${r.specialNote}</div>` : ''}
+          ${r.attachmentUrl ? `<a class="file-chip" href="${r.attachmentUrl}" target="_blank">📄 첨부파일 보기</a>` : ''}
+        </div>`;
+    } else if (r.submitStatus === '임시저장' && hasContent) {
+      submittedSection = `
+        <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:16px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+            <span style="font-size:14px">✏</span>
+            <span style="font-size:12px;font-weight:700;color:#92400E">임시저장 — 아직 제출 전입니다</span>
+          </div>
+          <div style="font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap">${r.content}</div>
+          ${r.specialNote ? `<div style="margin-top:8px;font-size:12px;color:var(--muted)">💬 ${r.specialNote}</div>` : ''}
+        </div>`;
+    } else {
+      submittedSection = `
+        <div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;background:var(--bg);border-radius:10px;margin-bottom:16px">
+          <div style="font-size:28px;margin-bottom:8px">${r.submitStatus === '미제출' ? '📭' : '✏'}</div>
+          <div style="font-weight:700;margin-bottom:4px">${r.submitStatus === '미제출' ? '아직 제출되지 않았습니다' : '임시저장 중 (내용 없음)'}</div>
+          <div style="font-size:12px">담당자: ${r.owner || '-'} · ${r.team}</div>
+        </div>`;
+    }
 
     // 평가 섹션 (제출완료 시만 활성)
     const evalSection = isSubmitted ? `
