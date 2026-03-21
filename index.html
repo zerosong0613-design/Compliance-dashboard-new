@@ -1440,7 +1440,10 @@ let RISKS = [], TEAMS_DATA = [], TREND = [];
 const TKEYS   = ['영업팀','생산팀','연구개발팀','구매팀','품질팀'];
 const TCOLORS = ['#3B82F6','#8B5CF6','#10B981','#F59E0B','#EC4899'];
 
+let _isLoadingData = false;
 async function loadData(year, month) {
+  if (_isLoadingData) return;
+  _isLoadingData = true;
   showLoading('리스크 데이터 불러오는 중...');
   try {
     if (CONFIG.OFFLINE_MODE) {
@@ -1458,6 +1461,7 @@ async function loadData(year, month) {
     await _loadOfflineData(year, month); // 폴백
   } finally {
     hideLoading();
+    _isLoadingData = false;
   }
 }
 
@@ -2226,13 +2230,23 @@ let _archiveYearFilter = '전체';
 let _lawCategoryFilter = '전체';
 
 function initArchive() {
+  // User 모드: 올해 연도 탭 숨김 (이전 연도 이력만 열람)
+  if (appRole === 'user') {
+    const thisYear = String(new Date().getFullYear());
+    document.querySelectorAll('#archive-year-tabs .f-btn').forEach(btn => {
+      if (btn.textContent.includes(thisYear)) btn.style.display = 'none';
+    });
+  }
   renderArchiveFiles();
   renderLawAlerts();
   initCopilotAgent();
 }
 function renderArchiveFiles() {
   const el = document.getElementById('archive-file-list'); if (!el) return;
-  const filtered = _archiveYearFilter === '전체' ? _archiveFiles : _archiveFiles.filter(f => f.year === _archiveYearFilter);
+  // User 모드: 올해 이전 데이터만 표시 (현업 담당자는 이전 연도 이력만 열람)
+  const thisYear = String(new Date().getFullYear());
+  let pool = appRole === 'user' ? _archiveFiles.filter(f => f.year < thisYear) : _archiveFiles;
+  const filtered = _archiveYearFilter === '전체' ? pool : pool.filter(f => f.year === _archiveYearFilter);
   if (!filtered.length) { el.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">📭 이 연도에 등록된 파일이 없습니다.</div>`; return; }
   const icons = {excel:'📊',ppt:'📑',pdf:'📄'};
   el.innerHTML = filtered.map(f => `
@@ -2764,9 +2778,11 @@ async function submitMonthly(idx) {
     };
 
     if (CONFIG.OFFLINE_MODE) {
+      if (!_lsSave(curYear, curMonth, r.id, { submitStatus: '제출완료', content, specialNote: note })) {
+        throw new Error('로컬 저장 공간이 부족합니다');
+      }
       r.submitStatus = '제출완료'; r.status = '제출완료';
       r.content = content; r.specialNote = note;
-      _lsSave(curYear, curMonth, r.id, { submitStatus: '제출완료', content, specialNote: note });
     } else {
       const result = await callFlow(CONFIG.FLOW_SUBMIT_URL, payload);
       r.submitStatus = '제출완료'; r.status = '제출완료';
@@ -2779,6 +2795,7 @@ async function submitMonthly(idx) {
     _setDirty(false);
     updateBadges();
     renderMonthly();
+    _computeTeamsData();
   } catch (e) {
     if (btn) { btn.textContent = '제출하기 →'; btn.disabled = false; }
     toast('제출 실패: ' + e.message, 'error');
@@ -3262,6 +3279,7 @@ async function confirmEditRisk(riskId) {
     _setDirty(false);
     applyMaster();
     _computeTeamsData();
+    if (curPage === 'selection') renderSelection();
     toast(`[${riskId}] 수정이 저장되었습니다.`, 'success');
   } catch(e) { toast('저장 실패: ' + e.message, 'error'); }
 }
@@ -4960,7 +4978,8 @@ function renderPhaseControl() {
           <span style="font-size:20px">🎉</span>
           <span style="font-size:14px;font-weight:700">이 단계는 ${phaseStatus[ap.id]?.completedAt || ''} 완료되었습니다</span>
           <button onclick="reopenPhase('${ap.id}');setTimeout(renderPhaseControl,300)" style="margin-left:auto;padding:6px 14px;border:1px solid rgba(255,255,255,.3);border-radius:7px;background:transparent;color:rgba(255,255,255,.7);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">해제</button>
-        </div>`}
+        </div>
+        ${!activeAllMet ? '<div style="margin-top:10px;padding:8px 14px;background:rgba(251,191,36,.2);border-radius:8px;font-size:12px;color:#FBBF24;font-weight:600">⚠ 완료 확정되었으나 현재 조건이 미충족 상태입니다. 데이터를 확인하세요.</div>' : ''}`}
     </div>`;
 
   // ═══ SECTION 2: 현재 단계 체크리스트 + 액션 카드 (펼쳐진 상태) ═══
@@ -5188,6 +5207,7 @@ function saveTaskQuickEdit(riskId) {
   }
   document.getElementById('task-quick-modal')?.remove();
   renderSelection();
+  if (curPage === 'phasecontrol') renderPhaseControl();
   toast(task ? `[${riskId}] 개선 과제가 저장되었습니다.` : `[${riskId}] 개선 과제가 비워졌습니다.`, 'success');
 }
 
