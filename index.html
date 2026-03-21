@@ -775,8 +775,8 @@ body.modal-open{overflow:hidden!important}
       <div class="view" id="view-monthly">
         <div id="monthly-guide-banner"></div>
         <div class="split-view">
-          <div class="risk-panel"><div class="panel-hd"><div class="panel-title">이번달 점검 리스크</div><div class="panel-sub" id="monthly-psub">2025년 3월</div></div><div class="panel-list" id="monthly-list"></div></div>
-          <div class="form-panel" id="monthly-form"><div class="empty-panel"><div class="empty-icon">📝</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측 목록에서 점검할 리스크를<br>선택하면 입력 폼이 열립니다</div></div></div>
+          <div class="risk-panel"><div class="panel-hd"><div class="panel-title" id="monthly-panel-title">이번달 점검 리스크</div><div class="panel-sub" id="monthly-psub">2025년 3월</div></div><div class="panel-list" id="monthly-list"></div></div>
+          <div class="form-panel" id="monthly-form"><div class="empty-panel"><div class="empty-icon" id="monthly-empty-icon">📝</div><div class="empty-title" id="monthly-empty-title">리스크를 선택하세요</div><div class="empty-desc" id="monthly-empty-desc">좌측 목록에서 점검할 리스크를<br>선택하면 입력 폼이 열립니다</div></div></div>
         </div>
       </div>
 
@@ -1748,8 +1748,8 @@ function _loadLib(urls, done) {
 ═══════════════════════════════════════════════════════════ */
 const NAV_ADMIN = [
   {sec:'대시보드'},{id:'dash',icon:'▦',label:'전사 대시보드'},{id:'phasecontrol',icon:'🎯',label:'단계별 미션'},
-  {sec:'관리'},{id:'master',icon:'📋',label:'리스크 Master'},{id:'selection',icon:'🎯',label:'점검대상 리스크 선정'},{id:'eval',icon:'⚖',label:'이행 달성율 평가',badge:0},
-  {sec:'현황'},{id:'teams',icon:'👥',label:'팀 이행현황'},{id:'monthly',icon:'📝',label:'월간 현황 입력',badge:0},
+  {sec:'관리'},{id:'master',icon:'📋',label:'리스크 Master'},{id:'selection',icon:'🎯',label:'점검대상 리스크 선정'},
+  {sec:'현황'},{id:'monthly',icon:'⚖',label:'이행현황 검토',badge:0},{id:'teams',icon:'👥',label:'팀 이행현황'},
   {sec:'보고서'},{id:'reports',icon:'📊',label:'보고서 생성'},
   {sec:'정보'},{id:'archive',icon:'📚',label:'아카이브'},
 ];
@@ -1758,9 +1758,11 @@ const NAV_USER = [
   {sec:'현황'},{id:'myteam',icon:'📈',label:'내 팀 이행현황'},
   {sec:'정보'},{id:'archive',icon:'📚',label:'아카이브'},
 ];
-const BNAV_ADMIN = [{id:'dash',icon:'▦',label:'대시보드'},{id:'monthly',icon:'📝',label:'입력',badge:true},{id:'eval',icon:'⚖',label:'평가',badge:true},{id:'teams',icon:'👥',label:'팀현황'},{id:'archive',icon:'📚',label:'아카이브'}];
+const BNAV_ADMIN = [{id:'dash',icon:'▦',label:'대시보드'},{id:'monthly',icon:'⚖',label:'검토',badge:true},{id:'teams',icon:'👥',label:'팀현황'},{id:'master',icon:'📋',label:'Master'},{id:'archive',icon:'📚',label:'아카이브'}];
 const BNAV_USER  = [{id:'monthly',icon:'📝',label:'현황 입력',badge:true},{id:'myteam',icon:'📈',label:'내 팀 현황'},{id:'archive',icon:'📚',label:'아카이브'}];
-const PAGE_TITLES = {dash:'전사 대시보드',phasecontrol:'단계별 미션',monthly:'월간 현황 입력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성',archive:'아카이브'};
+const PAGE_TITLES = {dash:'전사 대시보드',phasecontrol:'단계별 미션',monthly_admin:'이행현황 검토',monthly:'월간 현황 입력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성',archive:'아카이브'};
+// 관리자가 monthly 탭 진입 시 제목 오버라이드
+const _getPageTitle = (id) => id === 'monthly' && appRole === 'admin' ? PAGE_TITLES.monthly_admin : (PAGE_TITLES[id] || id);
 const SHOW_FILTER = ['dash','teams','eval','master','monthly'];
 const HIDE_TOPBAR_RIGHT = ['reports','selection','myteam','archive','eval','phasecontrol'];
 
@@ -1918,8 +1920,9 @@ function navigateTo(id) {
   curPage = id;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
   const v = document.getElementById('view-' + id); if (v) v.classList.add('on');
-  document.getElementById('page-title').textContent = PAGE_TITLES[id] || id;
-  document.getElementById('mob-page-name').textContent = ' · ' + (PAGE_TITLES[id] || id);
+  const _title = typeof _getPageTitle === 'function' ? _getPageTitle(id) : (PAGE_TITLES[id] || id);
+  document.getElementById('page-title').textContent = _title;
+  document.getElementById('mob-page-name').textContent = ' · ' + _title;
   document.getElementById('filter-bar').classList.toggle('on', SHOW_FILTER.includes(id));
   const tbr = document.getElementById('topbar-right');
   const expBtn = document.querySelector('.export-btn');
@@ -2670,6 +2673,16 @@ let selMonthly = null;
 function renderMonthly() {
   const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam);
   document.getElementById('monthly-psub').textContent = `${curYear}년 ${curMonth}월 · ${appRole === 'admin' ? '전체' : appTeam}`;
+  const panelTitle = document.getElementById('monthly-panel-title');
+  if (panelTitle) panelTitle.textContent = appRole === 'admin' ? '리스크 검토 목록' : '이번달 점검 리스크';
+  const emptyIcon = document.getElementById('monthly-empty-icon');
+  const emptyTitle = document.getElementById('monthly-empty-title');
+  const emptyDesc = document.getElementById('monthly-empty-desc');
+  if (appRole === 'admin') {
+    if (emptyIcon) emptyIcon.textContent = '⚖';
+    if (emptyTitle) emptyTitle.textContent = '리스크를 선택하여 검토하세요';
+    if (emptyDesc) emptyDesc.innerHTML = '제출된 내용을 확인하고<br>달성율을 평가합니다';
+  }
 
   // 안내 배너 (user 모드 — 처음 사용자를 위한 가이드)
   const guideBanner = document.getElementById('monthly-guide-banner');
@@ -2700,36 +2713,165 @@ function renderMonthly() {
     }
   }
 
-  document.getElementById('monthly-list').innerHTML = base.map((r, i) => `
-    <div class="r-item ${selMonthly === i ? 'on' : ''}" onclick="selectMonthly(${i})">
-      <div class="r-item-id">${r.id} · ${r.cat}</div>
+  // 관리자: 상태 필터 탭 추가
+  if (appRole === 'admin') {
+    const panelHd = document.querySelector('#view-monthly .panel-hd');
+    if (panelHd && !panelHd.querySelector('.review-filter-tabs')) {
+      const tabs = document.createElement('div');
+      tabs.className = 'review-filter-tabs';
+      tabs.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;margin-top:8px';
+      const filters = [
+        {v:'전체', label:'전체'},
+        {v:'미제출', label:'미제출'},
+        {v:'제출완료', label:'제출완료'},
+        {v:'평가완료', label:'평가완료'},
+      ];
+      tabs.innerHTML = filters.map(f =>
+        `<button class="f-btn${(window._reviewFilter||'전체')===f.v?' on':''}" onclick="window._reviewFilter='${f.v}';renderMonthly()" style="padding:4px 10px;font-size:11px;min-height:28px">${f.label}</button>`
+      ).join('');
+      panelHd.appendChild(tabs);
+    }
+  }
+
+  // 관리자: 필터 적용
+  let displayList = base;
+  if (appRole === 'admin' && window._reviewFilter && window._reviewFilter !== '전체') {
+    displayList = base.filter(r => r.submitStatus === window._reviewFilter);
+  }
+
+  document.getElementById('monthly-list').innerHTML = displayList.map((r, i) => {
+    const origIdx = base.indexOf(r);
+    return `
+    <div class="r-item ${selMonthly === origIdx ? 'on' : ''}" onclick="selectMonthly(${origIdx})">
+      <div class="r-item-id">${r.id} · ${r.cat} · ${r.team}</div>
       <div class="r-item-name">${r.title}</div>
       <span class="status-chip ${stClass(r.submitStatus)}" style="font-size:11px">${stIcon(r.submitStatus)}${r.submitStatus}</span>
-    </div>`).join('');
+      ${appRole === 'admin' && r.achieve != null ? `<span style="font-size:11px;font-weight:700;color:${r.achieve>=80?'var(--green)':r.achieve>=60?'var(--amber)':'var(--red)'}"> · ${r.achieve}%</span>` : ''}
+    </div>`;
+  }).join('');
 }
 
 function selectMonthly(i) {
   selMonthly = i;
   const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam);
   const r = base[i];
-  const formBody = buildMonthlyFormBody(r);
-  const formFooter = `
-    <button class="btn btn-ghost" onclick="saveDraft(${i})">임시저장</button>
-    <button class="btn btn-danger" onclick="requestRevision(${i})">이의신청</button>
-    <button class="btn btn-primary" id="submit-btn-${i}" onclick="submitMonthly(${i})">제출하기 →</button>`;
-  if (isMobile()) {
-    openSheet(r.id + ' · ' + r.cat, r.title, formBody, formFooter);
+
+  if (appRole === 'admin') {
+    // ── 관리자: 검토 + 평가 통합 화면 ──
+    const isSubmitted = r.submitStatus === '제출완료';
+    const isEvaluated = r.submitStatus === '평가완료';
+    const initScore = r.achieve || 80;
+    const sc = scoreCol(initScore);
+
+    // 제출 내용 (읽기 전용)
+    const submittedSection = (r.submitStatus === '제출완료' || r.submitStatus === '평가완료') ? `
+      <div class="submitted-box">
+        <div class="submitted-lbl">📝 팀 제출 내용</div>
+        <div class="submitted-txt">${r.content || '(제출 내용 없음)'}</div>
+        ${r.specialNote ? `<div style="margin-top:8px;font-size:12px;color:var(--muted)">💬 특이사항: ${r.specialNote}</div>` : ''}
+        ${r.attachmentUrl ? `<a class="file-chip" href="${r.attachmentUrl}" target="_blank">📄 첨부파일 보기</a>` : ''}
+      </div>` : `
+      <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;background:var(--bg);border-radius:10px;margin-bottom:16px">
+        <div style="font-size:24px;margin-bottom:6px">${r.submitStatus === '미제출' ? '📭' : '✏'}</div>
+        ${r.submitStatus === '미제출' ? '아직 제출되지 않았습니다.' : '임시저장 상태입니다.'}
+      </div>`;
+
+    // 평가 섹션 (제출완료 시만 활성)
+    const evalSection = isSubmitted ? `
+      <div style="margin-top:16px;padding-top:16px;border-top:2px solid var(--border)">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">⚖ 이행 달성율 평가</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <label class="form-label" style="margin:0">달성율 <span style="color:var(--red)">*</span></label>
+          <span class="score-display" id="score-disp" style="font-size:28px;padding:6px 14px;margin:0;color:${sc}">${initScore}%</span>
+        </div>
+        <input type="range" min="0" max="100" value="${initScore}" class="eval-slider" id="eval-sl" style="accent-color:${sc}" oninput="updateScore(this.value)">
+        <div class="slider-ticks"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+        <div class="qs-grid" style="margin-top:8px">
+          <button class="qs-btn" style="border-color:#EF4444;color:#EF4444;background:#FEF2F2" onclick="setScore(20)">미달성</button>
+          <button class="qs-btn" style="border-color:#F59E0B;color:#D97706;background:#FFFBEB" onclick="setScore(60)">부분달성</button>
+          <button class="qs-btn" style="border-color:#3B82F6;color:#2563EB;background:#EFF6FF" onclick="setScore(85)">달성</button>
+          <button class="qs-btn" style="border-color:#10B981;color:#059669;background:#ECFDF5" onclick="setScore(97)">우수</button>
+        </div>
+        <div class="form-group" style="margin-top:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <label class="form-label" style="margin:0">평가 의견 <span id="eval-comment-required" style="color:var(--red);display:none">*</span></label>
+            <button id="ai-eval-btn" class="btn btn-ghost" style="padding:5px 10px;font-size:11px;border-color:#8B5CF6;color:#7C3AED" onclick="generateAIEvalComment()">✨ AI 의견</button>
+          </div>
+          <textarea class="form-textarea" id="eval-comment" style="height:72px" placeholder="평가 의견을 입력하세요 (달성율 70% 미만 시 필수)">${r.evalComment || ''}</textarea>
+        </div>
+      </div>` : '';
+
+    // 평가완료 결과 표시
+    const evalResult = isEvaluated ? `
+      <div style="margin-top:16px;padding:14px 18px;background:#ECFDF5;border:1px solid #86EFAC;border-radius:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="font-size:16px">✅</span>
+          <span style="font-size:14px;font-weight:800;color:var(--green)">평가 완료 · 달성율 ${r.achieve}%</span>
+        </div>
+        ${r.evalComment ? `<div style="font-size:12px;color:var(--muted);line-height:1.6">💬 ${r.evalComment}</div>` : ''}
+      </div>` : '';
+
+    // 이의신청 이력
+    const revisionSection = r._revisionRequested ? `
+      <div style="margin-top:12px;padding:10px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;font-size:12px;color:#92400E">
+        ⚠ 이의신청이 접수되었습니다. 검토가 필요합니다.
+      </div>` : '';
+
+    // 푸터 버튼
+    let formFooter = '';
+    if (isSubmitted) {
+      formFooter = `
+        <button class="btn btn-danger" onclick="requestEdit(${_findEvalIdx(r)})">수정 요청</button>
+        <button class="btn btn-success" id="eval-complete-btn-${_findEvalIdx(r)}" onclick="completeEval(${_findEvalIdx(r)})">평가 완료</button>`;
+    } else if (isEvaluated) {
+      formFooter = `<span style="font-size:13px;color:var(--green);font-weight:700">✓ 이번 월 평가 완료</span>`;
+    } else {
+      formFooter = `<button class="btn btn-ghost" onclick="sendNudge('${r.team}',this)">독촉 메일 발송</button>`;
+    }
+
+    const body = `${submittedSection}${evalSection}${evalResult}${revisionSection}`;
+
+    if (isMobile()) {
+      openSheet(r.id + ' · ' + r.team, r.title, body, formFooter);
+    } else {
+      renderMonthly();
+      document.getElementById('monthly-form').innerHTML = `
+        <div class="form-hd">
+          <div class="form-hd-id">${r.id} · ${r.cat} · ${r.team}</div>
+          <div class="form-hd-title">${r.title}</div>
+          ${r.task ? `<div class="form-hd-sub">📌 개선과제: ${r.task}</div>` : ''}
+          <div style="font-size:12px;margin-top:4px"><span class="status-chip ${stClass(r.submitStatus)}" style="font-size:11px">${stIcon(r.submitStatus)}${r.submitStatus}</span></div>
+        </div>
+        <div class="form-body">${body}</div>
+        <div class="form-footer">${formFooter}</div>`;
+    }
   } else {
-    renderMonthly();
-    document.getElementById('monthly-form').innerHTML = `
-      <div class="form-hd">
-        <div class="form-hd-id">${r.id} · ${r.cat} · ${r.team}</div>
-        <div class="form-hd-title">${r.title}</div>
-        ${r.task ? `<div class="form-hd-sub">📌 개선과제: ${r.task}</div>` : ''}
-      </div>
-      <div class="form-body">${formBody}</div>
-      <div class="form-footer">${formFooter}</div>`;
+    // ── 현업 담당자: 기존 입력 폼 ──
+    const formBody = buildMonthlyFormBody(r);
+    const formFooter = `
+      <button class="btn btn-ghost" onclick="saveDraft(${i})">임시저장</button>
+      <button class="btn btn-danger" onclick="requestRevision(${i})">이의신청</button>
+      <button class="btn btn-primary" id="submit-btn-${i}" onclick="submitMonthly(${i})">제출하기 →</button>`;
+    if (isMobile()) {
+      openSheet(r.id + ' · ' + r.cat, r.title, formBody, formFooter);
+    } else {
+      renderMonthly();
+      document.getElementById('monthly-form').innerHTML = `
+        <div class="form-hd">
+          <div class="form-hd-id">${r.id} · ${r.cat} · ${r.team}</div>
+          <div class="form-hd-title">${r.title}</div>
+          ${r.task ? `<div class="form-hd-sub">📌 개선과제: ${r.task}</div>` : ''}
+        </div>
+        <div class="form-body">${formBody}</div>
+        <div class="form-footer">${formFooter}</div>`;
+    }
   }
+}
+
+// eval 인덱스 헬퍼 (관리자 검토 화면에서 completeEval/requestEdit 호출용)
+function _findEvalIdx(risk) {
+  const pending = RISKS.filter(r => r.submitStatus === '제출완료');
+  return pending.indexOf(risk);
 }
 
 function buildMonthlyFormBody(r) {
