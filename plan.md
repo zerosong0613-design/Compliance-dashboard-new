@@ -1,8 +1,8 @@
 # Compliance RiskOps — 운영 전환 계획서
 
-> **작성일:** 2026-03-18
-> **현황:** 단일 `index.html` 프로토타입  
-> **목표:** SK Chemical 사내 실운영 시스템 전환  
+> **작성일:** 2026-03-18 (최종 업데이트: 2026-03-21)
+> **현황:** 단일 `index.html` (v10.2, 5,402줄) — 리팩토링 완료, monkey-patch 18→5개
+> **목표:** SK Chemical 사내 실운영 시스템 전환
 > **배포 방향:** Vercel(프론트) + SharePoint/Power Automate(데이터) 또는 경량 백엔드 추가
 
 ---
@@ -49,7 +49,8 @@
 | KPI 카드 4종 (관리 리스크 / 제출완료 / 달성율 / 평가대기) | ✅ | 실데이터 연동 시 자동 반영 |
 | KPI 카운터 애니메이션 | ✅ | |
 | KPI 드릴다운 모달 (카드 클릭) | ✅ | showKpiDrilldown() |
-| 즉각조치 배너 (미제출 / 평가대기) | ✅ | 조건부 표시 |
+| 즉각조치 배너 (Phase-aware, 월별 알림 분기) | ✅ | Phase 1~5 기간별 맞춤 알림 (v10.2) |
+| KPI 카드 Phase 진행 뱃지 | ✅ | "사이클 N/5단계 확정" 클릭→미션탭 (v10.2) |
 | 팀별 이행 달성율 바 차트 | ⚠️ | TEAMS_DATA 하드코딩, 실데이터 연동 필요 |
 | 월별 달성율 추이 꺾은선 차트 (Canvas) | ✅ | Y축 동적 범위 + 연초 경계선 표시 |
 | 리스크 히트맵 (영향도×가능성, 셀 클릭 드릴다운) | ✅ | |
@@ -57,6 +58,10 @@
 | 연도/월 셀렉터 | ✅ | setYear()/setMonth() 데이터 갱신 연동 완료 |
 | 위험평가 Full Cycle 사이클 카드 | ✅ | 현재 월 자동 감지, 단계 클릭 전환 |
 | 단계별 설명 + 할 일 액션 카드 (5단계) | ✅ | previewPhase() 클릭 미리보기 포함 |
+| Phase 체크리스트 + 완료 확정 버튼 | ✅ | 5단계별 완료 조건 검증 + D-day (v10.2) |
+| 단계별 미션 전용 탭 (Phase Control) | ✅ | 히어로 + 아코디언 + 완료 확정/해제 (v10.2) |
+| Phase 간 의존성 경고 | ✅ | 이전 단계 미완료 시 진입 경고 토스트 (v10.2) |
+| 연도 전환 자동 아카이빙 | ✅ | 이전 연도 Phase 상태 자동 보관 (v10.2) |
 
 ---
 
@@ -118,6 +123,8 @@
 | 리스크 추가 (수동) | ✅ | openAddRiskModal() 커스텀 모달 구현 |
 | 리스크 수정 (인라인) | ✅ | openRiskEditModal() 모달 + confirmEditRisk() |
 | Owner 수정 | ✅ | 리스크 수정 모달에 포함 |
+| 개선과제 열 표시 | ✅ | 테이블에 15자 미리보기 + 클릭→수정 모달 (v10.2) |
+| Phase 3 통제수단 힌트 | ✅ | 3~4월 수정 모달에 입력 안내 + 필수뱃지 (v10.2) |
 
 ---
 
@@ -130,6 +137,9 @@
 | 수동 체크박스 선정 | ✅ | |
 | 선정 저장 버튼 | ⚠️ | 메모리에만 반영, 새로고침 시 소멸 |
 | 위험도 범례 표시 | ✅ | |
+| 개선과제 상태 열 (Phase 3) | ✅ | 입력됨/미입력 뱃지 + 클릭→퀵에딧 모달 (v10.2) |
+| 개선과제 퀵에딧 모달 | ✅ | 리스크 클릭→개선과제 바로 입력 (Master 이동 불필요, v10.2) |
+| Phase 3 입력 현황 배너 | ✅ | 미입력 건수 요약 + Master 이동 버튼 (v10.2) |
 
 ---
 
@@ -497,9 +507,9 @@ compliance-riskops/
 
 ## Part 5. PM Agent / Designer Agent 분석 결과 및 개선 이력
 
-> **분석일:** 2026-03-15 (최종 업데이트: 2026-03-18)
+> **분석일:** 2026-03-15 (최종 업데이트: 2026-03-21)
 > **방법:** PM Agent(제품 관리 관점) + Designer Agent(UX/UI 관점) 교차 분석
-> **대상:** index.html(v8→v10), plan.md, SETUP.md
+> **대상:** index.html(v8→v10.2), plan.md, SETUP.md, architecture.svg
 
 ---
 
@@ -549,7 +559,7 @@ compliance-riskops/
 
 | # | 이슈 | 상태 | 적용 내용 |
 |---|------|------|----------|
-| D2-1 | 빈 상태(Empty State) 화면 없음 | ⬜ 미해결 | 향후 구현 |
+| D2-1 | 빈 상태(Empty State) 화면 없음 | ✅ 해결 | renderMyTeam/renderEvalList 개선 (v9.3→v10.2 원본 통합) |
 | D2-2 | 로그인 흐름 — 역할·팀 2단계가 어색 | ✅ 해결 | Step 1/2/3 인디케이터 추가 |
 | D2-3 | 모바일 키보드 가림 문제 | ⬜ 미해결 | visualViewport 연동 향후 구현 |
 | D2-4 | 달성율 슬라이더 — 평가 근거 입력란 없음 | ✅ 해결 | 평가 코멘트 란 존재 확인 + 70% 미만 시 필수 처리 추가 |
@@ -669,6 +679,34 @@ PM Agent 5차 + Designer Agent 5차 분석 기반 개선 — 11개 항목 적용
 | 73 | index.html | [P2-12] `requestRevision()` 오프라인 모드 상태 반영 + localStorage 저장 | 데이터 |
 | 74 | index.html | [P2-13] `requestEdit()` 오프라인 모드 localStorage 저장 | 데이터 |
 
+#### 2026-03-21 5차 적용 (index.html v10.1 → v10.2)
+
+Phase 미션 컨트롤 시스템 + 코드 리팩토링 + 가시성 개선.
+
+| # | 파일 | 수정 내용 | 분류 |
+|---|------|----------|------|
+| 75 | index.html | Phase 미션 컨트롤: 5단계별 체크리스트 + 완료 확정/해제 시스템 | 기능 |
+| 76 | index.html | Phase-aware 즉각 조치 배너 (월별→Phase별 알림 분기) | UX |
+| 77 | index.html | Phase Step Bar에 완료 상태(확정됨) 반영 | 기능 |
+| 78 | index.html | Phase 결정 기준을 curMonth → 실제 달력 월로 분리 (`_getRealMonth()`) | 기능 |
+| 79 | index.html | Phase 3 통제수단 조건을 `r.task`(개선 과제) 필드 기반으로 변경 | 기능 |
+| 80 | index.html | Master 수정 모달에 Phase 3 기간 통제수단 입력 힌트/뱃지 | UX |
+| 81 | index.html | 단계별 미션 전용 탭(`phasecontrol`) 추가 — 히어로 + 아코디언 구조 | 기능 |
+| 82 | index.html | Phase 4 체크리스트 간소화 (달성율 60% 체크만) | UX |
+| 83 | index.html | 점검대상 선정 페이지: 개선과제 퀵에딧 모달 + 미입력 표시 | 기능 |
+| 84 | index.html | Master 테이블에 개선과제 열 추가 (15자 미리보기) | 기능 |
+| 85 | index.html | Phase 간 의존성 경고 (이전 단계 미완료 시 토스트) | UX |
+| 86 | index.html | 대시보드 KPI에 "사이클 N/5단계 확정" 뱃지 | UX |
+| 87 | index.html | 연도 전환 시 이전 연도 Phase 자동 아카이빙 | 기능 |
+| 88 | index.html | D-day 완료 후 플러스 표시 제거 | UX |
+| 89 | index.html | Master 수정 모달 dirty form 경고 잔존 버그 수정 | 버그 |
+| 90 | index.html | **리팩토링 Phase A**: v9.2/v9.3 monkey-patch 16개 원본 통합 | 리팩토링 |
+| 91 | index.html | **리팩토링 Phase B**: v10.1 monkey-patch 2개 원본 통합 | 리팩토링 |
+| 92 | index.html | **리팩토링 Phase C**: v10.2 initDash 2겹→1겹, navigateTo 흡수 | 리팩토링 |
+| 93 | index.html | 전반적 가시성 개선: 최소 폰트 11px + #94A3B8→var(--muted) 통일 | 접근성 |
+| 94 | architecture.svg | 아키텍처 다이어그램 v10.2 기준 재작성 | 문서 |
+| 95 | plan.md | v10.2 기능 인벤토리 + 적용 이력 업데이트 | 문서 |
+
 ---
 
 ### 5-4. 해결 완료 항목
@@ -697,6 +735,18 @@ PM Agent 5차 + Designer Agent 5차 분석 기반 개선 — 11개 항목 적용
 ☑ [D2-12] monthly 페이지 필터바 활성화 (v10.1)
 ☑ [D3-1] 히트맵 셀 클릭 드릴다운 (v9)
 ☑ [D3-12] CSS 중복 선언 정리 (v10.1)
+☑ [D2-1] Empty State 개선 — renderMyTeam/renderEvalList (v10.2)
+☑ [NEW] Phase 미션 컨트롤 시스템 — 5단계 체크리스트+완료 확정 (v10.2)
+☑ [NEW] 단계별 미션 전용 탭 — 히어로+아코디언 구조 (v10.2)
+☑ [NEW] Phase-aware 즉각 조치 배너 (v10.2)
+☑ [NEW] 개선과제 퀵에딧 모달 — 선정 페이지에서 바로 입력 (v10.2)
+☑ [NEW] Master 테이블 개선과제 열 추가 (v10.2)
+☑ [NEW] Phase 간 의존성 경고 (v10.2)
+☑ [NEW] 연도 전환 자동 아카이빙 (v10.2)
+☑ [REFACTOR] v9.2/v9.3 monkey-patch 16개 원본 통합 (v10.2)
+☑ [REFACTOR] v10.1 monkey-patch 2개 원본 통합 (v10.2)
+☑ [REFACTOR] navigateTo 3겹→1겹, initDash 2겹→1겹 (v10.2)
+☑ [A11Y] 전반적 가시성 개선 — 최소 11px + 색상 대비 강화 (v10.2)
 ```
 
 ---
@@ -752,7 +802,7 @@ PM Agent 5차 + Designer Agent 5차 분석 기반 개선 — 11개 항목 적용
 
 | # | 이슈 | Phase | 설명 |
 |---|------|-------|------|
-| D2-1 | Empty State | - | 주요 화면 빈 상태 컴포넌트 (이미지+설명+액션 버튼) |
+| ~~D2-1~~ | ~~Empty State~~ | ~~-~~ | ~~v10.2에서 해결: renderMyTeam/renderEvalList 개선~~ |
 | D2-3 | 모바일 키보드 가림 | - | `visualViewport` 기반 Bottom Sheet 높이 자동 보정 |
 | D3-2 | PPT 인라인 편집 | 5-B | 미리보기에서 직접 텍스트 수정 |
 | D3-3 | 온보딩 Tooltip Tour | - | 첫 로그인 사용자 가이드 투어 |
