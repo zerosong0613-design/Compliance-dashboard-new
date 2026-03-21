@@ -2782,14 +2782,16 @@ function renderMonthly() {
       const tabs = document.createElement('div');
       tabs.className = 'review-filter-tabs';
       tabs.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;margin-top:8px';
+      const revCount = base.filter(r => r._revisionRequested && r._revisionStatus === 'pending').length;
       const filters = [
         {v:'전체', label:'전체'},
         {v:'미제출', label:'미제출'},
         {v:'제출완료', label:'제출완료'},
         {v:'평가완료', label:'평가완료'},
+        {v:'이의신청', label:`이의신청${revCount ? ' '+revCount : ''}`},
       ];
       tabs.innerHTML = filters.map(f =>
-        `<button class="f-btn${(window._reviewFilter||'전체')===f.v?' on':''}" onclick="window._reviewFilter='${f.v}';renderMonthly()" style="padding:4px 10px;font-size:11px;min-height:28px">${f.label}</button>`
+        `<button class="f-btn${(window._reviewFilter||'전체')===f.v?' on':''}${f.v==='이의신청'&&revCount?' on-warn':''}" onclick="window._reviewFilter='${f.v}';renderMonthly()" style="padding:4px 10px;font-size:11px;min-height:28px;${f.v==='이의신청'&&revCount?'border-color:#FDE68A;color:#D97706;background:#FFFBEB':''}">${f.label}</button>`
       ).join('');
       panelHd.appendChild(tabs);
     }
@@ -2798,7 +2800,11 @@ function renderMonthly() {
   // 관리자: 필터 적용
   let displayList = base;
   if (appRole === 'admin' && window._reviewFilter && window._reviewFilter !== '전체') {
-    displayList = base.filter(r => r.submitStatus === window._reviewFilter);
+    if (window._reviewFilter === '이의신청') {
+      displayList = base.filter(r => r._revisionRequested && r._revisionStatus === 'pending');
+    } else {
+      displayList = base.filter(r => r.submitStatus === window._reviewFilter);
+    }
   }
 
   document.getElementById('monthly-list').innerHTML = displayList.map((r, i) => {
@@ -2809,6 +2815,7 @@ function renderMonthly() {
       <div class="r-item-name">${r.title}</div>
       <span class="status-chip ${stClass(r.submitStatus)}" style="font-size:11px">${stIcon(r.submitStatus)}${r.submitStatus}</span>
       ${appRole === 'admin' && r.achieve != null ? `<span style="font-size:11px;font-weight:700;color:${r.achieve>=80?'var(--green)':r.achieve>=60?'var(--amber)':'var(--red)'}"> · ${r.achieve}%</span>` : ''}
+      ${appRole === 'admin' && r._revisionRequested && r._revisionStatus === 'pending' ? '<span style="font-size:11px;font-weight:700;color:#D97706;margin-left:4px">⚠이의</span>' : ''}
     </div>`;
   }).join('');
 }
