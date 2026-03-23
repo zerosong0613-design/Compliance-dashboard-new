@@ -128,6 +128,21 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
   .sb-btn-label{font-size:13px;font-weight:500;color:#8BA3BC;flex:1;text-align:left;white-space:nowrap}
   .sb-btn.on .sb-btn-label{font-weight:700}
   .sb-badge{background:var(--red);color:#fff;font-size:11px;font-weight:800;padding:1px 6px;border-radius:99px;flex-shrink:0}
+  .sb-sub{overflow:hidden;max-height:0;transition:max-height .25s ease;padding-left:28px}
+  .sb-sub.open{max-height:220px}
+  .sb-sub-btn{width:100%;display:flex;align-items:center;gap:8px;padding:5px 10px;background:transparent;border:none;border-left:2px solid transparent;cursor:pointer;font-family:inherit;transition:all .12s;border-radius:0 6px 6px 0;margin-bottom:1px}
+  .sb-sub-btn:hover{background:var(--navy2);border-left-color:#8BA3BC}
+  .sb-sub-btn.on{background:#1E3A5F;border-left-color:var(--accent)}
+  .sb-sub-btn .sb-sub-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#475569;transition:background .15s}
+  .sb-sub-btn.on .sb-sub-dot{background:var(--accent)}
+  .sb-sub-btn.done .sb-sub-dot{background:var(--green)}
+  .sb-sub-btn .sb-sub-label{font-size:12px;font-weight:500;color:#8BA3BC;text-align:left;white-space:nowrap}
+  .sb-sub-btn.on .sb-sub-label{color:#fff;font-weight:700}
+  .sb-sub-btn.done .sb-sub-label{color:var(--green)}
+  .sb-btn-arrow{font-size:10px;color:#8BA3BC;flex-shrink:0;transition:transform .2s;margin-left:auto}
+  .sb-btn-arrow.open{transform:rotate(90deg)}
+  #sidebar.collapsed .sb-sub{display:none}
+  #sidebar.collapsed .sb-btn-arrow{display:none}
   .sb-user{padding:10px 14px;border-top:1px solid var(--navy2);display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:pointer}
   .sb-user:hover .sb-logout{opacity:1}
   .sb-avatar{width:32px;height:32px;background:var(--navy2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
@@ -210,6 +225,17 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
   .dr-btn.on .dr-btn-icon,.dr-btn.on .dr-btn-lbl{color:#fff}
   .dr-btn-lbl{font-size:13px;font-weight:500;color:#8BA3BC;flex:1;text-align:left}
   .dr-btn.on .dr-btn-lbl{font-weight:700}
+  .dr-sub{overflow:hidden;max-height:0;transition:max-height .25s ease;padding-left:30px}
+  .dr-sub.open{max-height:220px}
+  .dr-sub-btn{width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;background:transparent;border:none;border-left:2px solid transparent;cursor:pointer;font-family:inherit;transition:all .12s;border-radius:0 8px 8px 0;margin-bottom:1px}
+  .dr-sub-btn:active{background:var(--navy2);border-left-color:#8BA3BC}
+  .dr-sub-btn.on{background:#1E3A5F;border-left-color:var(--accent)}
+  .dr-sub-btn .dr-sub-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#475569}
+  .dr-sub-btn.on .dr-sub-dot{background:var(--accent)}
+  .dr-sub-btn.done .dr-sub-dot{background:var(--green)}
+  .dr-sub-btn .dr-sub-label{font-size:12px;font-weight:500;color:#8BA3BC;text-align:left}
+  .dr-sub-btn.on .dr-sub-label{color:#fff;font-weight:700}
+  .dr-sub-btn.done .dr-sub-label{color:var(--green)}
   .dr-badge{background:var(--red);color:#fff;font-size:11px;font-weight:800;padding:1px 6px;border-radius:99px}
   .dr-footer{padding:14px 18px;border-top:1px solid var(--navy2)}
   .dr-logout{width:100%;padding:10px;background:var(--navy2);color:#8BA3BC;border:none;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
@@ -351,6 +377,51 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .ps-line{width:32px;height:2px;margin:0 6px;flex-shrink:0}
 .ps-line.done{background:var(--accent)}
 .ps-line.future{background:var(--border)}
+
+/* ── Phase Landing & Detail Pages ── */
+.phase-landing-intro{background:linear-gradient(135deg,#0D1B2A 0%,#1E3A5F 50%,#2563EB 100%);border-radius:16px;padding:32px 28px 28px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden}
+.phase-landing-intro::after{content:'🛡';position:absolute;top:-20px;right:-10px;font-size:140px;opacity:.06;pointer-events:none}
+.phase-card{border:1.5px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden;transition:all .2s;position:relative}
+.phase-card:hover{border-color:#93C5FD;box-shadow:0 4px 16px rgba(59,130,246,.1)}
+.phase-card.phase-current{border:2px solid var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.phase-card.phase-completed{border-color:var(--green);background:#FAFFFE}
+.phase-card.phase-completed:hover{border-color:#059669}
+.phase-card.phase-overdue{border-color:var(--amber)}
+.phase-card.phase-future{opacity:.65}
+.phase-card.phase-future:hover{opacity:.85}
+.phase-card-head{display:flex;align-items:center;gap:12px;padding:16px 20px;cursor:pointer;user-select:none}
+.phase-signal{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.phase-signal.sig-green{background:var(--green);box-shadow:0 0 0 3px rgba(16,185,129,.2)}
+.phase-signal.sig-blue{background:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.2);animation:pulse-blue 2s infinite}
+.phase-signal.sig-amber{background:var(--amber);box-shadow:0 0 0 3px rgba(245,158,11,.2)}
+.phase-signal.sig-gray{background:#CBD5E1}
+@keyframes pulse-blue{0%,100%{box-shadow:0 0 0 3px rgba(59,130,246,.2)}50%{box-shadow:0 0 0 6px rgba(59,130,246,.15)}}
+.phase-card-step{font-size:11px;font-weight:800;color:var(--muted);flex-shrink:0;min-width:48px}
+.phase-card.phase-current .phase-card-step{color:var(--accent)}
+.phase-card.phase-completed .phase-card-step{color:var(--green)}
+.phase-card-title{font-size:15px;font-weight:800;color:var(--text);flex:1}
+.phase-card.phase-completed .phase-card-title{color:#059669;text-decoration:line-through;text-decoration-color:rgba(5,150,105,.3)}
+.phase-card-period{font-size:11px;color:var(--muted);flex-shrink:0}
+.phase-card-arrow{font-size:14px;color:var(--muted);flex-shrink:0;transition:transform .2s}
+.phase-card:hover .phase-card-arrow{color:var(--accent)}
+.phase-card.open .phase-card-arrow{transform:rotate(90deg)}
+.phase-card-body{padding:0 20px 16px;display:none}
+.phase-card.open .phase-card-body{display:block}
+.phase-card-completed-bar{height:3px;background:var(--green);border-radius:0 0 14px 14px;position:absolute;bottom:0;left:0;right:0}
+.phase-detail-breadcrumb{display:flex;align-items:center;gap:6px;margin-bottom:16px;font-size:13px;flex-wrap:wrap}
+.phase-detail-breadcrumb a{color:var(--accent);text-decoration:none;font-weight:600;cursor:pointer}
+.phase-detail-breadcrumb a:hover{text-decoration:underline}
+.phase-detail-breadcrumb span{color:var(--muted)}
+.phase-detail-hero{border-radius:16px;padding:28px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden}
+.phase-detail-hero.completed{background:linear-gradient(135deg,#059669 0%,#10B981 100%)}
+.phase-detail-hero.active{background:linear-gradient(135deg,#1E3A5F 0%,#2563EB 100%)}
+.phase-detail-hero.future{background:linear-gradient(135deg,#475569 0%,#64748B 100%)}
+.phase-detail-hero.overdue{background:linear-gradient(135deg,#92400E 0%,#D97706 100%)}
+.phase-detail-nav{display:flex;justify-content:space-between;margin-top:20px;gap:12px}
+.phase-detail-nav button{padding:10px 20px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--text);transition:all .15s;display:flex;align-items:center;gap:6px}
+.phase-detail-nav button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.phase-detail-nav button:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:768px){.phase-landing-intro{padding:24px 20px}.phase-card-head{padding:14px 16px}.phase-detail-hero{padding:22px 20px}.phase-detail-nav{flex-direction:column}.phase-detail-nav button{justify-content:center}}
 
 /* ── Phase Hero ── */
 .phase-hero{background:var(--surface);border-radius:14px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);margin-bottom:16px;overflow:hidden}
@@ -1124,10 +1195,17 @@ body.modal-open{overflow:hidden!important}
         </div>
       </div>
 
-      <!-- ═ PHASE CONTROL ═ -->
+      <!-- ═ PHASE CONTROL (Landing) ═ -->
       <div class="view" id="view-phasecontrol">
         <div id="pc-content"></div>
       </div>
+
+      <!-- ═ PHASE DETAIL PAGES ═ -->
+      <div class="view" id="view-phase1"><div id="pd-content-1"></div></div>
+      <div class="view" id="view-phase2"><div id="pd-content-2"></div></div>
+      <div class="view" id="view-phase3"><div id="pd-content-3"></div></div>
+      <div class="view" id="view-phase4"><div id="pd-content-4"></div></div>
+      <div class="view" id="view-phase5"><div id="pd-content-5"></div></div>
 
     </div><!-- /content -->
   </div><!-- /main -->
@@ -1785,7 +1863,14 @@ function _loadLib(urls, done) {
    📊  공통 상수 & 상태
 ═══════════════════════════════════════════════════════════ */
 const NAV_ADMIN = [
-  {sec:'대시보드'},{id:'dash',icon:'▦',label:'전사 대시보드'},{id:'phasecontrol',icon:'🎯',label:'단계별 미션'},
+  {sec:'대시보드'},{id:'dash',icon:'▦',label:'전사 대시보드'},
+  {id:'phasecontrol',icon:'🎯',label:'단계별 미션',sub:[
+    {id:'phase1',label:'1. 위험 식별·분석'},
+    {id:'phase2',label:'2. 위험평가'},
+    {id:'phase3',label:'3. 통제수준 진단'},
+    {id:'phase4',label:'4. 개선방안 이행'},
+    {id:'phase5',label:'5. 점검·보고'},
+  ]},
   {sec:'관리'},{id:'master',icon:'📋',label:'리스크 Master'},{id:'selection',icon:'🎯',label:'점검대상 리스크 선정'},
   {sec:'현황'},{id:'monthly',icon:'⚖',label:'이행현황 검토',badge:0},{id:'teams',icon:'👥',label:'팀 이행현황'},
   {sec:'보고서'},{id:'reports',icon:'📊',label:'보고서 생성'},
@@ -1798,11 +1883,11 @@ const NAV_USER = [
 ];
 const BNAV_ADMIN = [{id:'dash',icon:'▦',label:'대시보드'},{id:'monthly',icon:'⚖',label:'검토',badge:true},{id:'teams',icon:'👥',label:'팀현황'},{id:'master',icon:'📋',label:'Master'},{id:'archive',icon:'📚',label:'아카이브'}];
 const BNAV_USER  = [{id:'monthly',icon:'📝',label:'입력',badge:true},{id:'evalresult',icon:'📊',label:'평가·이력'},{id:'myteam',icon:'📈',label:'내 팀'},{id:'archive',icon:'📚',label:'아카이브'}];
-const PAGE_TITLES = {dash:'전사 대시보드',phasecontrol:'단계별 미션',monthly_admin:'이행현황 검토',monthly:'이행현황 입력',evalresult:'평가결과·이력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성',archive:'아카이브'};
+const PAGE_TITLES = {dash:'전사 대시보드',phasecontrol:'단계별 미션',phase1:'위험 식별·분석',phase2:'위험평가',phase3:'통제수준 진단',phase4:'개선방안 이행',phase5:'개선조치 점검·보고',monthly_admin:'이행현황 검토',monthly:'이행현황 입력',evalresult:'평가결과·이력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',selection:'점검대상 리스크 선정',myteam:'내 팀 이행현황',reports:'보고서 생성',archive:'아카이브'};
 // 관리자가 monthly 탭 진입 시 제목 오버라이드
 const _getPageTitle = (id) => id === 'monthly' && appRole === 'admin' ? PAGE_TITLES.monthly_admin : (PAGE_TITLES[id] || id);
 const SHOW_FILTER = ['dash','teams','eval','master','monthly'];
-const HIDE_TOPBAR_RIGHT = ['reports','selection','myteam','archive','eval','phasecontrol','evalresult'];
+const HIDE_TOPBAR_RIGHT = ['reports','selection','myteam','archive','eval','phasecontrol','evalresult','phase1','phase2','phase3','phase4','phase5'];
 
 let appRole = '', appTeam = '', loginRole = '', loginTeam = '', curPage = '', curYear = '2025', curMonth = 3;
 const isMobile = () => window.innerWidth <= 768;
@@ -1896,28 +1981,86 @@ function updateBadges() {
 function buildNav() {
   const nav  = appRole === 'admin' ? NAV_ADMIN : NAV_USER;
   const tabs = appRole === 'admin' ? BNAV_ADMIN : BNAV_USER;
+
+  // ── 사이드바 ──
   document.getElementById('sidebar-nav').innerHTML = nav.map(n => {
     if (n.sec) return `<div class="sb-section">${n.sec}</div>`;
+    if (n.sub) {
+      const subHtml = n.sub.map(s =>
+        `<button class="sb-sub-btn" data-id="${s.id}" onclick="navigateTo('${s.id}')">
+          <span class="sb-sub-dot"></span>
+          <span class="sb-sub-label">${s.label}</span>
+        </button>`).join('');
+      return `<button class="sb-btn" data-id="${n.id}" onclick="navigateTo('${n.id}')">
+        <span class="sb-btn-icon">${n.icon}</span>
+        <span class="sb-btn-label">${n.label}</span>
+        <span class="sb-btn-arrow" id="sb-arrow-${n.id}">▶</span>
+      </button>
+      <div class="sb-sub" id="sb-sub-${n.id}">${subHtml}</div>`;
+    }
     return `<button class="sb-btn" data-id="${n.id}" onclick="navigateTo('${n.id}')">
       <span class="sb-btn-icon">${n.icon}</span>
       <span class="sb-btn-label">${n.label}</span>
       ${n.badge != null ? `<span class="sb-badge">${n.badge}</span>` : ''}
     </button>`;
   }).join('');
+
+  // ── 모바일 드로어 ──
   document.getElementById('drawer-nav').innerHTML = nav.map(n => {
     if (n.sec) return `<div class="dr-section">${n.sec}</div>`;
+    if (n.sub) {
+      const subHtml = n.sub.map(s =>
+        `<button class="dr-sub-btn" data-id="${s.id}" onclick="closeDrawer();navigateTo('${s.id}')">
+          <span class="dr-sub-dot"></span>
+          <span class="dr-sub-label">${s.label}</span>
+        </button>`).join('');
+      return `<button class="dr-btn" data-id="${n.id}" onclick="closeDrawer();navigateTo('${n.id}')">
+        <span class="dr-btn-icon">${n.icon}</span>
+        <span class="dr-btn-lbl">${n.label}</span>
+      </button>
+      <div class="dr-sub" id="dr-sub-${n.id}">${subHtml}</div>`;
+    }
     return `<button class="dr-btn" data-id="${n.id}" onclick="closeDrawer();navigateTo('${n.id}')">
       <span class="dr-btn-icon">${n.icon}</span>
       <span class="dr-btn-lbl">${n.label}</span>
       ${n.badge != null ? `<span class="dr-badge">${n.badge}</span>` : ''}
     </button>`;
   }).join('');
+
+  // ── 모바일 하단 내비 ──
   document.getElementById('bottom-nav').innerHTML = tabs.map(t => `
     <button class="bnav-btn" data-id="${t.id}" onclick="navigateTo('${t.id}')">
       ${t.badge ? '<div class="bnav-dot"></div>' : ''}
       <div class="bnav-icon">${t.icon}</div>
       <div class="bnav-label">${t.label}</div>
     </button>`).join('');
+}
+
+/* ── 사이드바 서브메뉴 토글 ── */
+function _toggleSbSub(subId) {
+  const sub = document.getElementById(subId);
+  if (sub) sub.classList.toggle('open');
+  const arrowId = subId.replace('sb-sub-','sb-arrow-');
+  const arrow = document.getElementById(arrowId);
+  if (arrow) arrow.classList.toggle('open');
+}
+function _toggleDrSub(subId) {
+  const sub = document.getElementById(subId);
+  if (sub) sub.classList.toggle('open');
+}
+
+/* ── 사이드바 phase 서브메뉴 완료 dot 업데이트 ── */
+function _updatePhaseSubDots() {
+  if (typeof _getActivePhase !== 'function') return;
+  const { phases } = _getActivePhase();
+  const phaseStatus = _loadPhaseStatus(curYear);
+  const phaseIds = ['phase1','phase2','phase3','phase4','phase5'];
+  phaseIds.forEach((pid, i) => {
+    const isCompleted = phaseStatus[phases[i]?.id]?.completed;
+    document.querySelectorAll(`.sb-sub-btn[data-id="${pid}"],.dr-sub-btn[data-id="${pid}"]`).forEach(btn => {
+      btn.classList.toggle('done', !!isCompleted);
+    });
+  });
 }
 
 /* ── 페이지 이탈 경고 시스템 (dirty form tracking) ── */
@@ -1966,11 +2109,39 @@ function navigateTo(id) {
   const expBtn = document.querySelector('.export-btn');
   if (tbr) tbr.style.display = HIDE_TOPBAR_RIGHT.includes(id) ? 'none' : 'flex';
   if (expBtn) expBtn.style.display = HIDE_TOPBAR_RIGHT.includes(id) ? 'none' : 'block';
+  const _isPhaseChild = /^phase[1-5]$/.test(id);
+  const _navHighlight = _isPhaseChild ? 'phasecontrol' : id;
   document.querySelectorAll('.sb-btn,.bnav-btn,.dr-btn').forEach(b => {
-    b.classList.toggle('on', b.dataset.id === id);
-    if (b.dataset.id === id) b.setAttribute('aria-current', 'page');
+    b.classList.toggle('on', b.dataset.id === _navHighlight);
+    if (b.dataset.id === _navHighlight) b.setAttribute('aria-current', 'page');
     else b.removeAttribute('aria-current');
   });
+  // 서브 버튼 하이라이트
+  document.querySelectorAll('.sb-sub-btn,.dr-sub-btn').forEach(b => {
+    b.classList.toggle('on', b.dataset.id === id);
+  });
+  // phase 서브메뉴 자동 펼침/닫힘 + 완료 dot 업데이트
+  const sbSub = document.getElementById('sb-sub-phasecontrol');
+  const sbArrow = document.getElementById('sb-arrow-phasecontrol');
+  const drSub = document.getElementById('dr-sub-phasecontrol');
+  if (_isPhaseChild || id === 'phasecontrol') {
+    // 이미 phasecontrol 계열에 있는 상태에서 phasecontrol을 다시 클릭하면 토글
+    const _alreadyInPhase = curPage === 'phasecontrol' || /^phase[1-5]$/.test(curPage);
+    if (id === 'phasecontrol' && _alreadyInPhase && sbSub && sbSub.classList.contains('open')) {
+      sbSub.classList.remove('open');
+      if (sbArrow) sbArrow.classList.remove('open');
+      if (drSub) drSub.classList.remove('open');
+    } else {
+      if (sbSub && !sbSub.classList.contains('open')) sbSub.classList.add('open');
+      if (sbArrow && !sbArrow.classList.contains('open')) sbArrow.classList.add('open');
+      if (drSub && !drSub.classList.contains('open')) drSub.classList.add('open');
+    }
+    _updatePhaseSubDots();
+  } else {
+    if (sbSub) sbSub.classList.remove('open');
+    if (sbArrow) sbArrow.classList.remove('open');
+    if (drSub) drSub.classList.remove('open');
+  }
   if (id === 'monthly')   renderMonthly();
   if (id === 'eval')      renderEvalList();
   if (id === 'teams')     renderTeams();
@@ -1980,6 +2151,7 @@ function navigateTo(id) {
   if (id === 'evalresult') renderEvalResult();
   if (id === 'dash')      { initDash(); runCounters(); }
   if (id === 'phasecontrol') renderPhaseControl();
+  if (/^phase[1-5]$/.test(id)) renderPhaseDetail(parseInt(id.charAt(5)) - 1);
   if (id === 'reports')   renderReports();
   if (id === 'archive')   initArchive();
   document.getElementById('content').scrollTop = 0;
@@ -5273,12 +5445,35 @@ function _checkPhaseConditions(phaseId) {
       const reportGenerated = phaseStatus.audit?.reportGenerated || false;
       return [
         { label: '전체 리스크 평가 완료', met: allEvaluated, detail: `${evaluated.length}/${RISKS.length}건` },
-        { label: '연간 보고서 생성', met: reportGenerated, detail: reportGenerated ? '생성 완료' : '미생성' },
+        { label: '연간 보고서 생성', met: reportGenerated, detail: reportGenerated ? '생성 완료' : '미생성', manual: true, key: 'reportGenerated' },
         { label: '연간 달성율 확정', met: avgAch > 0, detail: `${avgAch}%` },
       ];
     }
     default: return [];
   }
+}
+
+/* ── 이전 단계 완료 여부 확인 ── */
+function _isPrevPhaseCompleted(phaseIdx) {
+  if (phaseIdx <= 0) return true;
+  const { phases } = _getActivePhase();
+  const prevId = phases[phaseIdx - 1]?.id;
+  if (!prevId) return true;
+  const ps = _loadPhaseStatus(curYear);
+  return !!ps[prevId]?.completed;
+}
+
+/* ── 수동 체크 토글 ── */
+function _toggleManualCheck(phaseId, key) {
+  const ps = _loadPhaseStatus(curYear);
+  const cur = ps[phaseId]?.[key] || false;
+  _savePhaseStatus(curYear, phaseId, { [key]: !cur });
+  // 현재 페이지 리렌더
+  if (curPage === 'phasecontrol') renderPhaseControl();
+  if (/^phase[1-5]$/.test(curPage)) renderPhaseDetail(parseInt(curPage.charAt(5)) - 1);
+  renderPhaseStepBar();
+  renderPhaseHero();
+  _updatePhaseSubDots();
 }
 
 /* ── Phase 마감일 계산 ── */
@@ -5305,6 +5500,19 @@ function _getDday(phaseId, year) {
 
 /* ── 단계 완료 확정 처리 ── */
 async function confirmPhaseComplete(phaseId) {
+  // 이전 단계 완료 필수 검증
+  const _phaseOrder = ['identify','assess','control','implement','audit'];
+  const _myIdx = _phaseOrder.indexOf(phaseId);
+  if (_myIdx > 0) {
+    const prevId = _phaseOrder[_myIdx - 1];
+    const prevLabel = {identify:'위험 식별·분석',assess:'위험평가',control:'통제수준 진단',implement:'개선방안 이행',audit:'점검·보고'};
+    const ps = _loadPhaseStatus(curYear);
+    if (!ps[prevId]?.completed) {
+      toast(`이전 단계(${prevLabel[prevId]})를 먼저 완료해야 합니다.`, 'warn', 4000);
+      return;
+    }
+  }
+
   const conditions = _checkPhaseConditions(phaseId);
   const unmet = conditions.filter(c => !c.met);
 
@@ -5356,6 +5564,10 @@ async function confirmPhaseComplete(phaseId) {
   renderPhaseStepBar();
   renderPhaseHero();
   _renderPhaseActionBanner();
+  // 현재 phase 상세/목록 페이지도 리렌더
+  if (curPage === 'phasecontrol') renderPhaseControl();
+  if (/^phase[1-5]$/.test(curPage)) renderPhaseDetail(parseInt(curPage.charAt(5)) - 1);
+  _updatePhaseSubDots();
 }
 
 /* ── 단계 완료 해제 (실수로 확정한 경우) ── */
@@ -5378,6 +5590,10 @@ async function reopenPhase(phaseId) {
   renderPhaseStepBar();
   renderPhaseHero();
   _renderPhaseActionBanner();
+  // 현재 phase 상세/목록 페이지도 리렌더
+  if (curPage === 'phasecontrol') renderPhaseControl();
+  if (/^phase[1-5]$/.test(curPage)) renderPhaseDetail(parseInt(curPage.charAt(5)) - 1);
+  _updatePhaseSubDots();
 }
 
 /* ── Phase-aware 즉각 조치 배너 ── */
@@ -5531,9 +5747,9 @@ previewPhase = function(idx) {
 
   // 체크리스트 HTML
   const checklistHtml = conditions.map(c => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);${c.manual?'cursor:pointer':''}" ${c.manual?`onclick="_toggleManualCheck('${ap.id}','${c.key}')"`:''}>
       <span style="font-size:16px;flex-shrink:0;width:22px;text-align:center">${c.met ? '✅' : '⬜'}</span>
-      <span style="flex:1;font-size:13px;font-weight:600;color:${c.met ? 'var(--green)' : 'var(--text)'}">${c.label}</span>
+      <span style="flex:1;font-size:13px;font-weight:600;color:${c.met ? 'var(--green)' : 'var(--text)'}">${c.label}${c.manual?' <span style="font-size:10px;color:var(--muted);font-weight:500">(클릭하여 체크)</span>':''}</span>
       <span style="font-size:12px;color:${c.met ? 'var(--green)' : 'var(--muted)'};font-weight:700;white-space:nowrap">${c.detail}</span>
     </div>`).join('');
 
@@ -5560,11 +5776,17 @@ previewPhase = function(idx) {
         </div>
         <button onclick="reopenPhase('${ap.id}')" style="padding:7px 16px;border:1.5px solid #FECACA;border-radius:8px;background:#FEF2F2;color:#DC2626;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">완료 해제</button>
       </div>`;
-  } else if (allMet) {
+  } else if (allMet && _isPrevPhaseCompleted(idx)) {
     actionHtml = `
       <button onclick="confirmPhaseComplete('${ap.id}')" style="width:100%;padding:12px 20px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;box-shadow:0 2px 8px rgba(59,130,246,.3)">
         <span style="font-size:18px">🚀</span> ${ap.shortLabel} 단계 완료 확정
       </button>`;
+  } else if (!_isPrevPhaseCompleted(idx)) {
+    const _prevLbl = idx > 0 ? phases[idx-1].label : '';
+    actionHtml = `
+      <div style="width:100%;padding:12px 20px;border:1.5px solid #FECACA;border-radius:10px;background:#FEF2F2;color:#DC2626;font-size:14px;font-weight:700;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px">
+        <span style="font-size:18px">🔒</span> 이전 단계(${_prevLbl})를 먼저 완료하세요
+      </div>`;
   } else {
     const metCount = conditions.filter(c => c.met).length;
     actionHtml = `
@@ -5662,20 +5884,7 @@ initDash = function() {
   }
 };
 
-/* ── 보고서 생성 시 Phase 상태 업데이트 훅 ── */
-if (typeof renderReports === 'function') {
-  const __origRenderReports = renderReports;
-  renderReports = function() {
-    __origRenderReports();
-    // PPT 생성 버튼에 Phase 완료 상태 업데이트 훅 추가
-    setTimeout(() => {
-      document.querySelectorAll('[onclick*="generatePPT"]').forEach(btn => {
-        const origOnclick = btn.getAttribute('onclick');
-        btn.setAttribute('onclick', `${origOnclick}; setTimeout(()=>{_savePhaseStatus(curYear,'audit',{reportGenerated:true}); renderPhaseHero();},1000)`);
-      });
-    }, 100);
-  };
-}
+/* ── 보고서 생성 시 Phase 상태 업데이트 훅 (수동 체크로 전환됨, 자동 업데이트 제거) ── */
 
 /* ── CSS: 체크리스트 hover + 통제수단 힌트 ── */
 (function() {
@@ -5704,224 +5913,333 @@ function renderPhaseControl() {
   const progressPct = Math.round((completedCount / phases.length) * 100);
 
   // ─── 효과적 현재 단계 결정 ───
-  // 달력 기반 activeIdx에서 시작하여 완료된 단계를 건너뜀
-  // 예: 3월에 Phase 2+3 완료 → Phase 3 표시 (최신 완료)
-  //     4월에 Phase 3 완료 → Phase 4 표시 (다음 단계)
   let effectiveIdx = activeIdx;
   while (effectiveIdx < phases.length - 1 && phaseStatus[phases[effectiveIdx].id]?.completed) {
     effectiveIdx++;
   }
-  // 2단계 이상 건너뛴 경우: 마지막 완료 단계를 보여줌 (앞서 완료한 성과)
-  // 1단계만 건너뛴 경우: 다음 단계를 보여줌 (이제 할 일)
   if (effectiveIdx > activeIdx + 1 && !phaseStatus[phases[effectiveIdx].id]?.completed) {
     effectiveIdx--;
   }
 
   const ap = phases[effectiveIdx];
   const activeCompleted = phaseStatus[ap.id]?.completed;
-  const activeConditions = _checkPhaseConditions(ap.id);
-  const activeAllMet = activeConditions.length > 0 && activeConditions.every(c => c.met);
-  const activeMetCount = activeConditions.filter(c => c.met).length;
   const activeDday = _getDday(ap.id, curYear);
 
-  // ─── 지금 해야 할 일 CTA 결정 ───
-  let ctaNav = ap.cards[0]?.nav || 'dash';
-  let ctaLabel = ap.cards[0]?.title || '작업 시작';
-  let ctaIcon = ap.cards[0]?.icon || '→';
-  const firstUnmet = activeConditions.find(c => !c.met);
-  if (firstUnmet && ap.cards.length > 0) {
-    const card = ap.cards[0];
-    ctaNav = card.nav;
-    ctaLabel = card.title;
-    ctaIcon = card.icon;
-  }
-
-  // ═══ SECTION 1: 현재 단계 히어로 ═══
+  // ═══ SECTION 1: 온보딩 인트로 ═══
   let html = `
-    <div style="background:linear-gradient(135deg,#1E3A5F 0%,#2563EB 100%);border-radius:16px;padding:28px 28px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden">
-      <div style="position:absolute;top:-30px;right:-20px;font-size:120px;opacity:.08;pointer-events:none">${ap.icon}</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-        <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.2);backdrop-filter:blur(4px)">STEP ${effectiveIdx + 1} / 5</span>
-        <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.15)">${ap.months}</span>
-        ${!activeCompleted && activeDday !== null && activeDday >= 0 ? `<span style="font-size:12px;font-weight:800;padding:3px 12px;border-radius:99px;background:${activeDday<=7?'rgba(251,191,36,.3)':'rgba(255,255,255,.15)'}">D-${activeDday}</span>` : ''}
-        ${activeCompleted ? '<span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(52,211,153,.3)">확정 완료</span>' : ''}
+    <div class="phase-landing-intro">
+      <div style="font-size:11px;font-weight:700;padding:3px 14px;border-radius:99px;background:rgba(255,255,255,.15);display:inline-block;margin-bottom:14px">${curYear}년 컴플라이언스 리스크 관리</div>
+      <div style="font-size:22px;font-weight:900;margin-bottom:8px;letter-spacing:-.3px">연간 위험평가 프로세스 안내</div>
+      <div style="font-size:13px;opacity:.85;line-height:1.8;max-width:600px;margin-bottom:18px">
+        컴플라이언스 리스크 관리는 <strong>5단계</strong>로 진행됩니다.<br>
+        각 단계를 순서대로 완료하면 연간 위험평가 사이클이 마무리됩니다.<br>
+        아래에서 각 단계의 상세 내용과 진행 상태를 확인하세요.
       </div>
-      <div style="font-size:24px;font-weight:900;margin-bottom:6px;letter-spacing:-.5px">${ap.icon} ${ap.label}</div>
-      <div style="font-size:13px;opacity:.85;line-height:1.7;max-width:600px;margin-bottom:20px">${ap.desc}</div>
-
-      ${!activeCompleted ? `
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button onclick="navigateTo('${ctaNav}')" style="padding:12px 24px;border:none;border-radius:10px;background:#fff;color:#1E3A5F;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:all .15s"
-            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-            ${ctaIcon} ${ctaLabel} <span style="font-size:16px">→</span>
-          </button>
-          ${activeAllMet ? `
-            <button onclick="confirmPhaseComplete('${ap.id}');setTimeout(renderPhaseControl,300)" style="padding:12px 24px;border:2px solid rgba(255,255,255,.4);border-radius:10px;background:rgba(255,255,255,.1);backdrop-filter:blur(4px);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;transition:all .15s"
-              onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">
-              🚀 단계 완료 확정
-            </button>` : ''}
-        </div>` : `
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <span style="font-size:20px">🎉</span>
-          <span style="font-size:14px;font-weight:700">이 단계는 ${phaseStatus[ap.id]?.completedAt || ''} 완료되었습니다</span>
-          <button onclick="reopenPhase('${ap.id}');setTimeout(renderPhaseControl,300)" style="margin-left:auto;padding:6px 14px;border:1px solid rgba(255,255,255,.3);border-radius:7px;background:transparent;color:rgba(255,255,255,.7);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">해제</button>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:20px;padding:10px 18px;background:rgba(255,255,255,.1);border-radius:10px;backdrop-filter:blur(4px)">
+          <div style="text-align:center"><div style="font-size:22px;font-weight:900">${completedCount}</div><div style="font-size:10px;opacity:.7">완료</div></div>
+          <div style="width:1px;height:28px;background:rgba(255,255,255,.2)"></div>
+          <div style="text-align:center"><div style="font-size:22px;font-weight:900">${5 - completedCount}</div><div style="font-size:10px;opacity:.7">남은 단계</div></div>
+          <div style="width:1px;height:28px;background:rgba(255,255,255,.2)"></div>
+          <div style="text-align:center"><div style="font-size:22px;font-weight:900">${progressPct}%</div><div style="font-size:10px;opacity:.7">진행률</div></div>
         </div>
-        ${!activeAllMet ? '<div style="margin-top:10px;padding:8px 14px;background:rgba(251,191,36,.2);border-radius:8px;font-size:12px;color:#FBBF24;font-weight:600">⚠ 완료 확정되었으나 현재 조건이 미충족 상태입니다. 데이터를 확인하세요.</div>' : ''}`}
+        <button onclick="navigateTo('phase${effectiveIdx+1}')" style="padding:12px 24px;border:none;border-radius:10px;background:#fff;color:#1E3A5F;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:all .15s"
+          onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+          ${ap.icon} ${activeCompleted ? '다음 단계 보기' : '현재 단계 바로가기'} →
+        </button>
+      </div>
     </div>`;
 
-  // ═══ SECTION 2: 현재 단계 체크리스트 + 액션 카드 (펼쳐진 상태) ═══
-  const activeCardsHtml = ap.cards.map(c => {
-    const cnt = c.count();
-    const unitText = c.unit_fn ? c.unit_fn() : c.unit;
-    return `
-      <div style="flex:1;min-width:180px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .15s" onclick="navigateTo('${c.nav}')" onmouseover="this.style.borderColor='var(--accent)';this.style.boxShadow='0 2px 8px rgba(59,130,246,.1)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <span style="font-size:18px">${c.icon}</span>
-          <span style="font-size:13px;font-weight:700;color:var(--text)">${c.title}</span>
-          <span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--accent)">이동 →</span>
-        </div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">${c.why}</div>
-        <div style="display:flex;align-items:baseline;gap:5px">
-          <span style="font-size:24px;font-weight:900;color:${c.color||'var(--accent)'}">${cnt}</span>
-          <span style="font-size:11px;color:var(--muted)">${unitText}</span>
-        </div>
-      </div>`;
-  }).join('');
-
-  const activeCheckHtml = activeConditions.map((c, ci) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;${ci < activeConditions.length-1 ? 'border-bottom:1px solid var(--border)' : ''}">
-      <span style="font-size:16px;flex-shrink:0;width:22px;text-align:center">${c.met ? '✅' : '⬜'}</span>
-      <span style="flex:1;font-size:13px;font-weight:600;color:${c.met ? 'var(--green)' : 'var(--text)'}">${c.label}</span>
-      <span style="font-size:12px;color:${c.met ? 'var(--green)' : 'var(--muted)'};font-weight:700;white-space:nowrap">${c.detail}</span>
-    </div>`).join('');
-
+  // ═══ SECTION 2: 프로그레스 바 ═══
   html += `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
-      <div>
-        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">지금 해야 할 일</div>
-        <div style="display:flex;flex-direction:column;gap:10px">${activeCardsHtml}</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:0 4px">
+      <span style="font-size:13px;font-weight:800;color:var(--text)">전체 진행</span>
+      <div style="flex:1;height:8px;background:#EEF2F7;border-radius:99px;overflow:hidden">
+        <div style="height:100%;width:${progressPct}%;background:linear-gradient(90deg,var(--green),#34D399);border-radius:99px;transition:width .8s"></div>
       </div>
-      <div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">완료 조건</span>
-          <span style="font-size:11px;font-weight:800;color:${activeAllMet?'var(--green)':'var(--accent)'}">${activeMetCount}/${activeConditions.length}</span>
-        </div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px 16px">${activeCheckHtml}</div>
-        ${!activeCompleted && activeAllMet ? `
-          <button onclick="confirmPhaseComplete('${ap.id}');setTimeout(renderPhaseControl,300)" style="width:100%;margin-top:12px;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 8px rgba(59,130,246,.3)">
-            🚀 ${ap.shortLabel} 단계 완료 확정
-          </button>` : ''}
-        ${!activeCompleted && !activeAllMet ? `
-          <div style="margin-top:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--muted);text-align:center;font-weight:600">
-            🔒 위 조건을 모두 충족하면 완료 확정 버튼이 활성화됩니다
-          </div>` : ''}
-        ${activeCompleted ? `
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding:10px 14px;background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px">
-            <span style="font-size:13px;font-weight:700;color:var(--green)">🎉 ${phaseStatus[ap.id]?.completedAt || ''} 확정 완료</span>
-            <button onclick="reopenPhase('${ap.id}');setTimeout(renderPhaseControl,300)" style="padding:5px 12px;border:1px solid #FECACA;border-radius:6px;background:#FEF2F2;color:#DC2626;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">해제</button>
-          </div>` : ''}
-      </div>
+      <span style="font-size:12px;font-weight:800;color:${completedCount===5?'var(--green)':'var(--accent)'}">${completedCount}/5</span>
     </div>`;
 
-  // 모바일 대응
-  html += `<style>@media(max-width:768px){#pc-content [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}}</style>`;
-
-  // ═══ SECTION 3: 전체 사이클 프로그레스 ═══
-  html += `
-    <div style="margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-        <span style="font-size:13px;font-weight:800;color:var(--text)">${curYear}년 전체 진행</span>
-        <span style="font-size:12px;font-weight:800;color:var(--accent)">${completedCount}/5 확정</span>
-        <div style="flex:1;height:8px;background:#EEF2F7;border-radius:99px;overflow:hidden;max-width:200px">
-          <div style="height:100%;width:${progressPct}%;background:linear-gradient(90deg,var(--accent),#60A5FA);border-radius:99px;transition:width .8s"></div>
-        </div>
-        <span style="font-size:12px;font-weight:800;color:var(--accent)">${progressPct}%</span>
-      </div>
-    </div>`;
-
-  // ═══ SECTION 4: 나머지 단계 (아코디언) ═══
+  // ═══ SECTION 3: 신호등 단계 카드 (아코디언) ═══
   phases.forEach((p, i) => {
-    const isHeroPhase = i === effectiveIdx; // 히어로에 표시 중인 단계도 아코디언에 포함
-
     const isCompleted = phaseStatus[p.id]?.completed;
-    const isPast = i < effectiveIdx;
-    const isFuture = i > effectiveIdx;
+    const isCurrent = i === effectiveIdx && !isCompleted;
+    const isPast = i < effectiveIdx && !isCompleted;
+    const isFuture = i > effectiveIdx && !isCompleted;
     const conditions = _checkPhaseConditions(p.id);
-    const allMet = conditions.length > 0 && conditions.every(c => c.met);
     const metCount = conditions.filter(c => c.met).length;
     const dday = _getDday(p.id, curYear);
 
-    // 접힌 상태 헤더 아이콘
-    let statusIcon, statusText, headerBg, headerBorder;
-    if (isHeroPhase && !isCompleted) {
-      statusIcon = '🔵'; statusText = '현재 단계';
-      headerBg = '#EFF6FF'; headerBorder = '#93C5FD';
-    } else if (isCompleted) {
-      statusIcon = '✅'; statusText = `확정 · ${phaseStatus[p.id].completedAt}`;
-      headerBg = '#F0FDF4'; headerBorder = '#86EFAC';
+    // 신호등 클래스
+    let cardClass = 'phase-card';
+    let sigClass = 'phase-signal sig-gray';
+    let statusLabel = '예정';
+    if (isCompleted) {
+      cardClass += ' phase-completed';
+      sigClass = 'phase-signal sig-green';
+      statusLabel = `${phaseStatus[p.id].completedAt} 완료`;
+    } else if (isCurrent) {
+      cardClass += ' phase-current';
+      sigClass = 'phase-signal sig-blue';
+      statusLabel = '진행 중';
     } else if (isPast) {
-      statusIcon = '⚠'; statusText = '미확정';
-      headerBg = '#FFFEF5'; headerBorder = '#FDE68A';
-    } else {
-      statusIcon = '⏳'; statusText = '예정';
-      headerBg = 'var(--surface)'; headerBorder = 'var(--border)';
+      cardClass += ' phase-overdue';
+      sigClass = 'phase-signal sig-amber';
+      statusLabel = '미완료';
+    } else if (isFuture) {
+      cardClass += ' phase-future';
     }
 
-    const ddayHtml = dday !== null && dday >= 0 && !isCompleted ? (() => {
-      const c = dday <= 14 ? '#D97706' : '#94A3B8';
-      const bg = dday <= 14 ? '#FFFBEB' : '#F1F5F9';
-      const t = dday === 0 ? 'D-DAY' : `D-${dday}`;
-      return `<span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:99px;background:${bg};color:${c}">${t}</span>`;
-    })() : '';
+    const ddayBadge = dday !== null && dday >= 0 && !isCompleted
+      ? `<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;background:${dday<=14?'#FFFBEB':'#F1F5F9'};color:${dday<=14?'#D97706':'#94A3B8'}">${dday===0?'D-DAY':'D-'+dday}</span>`
+      : '';
 
-    const collapseId = `pc-phase-${p.id}`;
+    // 체크리스트 미리보기
+    const checkPreview = conditions.length > 0
+      ? `<div style="display:flex;gap:3px;align-items:center"><span style="font-size:11px;font-weight:700;color:${metCount===conditions.length?'var(--green)':'var(--muted)'}">${metCount}/${conditions.length}</span></div>`
+      : '';
 
-    // 체크리스트 (접힌 내용)
+    // 펼침 내용
     const checkHtml = conditions.map((c, ci) => `
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;${ci < conditions.length-1 ? 'border-bottom:1px solid var(--border)' : ''}">
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;${ci < conditions.length-1 ? 'border-bottom:1px solid var(--border)' : ''};${c.manual?'cursor:pointer':''}" ${c.manual?`onclick="event.stopPropagation();_toggleManualCheck('${p.id}','${c.key}')"`:''}>
         <span style="font-size:14px;width:18px;text-align:center">${c.met ? '✅' : '⬜'}</span>
-        <span style="flex:1;font-size:12px;font-weight:600;color:${c.met ? 'var(--green)' : 'var(--text)'}">${c.label}</span>
+        <span style="flex:1;font-size:12px;font-weight:600;color:${c.met ? 'var(--green)' : 'var(--text)'}">${c.label}${c.manual?' <span style="font-size:10px;color:var(--muted);font-weight:500">(클릭)</span>':''}</span>
         <span style="font-size:11px;color:${c.met ? 'var(--green)' : 'var(--muted)'};font-weight:700">${c.detail}</span>
       </div>`).join('');
 
-    // 액션 버튼 (접힌 내용 안)
-    let innerAction = '';
-    if (isCompleted) {
-      innerAction = `
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">
-          <span style="font-size:12px;color:var(--green);font-weight:700">🎉 ${phaseStatus[p.id].completedAt} 확정</span>
-          <button onclick="reopenPhase('${p.id}');setTimeout(renderPhaseControl,300)" style="padding:5px 12px;border:1px solid #FECACA;border-radius:6px;background:#FEF2F2;color:#DC2626;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">해제</button>
-        </div>`;
-    } else if (allMet) {
-      innerAction = `
-        <button onclick="confirmPhaseComplete('${p.id}');setTimeout(renderPhaseControl,300)" style="width:100%;margin-top:10px;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">🚀 완료 확정</button>`;
-    } else if (isPast) {
-      innerAction = `
-        <div style="margin-top:10px;padding:8px;background:var(--bg);border-radius:8px;font-size:11px;color:var(--muted);text-align:center;font-weight:600">🔒 조건 충족 필요 (${metCount}/${conditions.length})</div>`;
-    }
-
     html += `
-      <div style="border:${isHeroPhase&&!isCompleted?'2px':'1px'} solid ${headerBorder};border-radius:12px;margin-bottom:8px;overflow:hidden;background:${headerBg};${isFuture ? 'opacity:.7' : ''}">
-        <div onclick="const b=document.getElementById('${collapseId}');const a=this.querySelector('.pc-arrow');if(b.style.display==='none'){b.style.display='block';a.textContent='▼'}else{b.style.display='none';a.textContent='▶'}" style="display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none;transition:background .1s" onmouseover="this.style.background='rgba(0,0,0,.02)'" onmouseout="this.style.background='transparent'">
-          <span class="pc-arrow" style="font-size:11px;color:var(--muted);flex-shrink:0;width:14px">${isHeroPhase ? '▼' : '▶'}</span>
-          <span style="font-size:18px;flex-shrink:0">${statusIcon}</span>
-          <span style="font-size:11px;font-weight:800;color:${isHeroPhase?'var(--accent)':'var(--muted)'};flex-shrink:0">STEP ${i+1}</span>
-          <span style="font-size:14px;font-weight:800;color:var(--text);flex:1">${p.label}</span>
-          <span style="font-size:11px;color:var(--muted);flex-shrink:0">${p.months}</span>
-          ${ddayHtml}
-          <span style="font-size:11px;font-weight:700;color:${isHeroPhase&&!isCompleted?'var(--accent)':isCompleted?'var(--green)':isPast?'#D97706':'var(--muted)'};flex-shrink:0">${statusText}</span>
+      <div class="${cardClass}" id="pc-card-${i}">
+        <div class="phase-card-head" onclick="document.getElementById('pc-card-${i}').classList.toggle('open')">
+          <div class="${sigClass}"></div>
+          <span class="phase-card-step">STEP ${i+1}</span>
+          <span style="font-size:18px;flex-shrink:0">${p.icon}</span>
+          <span class="phase-card-title">${p.label}</span>
+          <span class="phase-card-period">${p.months}</span>
+          ${ddayBadge}
+          ${checkPreview}
+          <span style="font-size:11px;font-weight:700;color:${isCompleted?'var(--green)':isCurrent?'var(--accent)':isPast?'#D97706':'var(--muted)'};min-width:50px;text-align:right">${statusLabel}</span>
+          <span class="phase-card-arrow">▶</span>
         </div>
-        <div id="${collapseId}" style="display:${isHeroPhase ? 'block' : 'none'};padding:0 18px 14px;border-top:1px solid ${headerBorder}">
-          <div style="font-size:12px;color:var(--muted);line-height:1.6;margin:10px 0">${p.desc}</div>
-          ${conditions.length > 0 ? `
-            <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px 14px;margin-bottom:4px">${checkHtml}</div>` : ''}
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-            ${p.cards.map(c => `<button onclick="navigateTo('${c.nav}')" style="padding:6px 14px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .1s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">${c.icon} ${c.title}</button>`).join('')}
+        <div class="phase-card-body">
+          <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:12px">${p.desc}</div>
+          ${conditions.length > 0 ? `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:6px 14px;margin-bottom:12px">${checkHtml}</div>` : ''}
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button onclick="navigateTo('phase${i+1}')" style="padding:10px 20px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+              ${p.icon} 상세 보기 →
+            </button>
+            ${p.cards.map(c => `<button onclick="navigateTo('${c.nav}')" style="padding:8px 14px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .1s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">${c.icon} ${c.title}</button>`).join('')}
           </div>
-          ${innerAction}
         </div>
+        ${isCompleted ? '<div class="phase-card-completed-bar"></div>' : ''}
       </div>`;
   });
+
+  // 리렌더 전 열린 카드 기억
+  const _openCards = [];
+  el.querySelectorAll('.phase-card.open').forEach(c => {
+    const id = c.id; // pc-card-0 ~ pc-card-4
+    if (id) _openCards.push(id);
+  });
+
+  el.innerHTML = html;
+
+  // 열린 카드 복원 (기존에 열려있던 카드 유지)
+  if (_openCards.length > 0) {
+    _openCards.forEach(id => {
+      const card = document.getElementById(id);
+      if (card) card.classList.add('open');
+    });
+  } else {
+    // 최초 진입 시 현재 단계 카드만 펼침
+    const currentCard = document.getElementById('pc-card-' + effectiveIdx);
+    if (currentCard) currentCard.classList.add('open');
+  }
+}
+
+/* ── 단계 상세 페이지 렌더링 ── */
+function renderPhaseDetail(idx) {
+  const el = document.getElementById('pd-content-' + (idx + 1));
+  if (!el) return;
+
+  const { phases, activeIdx } = _getActivePhase();
+  const p = phases[idx];
+  if (!p) return;
+
+  const phaseStatus = _loadPhaseStatus(curYear);
+  const isCompleted = phaseStatus[p.id]?.completed;
+  const conditions = _checkPhaseConditions(p.id);
+  const allMet = conditions.length > 0 && conditions.every(c => c.met);
+  const metCount = conditions.filter(c => c.met).length;
+  const dday = _getDday(p.id, curYear);
+
+  // 효과적 현재 단계
+  let effectiveIdx = activeIdx;
+  while (effectiveIdx < phases.length - 1 && phaseStatus[phases[effectiveIdx].id]?.completed) effectiveIdx++;
+  if (effectiveIdx > activeIdx + 1 && !phaseStatus[phases[effectiveIdx].id]?.completed) effectiveIdx--;
+
+  const isCurrent = idx === effectiveIdx && !isCompleted;
+  const isPast = idx < effectiveIdx && !isCompleted;
+  const isFuture = idx > effectiveIdx && !isCompleted;
+
+  // 히어로 상태 클래스
+  let heroClass = 'active';
+  if (isCompleted) heroClass = 'completed';
+  else if (isFuture) heroClass = 'future';
+  else if (isPast) heroClass = 'overdue';
+
+  // ═══ 빵크럼 ═══
+  let html = `
+    <div class="phase-detail-breadcrumb">
+      <a onclick="navigateTo('phasecontrol')">단계별 미션</a>
+      <span>›</span>
+      <span style="font-weight:700;color:var(--text)">Step ${idx+1}: ${p.label}</span>
+    </div>`;
+
+  // ═══ 히어로 배너 ═══
+  html += `
+    <div class="phase-detail-hero ${heroClass}">
+      <div style="position:absolute;top:-30px;right:-20px;font-size:120px;opacity:.08;pointer-events:none">${p.icon}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.2)">STEP ${idx+1} / 5</span>
+        <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.15)">${p.months}</span>
+        ${isCompleted ? '<span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(52,211,153,.3)">완료 확정</span>' : ''}
+        ${isCurrent ? '<span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.25)">현재 단계</span>' : ''}
+        ${isPast ? '<span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(251,191,36,.3)">미완료</span>' : ''}
+        ${isFuture ? '<span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.15)">예정</span>' : ''}
+        ${dday !== null && dday >= 0 && !isCompleted ? `<span style="font-size:12px;font-weight:800;padding:3px 12px;border-radius:99px;background:${dday<=7?'rgba(251,191,36,.3)':'rgba(255,255,255,.15)'}">D-${dday}</span>` : ''}
+      </div>
+      <div style="font-size:26px;font-weight:900;margin-bottom:8px;letter-spacing:-.5px">${p.icon} ${p.label}</div>
+      <div style="font-size:14px;opacity:.9;line-height:1.8;max-width:640px">${p.desc}</div>
+      ${isCompleted ? `<div style="margin-top:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:16px">🎉</span>
+        <span style="font-size:14px;font-weight:700">이 단계는 ${phaseStatus[p.id]?.completedAt || ''} 완료되었습니다</span>
+        <button onclick="reopenPhase('${p.id}');setTimeout(()=>renderPhaseDetail(${idx}),300)" style="margin-left:auto;padding:6px 14px;border:1px solid rgba(255,255,255,.3);border-radius:7px;background:transparent;color:rgba(255,255,255,.7);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">해제</button>
+      </div>` : ''}
+    </div>`;
+
+  // ═══ 할 일 카드 섹션 ═══
+  html += `
+    <div style="margin-bottom:20px">
+      <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">${p.icon}</span> 이 단계에서 해야 할 일
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">`;
+
+  p.cards.forEach(c => {
+    const cnt = c.count();
+    const unitText = c.unit_fn ? c.unit_fn() : c.unit;
+    html += `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;cursor:pointer;transition:all .15s;${isCompleted?'opacity:.7;':''}" onclick="navigateTo('${c.nav}')"
+          onmouseover="this.style.borderColor='var(--accent)';this.style.boxShadow='0 4px 12px rgba(59,130,246,.08)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="font-size:22px">${c.icon}</span>
+            <span style="font-size:14px;font-weight:700;color:var(--text);flex:1">${c.title}</span>
+            <span style="font-size:11px;font-weight:700;color:var(--accent)">이동 →</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px">${c.why}</div>
+          <div style="display:flex;align-items:baseline;gap:5px;padding-top:8px;border-top:1px solid var(--border)">
+            <span style="font-size:28px;font-weight:900;color:${c.color||'var(--accent)'}">${cnt}</span>
+            <span style="font-size:12px;color:var(--muted)">${unitText}</span>
+          </div>
+        </div>`;
+  });
+
+  html += `</div></div>`;
+
+  // ═══ 완료 조건 체크리스트 ═══
+  if (conditions.length > 0) {
+    const condPct = Math.round((metCount / conditions.length) * 100);
+    html += `
+      <div style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <span style="font-size:14px;font-weight:800;color:var(--text)">완료 조건 체크리스트</span>
+          <span style="font-size:12px;font-weight:800;color:${allMet?'var(--green)':'var(--accent)'}">${metCount}/${conditions.length}</span>
+          <div style="flex:1;max-width:120px;height:6px;background:#EEF2F7;border-radius:99px;overflow:hidden">
+            <div style="height:100%;width:${condPct}%;background:${allMet?'var(--green)':'var(--accent)'};border-radius:99px;transition:width .5s"></div>
+          </div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 20px">`;
+
+    conditions.forEach((c, ci) => {
+      html += `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;${ci < conditions.length-1 ? 'border-bottom:1px solid var(--border)' : ''};${c.manual?'cursor:pointer;border-radius:8px;transition:background .1s':''}" ${c.manual?`onclick="_toggleManualCheck('${p.id}','${c.key}')" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'"`:''}>
+            <span style="font-size:20px;flex-shrink:0;width:26px;text-align:center">${c.met ? '✅' : '⬜'}</span>
+            <span style="flex:1;font-size:14px;font-weight:600;color:${c.met ? 'var(--green)' : 'var(--text)'}">${c.label}${c.manual?' <span style="font-size:11px;color:var(--muted);font-weight:500">(클릭하여 체크)</span>':''}</span>
+            <span style="font-size:13px;color:${c.met ? 'var(--green)' : 'var(--muted)'};font-weight:700;white-space:nowrap">${c.detail}</span>
+          </div>`;
+    });
+
+    html += `</div>`;
+
+    // 완료 확정 버튼 (이전 단계 완료 필수)
+    const _prevOk = _isPrevPhaseCompleted(idx);
+    if (!isCompleted && allMet && _prevOk) {
+      html += `
+        <button onclick="confirmPhaseComplete('${p.id}');setTimeout(()=>renderPhaseDetail(${idx}),300)" style="width:100%;margin-top:14px;padding:14px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(59,130,246,.3);transition:all .15s"
+          onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
+          🚀 ${p.shortLabel} 단계 완료 확정
+        </button>`;
+    } else if (!isCompleted && !_prevOk) {
+      const _prevLabel = idx > 0 ? phases[idx-1].label : '';
+      html += `
+        <div style="margin-top:14px;padding:12px 16px;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;font-size:13px;color:#DC2626;text-align:center;font-weight:600">
+          🔒 이전 단계(${_prevLabel})를 먼저 완료해야 이 단계를 확정할 수 있습니다
+        </div>`;
+    } else if (!isCompleted && !allMet) {
+      html += `
+        <div style="margin-top:14px;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:12px;font-size:13px;color:var(--muted);text-align:center;font-weight:600">
+          🔒 위 조건을 모두 충족하면 완료 확정 버튼이 활성화됩니다
+        </div>`;
+    } else if (isCompleted) {
+      html += `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding:12px 16px;background:#F0FDF4;border:1px solid #86EFAC;border-radius:12px">
+          <span style="font-size:14px;font-weight:700;color:var(--green)">🎉 ${phaseStatus[p.id]?.completedAt || ''} 확정 완료</span>
+          <button onclick="reopenPhase('${p.id}');setTimeout(()=>renderPhaseDetail(${idx}),300)" style="padding:6px 14px;border:1px solid #FECACA;border-radius:6px;background:#FEF2F2;color:#DC2626;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">해제</button>
+        </div>`;
+    }
+
+    html += `</div>`;
+  }
+
+  // ═══ 이전/다음 단계 네비게이션 ═══
+  html += `<div class="phase-detail-nav">`;
+  if (idx > 0) {
+    const prev = phases[idx - 1];
+    const prevCompleted = phaseStatus[prev.id]?.completed;
+    html += `<button onclick="navigateTo('phase${idx}')">
+      <span style="font-size:14px">←</span>
+      <div style="text-align:left">
+        <div style="font-size:10px;color:var(--muted);font-weight:600">이전 단계</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          ${prevCompleted ? '<span style="color:var(--green);font-size:12px">✓</span>' : ''}
+          Step ${idx}: ${prev.label}
+        </div>
+      </div>
+    </button>`;
+  } else {
+    html += `<button disabled><span style="font-size:14px">←</span> 이전 단계 없음</button>`;
+  }
+
+  html += `<button onclick="navigateTo('phasecontrol')" style="border-color:var(--accent);color:var(--accent)">목록으로</button>`;
+
+  if (idx < phases.length - 1) {
+    const next = phases[idx + 1];
+    const nextCompleted = phaseStatus[next.id]?.completed;
+    html += `<button onclick="navigateTo('phase${idx+2}')">
+      <div style="text-align:right">
+        <div style="font-size:10px;color:var(--muted);font-weight:600">다음 단계</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          Step ${idx+2}: ${next.label}
+          ${nextCompleted ? '<span style="color:var(--green);font-size:12px">✓</span>' : ''}
+        </div>
+      </div>
+      <span style="font-size:14px">→</span>
+    </button>`;
+  } else {
+    html += `<button disabled>다음 단계 없음 <span style="font-size:14px">→</span></button>`;
+  }
+
+  html += `</div>`;
 
   el.innerHTML = html;
 }
@@ -5995,6 +6313,7 @@ function saveTaskQuickEdit(riskId) {
   document.getElementById('task-quick-modal')?.remove();
   renderSelection();
   if (curPage === 'phasecontrol') renderPhaseControl();
+  if (/^phase[1-5]$/.test(curPage)) renderPhaseDetail(parseInt(curPage.charAt(5)) - 1);
   toast(task ? `[${riskId}] 개선 과제가 저장되었습니다.` : `[${riskId}] 개선 과제가 비워졌습니다.`, 'success');
 }
 
