@@ -7400,14 +7400,44 @@ function selectIdentifyOpinion(idx) {
   _identifyOpinionIdx = idx;
   window._ioType = r.identifyOpinionType || '';
   const isSubmitted = r.identifyOpinionStatus === '제출완료';
+  const prevNewRisk = r._newRiskRequest || {};
+  const showAddForm = r.identifyOpinionType === '추가요청';
+
   const bodyHtml = `
     <div style="display:flex;gap:6px;margin-bottom:14px">${levelBadgeHtml(r.x_level)}<span style="font-size:12px;color:var(--muted)">법규: ${_esc(r.lawName||'-')}</span></div>
     <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">의견 유형</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="io-type-chips">
-      ${['이의없음','추가요청','수정요청','삭제요청'].map(t => `<button type="button" class="edit-ab-chip${r.identifyOpinionType===t?' on':''}" ${isSubmitted?'disabled':''} onclick="selectIOType('${t}',this)" style="padding:8px 14px;border:1.5px solid ${r.identifyOpinionType===t?'var(--accent)':'var(--border)'};border-radius:8px;background:${r.identifyOpinionType===t?'var(--accent-l)':'#fff'};font-size:12px;font-weight:600;cursor:${isSubmitted?'not-allowed':'pointer'};font-family:inherit;color:${r.identifyOpinionType===t?'var(--accent)':'var(--muted)'};${isSubmitted?'opacity:.5;pointer-events:none':''}">${t}</button>`).join('')}
+      ${['이의없음','추가요청','수정요청','삭제요청'].map(t => `<button type="button" class="edit-ab-chip${r.identifyOpinionType===t?' on':''}" ${isSubmitted?'disabled':''} onclick="selectIOType('${t}',this,'${r.id}',${idx})" style="padding:8px 14px;border:1.5px solid ${r.identifyOpinionType===t?'var(--accent)':'var(--border)'};border-radius:8px;background:${r.identifyOpinionType===t?'var(--accent-l)':'#fff'};font-size:12px;font-weight:600;cursor:${isSubmitted?'not-allowed':'pointer'};font-family:inherit;color:${r.identifyOpinionType===t?'var(--accent)':'var(--muted)'};${isSubmitted?'opacity:.5;pointer-events:none':''}">${t}</button>`).join('')}
     </div>
-    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px">의견 내용</div>
-    <textarea id="io-content" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:90px;resize:vertical" ${isSubmitted?'disabled':''}>${_esc(r.identifyOpinion||'')}</textarea>
+    <!-- 추가요청 시 새 리스크 입력 폼 -->
+    <div id="io-add-form" style="display:${showAddForm?'block':'none'};margin-bottom:14px;padding:14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px">
+      <div style="font-size:12px;font-weight:800;color:#1D4ED8;margin-bottom:10px">➕ 추가 요청 리스크 정보</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:3px">영역 *</label>
+          <select id="io-new-domain" class="fm-sel" style="width:100%" ${isSubmitted?'disabled':''}>
+            ${DOMAINS.map(d=>`<option${(prevNewRisk.domain||'')=== d?' selected':''}>${d}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:3px">법규명</label>
+          <input id="io-new-lawName" type="text" value="${_esc(prevNewRisk.lawName||'')}" placeholder="예: 근로기준법" ${isSubmitted?'disabled':''}
+            style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;outline:none">
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:3px">리스크 내용 *</label>
+        <textarea id="io-new-riskContent" placeholder="추가하고 싶은 리스크의 구체적 내용을 작성하세요" ${isSubmitted?'disabled':''}
+          style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;outline:none;height:60px;resize:vertical">${_esc(prevNewRisk.riskContent||'')}</textarea>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:3px">세부 조항</label>
+        <input id="io-new-clause" type="text" value="${_esc(prevNewRisk.relatedClause||'')}" placeholder="예: 법 제17조 제1항" ${isSubmitted?'disabled':''}
+          style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;outline:none">
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px">${showAddForm?'추가 요청 사유':'의견 내용'}</div>
+    <textarea id="io-content" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:70px;resize:vertical" placeholder="${showAddForm?'이 리스크를 추가해야 하는 사유를 작성하세요':'의견 내용을 작성하세요'}" ${isSubmitted?'disabled':''}>${_esc(r.identifyOpinion||'')}</textarea>
     ${r.identifyConfirmStatus!=='pending'&&r.identifyConfirmComment?`<div style="margin-top:10px;padding:10px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE"><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:3px">CP팀 처리: ${r.identifyConfirmStatus==='accepted'?'수용':'기각'}</div><div style="font-size:12px;color:var(--text)">${_esc(r.identifyConfirmComment)}</div></div>`:''}`;
 
   const footerHtml = `
@@ -7427,16 +7457,30 @@ function selectIdentifyOpinion(idx) {
       <div class="form-footer">${footerHtml}</div>`;
   }
 }
-function selectIOType(type, el) {
+function selectIOType(type, el, riskId, idx) {
   window._ioType = type;
   document.querySelectorAll('#io-type-chips .edit-ab-chip').forEach(b => { b.classList.remove('on'); b.style.borderColor='var(--border)'; b.style.background='#fff'; b.style.color='var(--muted)'; });
   el.classList.add('on'); el.style.borderColor='var(--accent)'; el.style.background='var(--accent-l)'; el.style.color='var(--accent)';
+  // 추가요청 폼 토글
+  const addForm = document.getElementById('io-add-form');
+  if (addForm) addForm.style.display = type === '추가요청' ? 'block' : 'none';
 }
 function saveIdentifyOpinion(riskId, isDraft) {
   const r = RISKS.find(x => x.id === riskId); if (!r) return;
   const content = document.getElementById('io-content')?.value.trim() || '';
   const type = window._ioType || '이의없음';
   if (!isDraft && type !== '이의없음' && !content) { toast('의견 내용을 입력해주세요.', 'warn'); return; }
+  // 추가요청 시 새 리스크 정보 저장
+  if (type === '추가요청') {
+    const newDomain = document.getElementById('io-new-domain')?.value || '';
+    const newLawName = document.getElementById('io-new-lawName')?.value.trim() || '';
+    const newContent = document.getElementById('io-new-riskContent')?.value.trim() || '';
+    const newClause = document.getElementById('io-new-clause')?.value.trim() || '';
+    if (!isDraft && !newContent) { toast('추가 요청 리스크의 내용을 입력해주세요.', 'warn'); return; }
+    r._newRiskRequest = { domain: newDomain, lawName: newLawName, riskContent: newContent, relatedClause: newClause, requestedBy: appTeam, requestedAt: new Date().toISOString() };
+  } else {
+    r._newRiskRequest = null;
+  }
   r.identifyOpinion = content;
   r.identifyOpinionType = type;
   r.identifyOpinionStatus = isDraft ? '임시저장' : '제출완료';
@@ -7542,6 +7586,7 @@ function selectIdentifyConfirm(riskId) {
   const typeColor = {추가요청:'var(--accent)',수정요청:'var(--amber)',삭제요청:'var(--red)'}[r.identifyOpinionType]||'var(--muted)';
   const masterBtn = {추가요청:`<button onclick="navigateTo('master')" class="btn btn-ghost" style="font-size:12px">➕ Master에서 추가</button>`,수정요청:`<button onclick="navigateTo('master')" class="btn btn-ghost" style="font-size:12px">✏ Master에서 수정</button>`,삭제요청:`<button onclick="navigateTo('master')" class="btn btn-ghost" style="font-size:12px;border-color:var(--red);color:var(--red)">🗑 Master에서 삭제 확인</button>`}[r.identifyOpinionType]||'';
 
+  const nr = r._newRiskRequest || {};
   const bodyHtml = `
     <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
@@ -7550,6 +7595,18 @@ function selectIdentifyConfirm(riskId) {
       </div>
       <div style="font-size:13px;color:var(--text);line-height:1.7">${_esc(r.identifyOpinion||'(내용 없음)')}</div>
     </div>
+    ${r.identifyOpinionType==='추가요청'&&nr.riskContent?`
+    <div style="padding:14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:800;color:#1D4ED8;margin-bottom:8px">➕ 추가 요청 리스크 정보</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;margin-bottom:6px">
+        <div><span style="color:var(--muted)">영역:</span> <strong>${_esc(nr.domain||'-')}</strong></div>
+        <div><span style="color:var(--muted)">법규명:</span> <strong>${_esc(nr.lawName||'-')}</strong></div>
+      </div>
+      <div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">리스크 내용:</span></div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.6;padding:8px;background:#fff;border-radius:6px;border:1px solid #BFDBFE">${_esc(nr.riskContent)}</div>
+      ${nr.relatedClause?`<div style="font-size:11px;color:var(--muted);margin-top:4px">세부 조항: ${_esc(nr.relatedClause)}</div>`:''}
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">요청: ${_esc(nr.requestedBy||'')} · ${nr.requestedAt?nr.requestedAt.slice(0,10):''}</div>
+    </div>`:''}
     ${done?`<div style="padding:10px;background:${r.identifyConfirmStatus==='accepted'?'#ECFDF5':'#FEF2F2'};border:1px solid ${r.identifyConfirmStatus==='accepted'?'#86EFAC':'#FECACA'};border-radius:8px;font-size:13px;color:${r.identifyConfirmStatus==='accepted'?'var(--green)':'var(--red)'};font-weight:700;margin-bottom:12px">처리 완료: ${r.identifyConfirmStatus==='accepted'?'수용':'기각'}</div>
       ${r.identifyConfirmStatus==='accepted'&&masterBtn?`<div style="margin-bottom:12px">${masterBtn}</div>`:''}
       <div style="display:flex;justify-content:flex-end"><button class="btn btn-ghost" style="font-size:12px" onclick="reopenIdentifyConfirm('${r.id}')">↩ 처리 취소 (재검토)</button></div>`:''}
@@ -7584,10 +7641,31 @@ function confirmIdentifyOpinion(riskId, status) {
   r.identifyConfirmStatus = status;
   r.identifyConfirmComment = document.getElementById('ic-comment')?.value.trim() || '';
 
-  // 수용 시 opinionType별 분기 처리 (phase1.md)
+  // 수용 시 opinionType별 분기 처리
   if (status === 'accepted') {
     if (r.identifyOpinionType === '추가요청') {
-      toast(`[${riskId}] 추가 요청을 수용했습니다. 리스크 Master에서 직접 추가해주세요.`, 'info', 5000);
+      // 새 리스크 정보가 있으면 자동으로 RISKS에 추가
+      const nr = r._newRiskRequest;
+      if (nr && nr.riskContent) {
+        const newId = 'R' + String(RISKS.length + 1).padStart(3, '0');
+        const newRisk = {
+          id: newId, year: parseInt(curYear),
+          domain: nr.domain || '기타', lawName: nr.lawName || '', riskType: '', riskContent: nr.riskContent, title: nr.riskContent,
+          relatedClause: nr.relatedClause || '', relatedOrg: nr.requestedBy || appTeam, team: nr.requestedBy || appTeam, cat: nr.domain || '기타',
+          a_likelihood: null, b_impact: null, x_level: '', controlMeasure: '', controlMeasureStatus: '미입력',
+          y_level: '', y_evalComment: '', z_level: '', z_selected: false, z_confirmedAt: '',
+          identifyOpinion: '', identifyOpinionType: '', identifyOpinionStatus: '미제출', identifyOpinionAt: '', identifyConfirmStatus: 'pending', identifyConfirmComment: '',
+          improvePlan: '', improvePlanStatus: '미제출', improvePlanAt: '', improvePlanComment: '',
+          submitStatus: '미제출', achieve: null, owner: '-', selected: false, score: 0, spId: null, changeLog: [
+            { at: new Date().toISOString(), by: appTeam, action: 'create', source: 'team_request', note: `${nr.requestedBy||appTeam} 추가요청 수용 (원본: ${riskId})` }
+          ],
+        };
+        RISKS.push(newRisk);
+        if (CONFIG.OFFLINE_MODE) _lsSave(curYear, curMonth, newId, { ...newRisk, _isNew: true });
+        toast(`[${riskId}] 추가 요청 수용 → 새 리스크 [${newId}] "${nr.riskContent.substring(0,20)}..." 가 Master에 등록되었습니다.`, 'success', 6000);
+      } else {
+        toast(`[${riskId}] 추가 요청을 수용했습니다. 리스크 Master에서 직접 추가해주세요.`, 'info', 5000);
+      }
     } else if (r.identifyOpinionType === '수정요청') {
       toast(`[${riskId}] 수정 요청을 수용했습니다. 리스크 Master에서 해당 건을 수정해주세요.`, 'info', 5000);
     } else if (r.identifyOpinionType === '삭제요청') {
