@@ -1170,6 +1170,7 @@ body.modal-open{overflow:hidden!important}
       <!-- ═ MY TEAM ═ -->
 
       <div class="view" id="view-myteam">
+        <div id="myteam-todo-banner"></div>
         <div class="kpi-grid kpi-grid-3">
           <div class="kpi-card"><div class="kpi-top"><span class="kpi-icon">📋</span></div><div class="kpi-num" data-t="4">0</div><div class="kpi-label">담당 리스크</div></div>
           <div class="kpi-card" style="animation-delay:80ms"><div class="kpi-top"><span class="kpi-icon">📊</span></div><div class="kpi-num" data-t="86" data-pct="1">0</div><div class="kpi-label">달성율</div></div>
@@ -2021,7 +2022,7 @@ async function doLogin() {
   _syncSelectors();
   await loadData(parseInt(curYear), curMonth);
   updateBadges();
-  navigateTo(appRole === 'admin' ? 'dash' : 'monthly');
+  navigateTo(appRole === 'admin' ? 'dash' : 'myteam');
   initDash();
 }
 function doLogout() {
@@ -4714,6 +4715,46 @@ function renderMyTeam() {
   const team = appTeam || '영업팀';
   document.getElementById('myteam-csub').textContent = team;
   const myRisks = RISKS.filter(r => r.team === team);
+
+  // ── 할 일 알림 배너 ──
+  const banner = document.getElementById('myteam-todo-banner');
+  if (banner) {
+    const myAll = RISKS.filter(r => (r.relatedOrg||r.team||'').includes(team));
+    const todos = [];
+    // Phase 1: 식별 의견 미제출 건
+    const opinionPending = myAll.filter(r => r.identifyOpinionStatus !== '제출완료').length;
+    if (opinionPending > 0) todos.push({ icon:'💬', color:'#EFF6FF', border:'#BFDBFE', text:'#1D4ED8', msg:`리스크 식별 의견 <strong>${opinionPending}건</strong> 제출 필요`, nav:'identify-opinion', btn:'의견 제출하기' });
+    // Phase 3: 통제수단 미입력 건
+    const controlPending = myAll.filter(r => r.x_level && r.controlMeasureStatus !== '입력완료').length;
+    if (controlPending > 0) todos.push({ icon:'🔍', color:'#FFFBEB', border:'#FDE68A', text:'#92400E', msg:`통제수단 <strong>${controlPending}건</strong> 입력 필요`, nav:'control-input', btn:'통제수단 입력' });
+    // Phase 5: 개선방안 미제출 건
+    const improvePending = myAll.filter(r => r.z_selected && r.improvePlanStatus === '미제출').length;
+    if (improvePending > 0) todos.push({ icon:'📝', color:'#F5F3FF', border:'#DDD6FE', text:'#5B21B6', msg:`개선방안 <strong>${improvePending}건</strong> 제출 필요`, nav:'improve-submit', btn:'개선방안 제출' });
+    // Phase 6: 이행현황 미제출 건
+    const monthlyPending = myRisks.filter(r => r.submitStatus === '미제출' || r.submitStatus === '임시저장').length;
+    if (monthlyPending > 0) todos.push({ icon:'⚖', color:'#FEF2F2', border:'#FECACA', text:'#991B1B', msg:`이행현황 <strong>${monthlyPending}건</strong> 미제출`, nav:'monthly', btn:'이행현황 입력' });
+
+    if (todos.length > 0) {
+      banner.innerHTML = `
+        <div style="margin-bottom:16px">
+          <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:10px">📌 처리 필요 업무</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${todos.map(t => `
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:${t.color};border:1px solid ${t.border};border-radius:12px;cursor:pointer" onclick="navigateTo('${t.nav}')">
+                <span style="font-size:20px;flex-shrink:0">${t.icon}</span>
+                <div style="flex:1;font-size:13px;color:${t.text}">${t.msg}</div>
+                <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;border-color:${t.border};color:${t.text};flex-shrink:0" onclick="event.stopPropagation();navigateTo('${t.nav}')">${t.btn}</button>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    } else {
+      banner.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;margin-bottom:16px">
+          <span style="font-size:20px">✅</span>
+          <span style="font-size:13px;font-weight:700;color:#059669">현재 처리할 업무가 없습니다. 모든 작업이 완료되었습니다.</span>
+        </div>`;
+    }
+  }
   const achRisks = myRisks.filter(r => r.achieve != null);
   const avgAch = achRisks.length ? Math.round(achRisks.reduce((s, r) => s + r.achieve, 0) / achRisks.length) : 0;
   const notInput = myRisks.filter(r => r.submitStatus === '미제출' || r.submitStatus === '임시저장').length;
