@@ -1940,12 +1940,15 @@ const NAV_ADMIN = [
 const NAV_USER = [
   {sec:'현황'},
   {id:'myteam',icon:'📈',label:'내 팀 현황'},
-  {sec:'내 업무'},
+  {sec:'위험평가 작업', collapsible:true, secId:'user-eval-work'},
   {id:'identify-opinion', icon:'💬', label:'① 리스크 식별 의견 제출'},
   {id:'control-input',    icon:'🔍', label:'③ 통제수단 입력'},
   {id:'improve-submit',   icon:'📝', label:'⑤ 개선방안 제출'},
+  {secEnd:'user-eval-work'},
+  {sec:'이행 관리', collapsible:true, secId:'user-implement'},
   {id:'monthly',          icon:'📝', label:'이행현황 입력', badge:0},
   {id:'evalresult',       icon:'📊', label:'평가결과·이력'},
+  {secEnd:'user-implement'},
   {sec:'정보'},
   {id:'archive',icon:'📚',label:'자료실'},
 ];
