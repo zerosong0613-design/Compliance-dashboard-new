@@ -1947,7 +1947,7 @@ const NAV_USER = [
   {id:'monthly',          icon:'📝', label:'이행현황 입력', badge:0},
   {id:'evalresult',       icon:'📊', label:'평가결과·이력'},
   {sec:'정보'},
-  {id:'archive',icon:'📚',label:'아카이브'},
+  {id:'archive',icon:'📚',label:'자료실'},
 ];
 const BNAV_ADMIN = [{id:'dash',icon:'▦',label:'대시보드'},{id:'monthly',icon:'⚖',label:'검토',badge:true},{id:'teams',icon:'👥',label:'팀현황'},{id:'master',icon:'📋',label:'Master'},{id:'archive',icon:'📚',label:'아카이브'}];
 const BNAV_USER  = [{id:'identify-opinion',icon:'💬',label:'의견제출'},{id:'monthly',icon:'📝',label:'이행입력',badge:true},{id:'evalresult',icon:'📊',label:'이력'},{id:'myteam',icon:'📈',label:'내 팀'}];
@@ -2644,25 +2644,92 @@ let _lawCategoryFilter = '전체';
 function initArchive() {
   const thisYear = String(new Date().getFullYear());
   if (appRole === 'user') {
-    // User 모드: 올해 연도 탭 숨김 + 법령/Copilot 섹션 숨김
-    document.querySelectorAll('#archive-year-tabs .f-btn').forEach(btn => {
-      if (btn.textContent.includes(thisYear)) btn.style.display = 'none';
-    });
-    const bottomGrid = document.getElementById('archive-bottom-grid');
-    if (bottomGrid) bottomGrid.style.display = 'none';
-    // 아카이브 설명 변경
-    const descEl = document.querySelector('#view-archive > div:first-child > div:last-child');
-    if (descEl) descEl.textContent = '이전 연도 컴플라이언스 위험평가 이력을 확인할 수 있습니다.';
-  } else {
-    // Admin 모드: 모든 섹션 표시
-    const bottomGrid = document.getElementById('archive-bottom-grid');
-    if (bottomGrid) bottomGrid.style.display = '';
+    // 현업 전용: 연도별 자료 다운로드 화면
+    _renderUserArchive();
+    return;
   }
+  // Admin 모드: 기존 아카이브
+  const bottomGrid = document.getElementById('archive-bottom-grid');
+  if (bottomGrid) bottomGrid.style.display = '';
   renderArchiveFiles();
-  if (appRole === 'admin') {
-    renderLawAlerts();
-    initCopilotAgent();
+  renderLawAlerts();
+  initCopilotAgent();
+}
+function _renderUserArchive() {
+  const el = document.getElementById('view-archive');
+  if (!el) return;
+  const team = appTeam || '';
+  const thisYear = new Date().getFullYear();
+  // localStorage 스냅샷 조회
+  const snapshots = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('riskops_archive_')) {
+      try { const d = JSON.parse(localStorage.getItem(k)); snapshots.push({ key: k, ...d }); } catch(e) {}
+    }
   }
+  snapshots.sort((a,b) => new Date(b.savedAt) - new Date(a.savedAt));
+  // 연도별 그룹
+  const years = [...new Set(snapshots.map(s => s.year))].sort((a,b) => b - a);
+  // 현재 연도 내 팀 리스크 현황
+  const myRisks = RISKS.filter(r => (r.relatedOrg||r.team||'').includes(team));
+
+  el.innerHTML = `
+    <div style="margin-bottom:20px">
+      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">📚 자료실</div>
+      <div style="font-size:13px;color:var(--muted)">연도별 위험평가 자료를 엑셀로 다운로드할 수 있습니다.</div>
+    </div>
+    <!-- 올해 내 팀 현황 요약 -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title" style="margin-bottom:10px">📋 ${thisYear}년 내 팀 리스크 현황 (${team})</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+        <div style="padding:10px 16px;background:var(--accent-l);border-radius:8px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--accent)">${myRisks.length}</div><div style="font-size:11px;color:var(--muted)">전체 배당</div></div>
+        <div style="padding:10px 16px;background:#F0FDF4;border-radius:8px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--green)">${myRisks.filter(r=>r.controlMeasure).length}</div><div style="font-size:11px;color:var(--muted)">통제수단 입력</div></div>
+        <div style="padding:10px 16px;background:#FEF2F2;border-radius:8px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--red)">${myRisks.filter(r=>r.z_selected).length}</div><div style="font-size:11px;color:var(--muted)">관리대상</div></div>
+      </div>
+      <button class="btn btn-primary" style="font-size:13px" onclick="_exportMyTeamExcel()">📥 ${thisYear}년 내 팀 리스크 엑셀 다운로드</button>
+    </div>
+    <!-- 연도별 스냅샷 -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:10px">📂 연도별 위험평가 자료</div>
+      ${snapshots.length > 0 ? years.map(y => `
+        <div style="margin-bottom:14px">
+          <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px">${y}년</div>
+          ${snapshots.filter(s => s.year == y).map(s => `
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+              <span style="font-size:16px">📄</span>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600;color:var(--text)">${_esc(s.label||'스냅샷')} <span style="font-size:11px;color:var(--muted)">(${s.riskCount||0}건)</span></div>
+                <div style="font-size:11px;color:var(--muted)">${s.savedAt ? new Date(s.savedAt).toLocaleDateString('ko-KR') : ''}</div>
+              </div>
+              <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportSnapshotExcel('${s.key}')">엑셀 다운로드</button>
+            </div>`).join('')}
+        </div>`).join('') : `
+        <div style="text-align:center;padding:40px;color:var(--muted)">
+          <div style="font-size:32px;margin-bottom:8px">📭</div>
+          <div style="font-size:13px">저장된 이전 연도 자료가 아직 없습니다.<br>CP팀에서 연도별 아카이브를 저장하면 여기에 표시됩니다.</div>
+        </div>`}
+    </div>`;
+}
+function _exportMyTeamExcel() {
+  const team = appTeam || '';
+  const myRisks = RISKS.filter(r => (r.relatedOrg||r.team||'').includes(team));
+  if (!myRisks.length) { toast('다운로드할 리스크가 없습니다.', 'warn'); return; }
+  if (typeof XLSX === 'undefined') {
+    _loadLib(['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'], function(ok) {
+      if (!ok) { toast('Excel 라이브러리 로드 실패', 'error'); return; }
+      _doExportMyTeam(myRisks, team);
+    });
+  } else { _doExportMyTeam(myRisks, team); }
+}
+function _doExportMyTeam(myRisks, team) {
+  const rows = [['ID','영역','법규명','리스크 내용','A','B','X','통제수단','Y','Z','관리대상','개선방안','이행상태','달성율']];
+  myRisks.forEach(r => rows.push([r.id, r.domain||r.cat, r.lawName||'', r.riskContent||r.title, r.a_likelihood||'', r.b_impact||'', r.x_level||'', r.controlMeasure||'', r.y_level||'', r.z_level||'', r.z_selected?'O':'', r.improvePlan||'', r.submitStatus||'', r.achieve!=null?r.achieve:'']));
+  const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:8},{wch:10},{wch:20},{wch:40},{wch:5},{wch:5},{wch:5},{wch:30},{wch:5},{wch:5},{wch:6},{wch:30},{wch:10},{wch:8}];
+  XLSX.utils.book_append_sheet(wb, ws, team);
+  XLSX.writeFile(wb, `[${team}] 위험평가현황_${curYear}년.xlsx`);
+  toast('엑셀 파일이 다운로드되었습니다.', 'success');
 }
 function renderArchiveFiles() {
   const el = document.getElementById('archive-file-list'); if (!el) return;
