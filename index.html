@@ -917,7 +917,7 @@ body.modal-open{overflow:hidden!important}
             <button class="f-btn" onclick="masterFilter('구매팀',this)">구매팀</button>
             <button class="f-btn" onclick="masterFilter('품질팀',this)">품질팀</button>
           </div>
-          <div class="table-card"><div class="overflow-x"><table class="tbl"><thead><tr><th>ID</th><th>영역</th><th>법규명</th><th>리스크 내용</th><th>관련 조직</th><th>A</th><th>B</th><th>X</th><th>Y</th><th>Z</th><th>의견현황</th><th></th></tr></thead><tbody id="master-tbody"></tbody></table></div></div>
+          <div class="table-card"><div class="overflow-x"><table class="tbl"><thead><tr><th>ID</th><th>영역</th><th>법규명</th><th>리스크 내용</th><th>관련 조직</th><th>A</th><th>B</th><th>X</th><th>Y</th><th>Z</th><th></th></tr></thead><tbody id="master-tbody"></tbody></table></div></div>
         </div>
         <!-- 패널 2: A·B 평가 -->
         <div id="master-panel-assess" style="display:none">
@@ -4261,12 +4261,6 @@ function applyMaster() {
   renderMaster(d);
 }
 function renderMaster(data) {
-  const _opinionBadge = (r) => {
-    if (!r.identifyOpinionStatus || r.identifyOpinionStatus === '미제출') return '<span style="color:var(--muted);font-size:11px">미제출</span>';
-    const type = r.identifyOpinionType || '이의없음';
-    const colors = {'이의없음':'var(--green)','추가요청':'var(--accent)','수정요청':'var(--amber)','삭제요청':'var(--red)'};
-    return `<span style="font-size:11px;font-weight:700;color:${colors[type]||'var(--muted)'}">${type}</span>`;
-  };
   document.getElementById('master-tbody').innerHTML = data.map(r => `
     <tr>
       <td class="tbl-id">${_esc(r.id)}</td>
@@ -4279,7 +4273,6 @@ function renderMaster(data) {
       <td>${levelBadgeHtml(r.x_level)}</td>
       <td>${r.y_level ? levelBadgeHtml(r.y_level) : '<span style="color:var(--muted)">—</span>'}</td>
       <td>${r.z_level ? levelBadgeHtml(r.z_level) : '<span style="color:var(--muted)">—</span>'}</td>
-      <td>${_opinionBadge(r)}</td>
       <td><button class="act-btn" onclick="openRiskEditModal('${r.id}')">수정</button></td>
     </tr>`).join('');
 }
