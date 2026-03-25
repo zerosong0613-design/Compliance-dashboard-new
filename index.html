@@ -50,6 +50,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 @media(max-width:768px){::-webkit-scrollbar{display:none}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
 
@@ -7508,17 +7509,21 @@ function renderIdentifyConfirmView() {
   const teamMap = {};
   RISKS.forEach(r => {
     const t = r.team || '미배정';
-    if (!teamMap[t]) teamMap[t] = { total:0, noIssue:0, hasOpinion:0, notSubmit:0 };
+    if (!teamMap[t]) teamMap[t] = { total:0, noIssue:0, hasOpinion:0, notSubmit:0, pendingReview:0 };
     teamMap[t].total++;
     if (r.identifyOpinionStatus !== '제출완료') teamMap[t].notSubmit++;
     else if (r.identifyOpinionType === '이의없음') teamMap[t].noIssue++;
-    else teamMap[t].hasOpinion++;
+    else {
+      teamMap[t].hasOpinion++;
+      if (r.identifyConfirmStatus === 'pending') teamMap[t].pendingReview++;
+    }
   });
   const teamRows = Object.entries(teamMap).map(([t,d]) => `<tr>
     <td style="font-size:12px;font-weight:600;padding:6px 10px">${_esc(t)}</td>
     <td style="text-align:center;font-size:12px;padding:6px">${d.total}</td>
     <td style="text-align:center;font-size:12px;color:var(--green);padding:6px">${d.noIssue}</td>
     <td style="text-align:center;font-size:12px;color:var(--accent);padding:6px">${d.hasOpinion}</td>
+    <td style="text-align:center;font-size:12px;padding:6px">${d.pendingReview>0?`<span style="padding:2px 8px;border-radius:99px;background:#FEE2E2;color:#DC2626;font-weight:800;font-size:11px">${d.pendingReview}건</span>`:`<span style="color:var(--green)">✓</span>`}</td>
     <td style="text-align:center;font-size:12px;padding:6px">${d.notSubmit>0?`<span style="color:var(--red);font-weight:700">${d.notSubmit}</span>`:`<span style="color:var(--green)">✓</span>`}</td>
   </tr>`).join('');
 
@@ -7534,7 +7539,7 @@ function renderIdentifyConfirmView() {
     <div class="card" style="margin-bottom:16px">
       <div class="card-title" style="margin-bottom:10px">📊 팀별 의견 제출 현황</div>
       <div class="overflow-x">
-        <table class="tbl" style="min-width:400px"><thead><tr><th>팀명</th><th style="text-align:center">전체</th><th style="text-align:center">이의없음</th><th style="text-align:center">의견있음</th><th style="text-align:center">미제출</th></tr></thead>
+        <table class="tbl" style="min-width:500px"><thead><tr><th>팀명</th><th style="text-align:center">전체</th><th style="text-align:center">이의없음</th><th style="text-align:center">의견있음</th><th style="text-align:center;color:#DC2626">미처리</th><th style="text-align:center">미제출</th></tr></thead>
         <tbody>${teamRows}</tbody></table>
       </div>
       <div style="font-size:12px;color:var(--muted);margin-top:10px">전체 의견 처리 현황: 의견있음 <strong>${withOpinion.length}건</strong> 중 수용 ${accepted}건 · 기각 ${rejected}건 · <strong style="color:${pending.length>0?'var(--red)':'var(--green)'}">미처리 ${pending.length}건</strong></div>
@@ -7710,14 +7715,23 @@ function _renderIdentifyListItems(list) {
   if (!list.length) return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">해당 항목이 없습니다</div>';
   return [...list].sort((a,b) => (a.identifyConfirmStatus==='pending'?0:1)-(b.identifyConfirmStatus==='pending'?0:1)).map(r => {
     const typeColor = {추가요청:'var(--accent)',수정요청:'var(--amber)',삭제요청:'var(--red)',이의없음:'var(--green)'}[r.identifyOpinionType]||'var(--muted)';
-    const stText = r.identifyOpinionType==='이의없음'?'이의없음':r.identifyConfirmStatus==='pending'?'미처리':r.identifyConfirmStatus==='accepted'?'수용':'기각';
-    const stColor = r.identifyOpinionType==='이의없음'?'var(--green)':r.identifyConfirmStatus==='pending'?'var(--amber)':'var(--green)';
-    return `<div class="r-item" onclick="selectIdentifyConfirm('${r.id}')" style="cursor:pointer;padding:10px 12px;border:1px solid ${r.identifyConfirmStatus==='pending'&&r.identifyOpinionType!=='이의없음'?'var(--amber)':'var(--border)'};border-radius:8px;margin-bottom:6px">
-      <div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--accent);font-weight:700">${r.id}</span><span style="font-size:11px;color:var(--muted)">${_esc(r.team)}</span></div>
+    const isPending = r.identifyConfirmStatus==='pending' && r.identifyOpinionType!=='이의없음';
+    const stText = r.identifyOpinionType==='이의없음'?'이의없음':isPending?'⚠ 미처리':r.identifyConfirmStatus==='accepted'?'✓ 수용':'✕ 기각';
+    const stColor = r.identifyOpinionType==='이의없음'?'var(--green)':isPending?'#DC2626':r.identifyConfirmStatus==='accepted'?'var(--green)':'var(--red)';
+    // 미처리 건: 빨간 배경 + 왼쪽 빨간 바
+    const pendingStyle = isPending
+      ? 'background:#FEF2F2;border:1.5px solid #FECACA;border-left:4px solid #EF4444'
+      : `border:1px solid var(--border);background:${r.identifyConfirmStatus==='accepted'?'#F0FDF9':'#fff'}`;
+    return `<div class="r-item" onclick="selectIdentifyConfirm('${r.id}')" style="cursor:pointer;padding:10px 12px;${pendingStyle};border-radius:8px;margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--accent);font-weight:700">${r.id}</span>
+        <span style="font-size:11px;color:var(--muted)">${_esc(r.team)}</span>
+        ${isPending?'<span style="margin-left:auto;font-size:10px;padding:2px 8px;border-radius:99px;background:#FEE2E2;color:#DC2626;font-weight:800;animation:pulse 2s infinite">NEW</span>':''}
+      </div>
       <div style="font-size:13px;font-weight:600;color:var(--text);margin-top:3px">${_esc((r.riskContent||r.title||'').substring(0,40))}${(r.riskContent||r.title||'').length>40?'…':''}</div>
       <div style="display:flex;gap:6px;margin-top:4px">
         <span style="font-size:11px;font-weight:700;color:${typeColor}">${r.identifyOpinionType||'-'}</span>
-        <span style="font-size:11px;font-weight:700;color:${stColor}">${stText}</span>
+        <span style="font-size:11px;font-weight:800;color:${stColor}">${stText}</span>
       </div>
     </div>`;
   }).join('');
