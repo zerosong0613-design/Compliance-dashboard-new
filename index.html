@@ -5346,37 +5346,127 @@ function _col(row, keys) {
   }
   return '';
 }
+/* ── 필드별 인식 가능 컬럼명 매핑 테이블 ── */
+const _EXCEL_FIELD_MAP = {
+  domain:      { label:'영역',       keys:['영역','domain','Domain','분야','카테고리','Category','RiskCategory'] },
+  lawName:     { label:'법규명',     keys:['법규명','관련법규','LawName','법령명','관련법령','법률명','법규'] },
+  riskType:    { label:'Risk 유형',  keys:['Risk 유형','리스크유형','RiskType','유형','위반유형','Type'] },
+  riskContent: { label:'Risk 내용',  keys:['Risk 내용','리스크내용','RiskContent','RiskTitle','Title','리스크명','위반내용','리스크설명','내용','Description'] },
+  clause:      { label:'세부 조항',  keys:['세부 조항','관련조항','Clause','조항','세부조항','법조항'] },
+  relatedOrg:  { label:'관련 조직',  keys:['Risk 발생가능 조직','관련조직','발생가능조직','RelatedOrg','Team','팀','부서','조직','담당부서','발생조직'] },
+  rawA:        { label:'발생가능성(A)', keys:['발생가능성(A)','2-1. 발생가능성','A','Likelihood','A_Likelihood','LikelihoodScore','발생가능성','가능성'] },
+  rawB:        { label:'영향심각성(B)', keys:['영향의 심각성(B)','2-2. 영향의심각성','B','Impact','B_Impact','ImpactScore','영향심각성','심각성','영향도','영향'] },
+  rawX:        { label:'고유Risk(X)',   keys:['고유Risk값','2-3. 고유Risk','X','XLevel','고유리스크','고유Risk','X등급'] },
+  control:     { label:'통제수단',      keys:['현재 통제수단','3-1. 현재통제수단','ControlMeasure','ImprovementTask','통제수단','통제활동','예방활동'] },
+  rawY:        { label:'통제효과성(Y)', keys:['통제효과성(Y)','3-2. 통제효과성','Y','YLevel','Y_Level','통제효과성','통제수준'] },
+  rawZ:        { label:'잔여Risk(Z)',   keys:['잔여Risk','4-1. 잔여Risk','Z','ZLevel','잔여리스크','잔여Risk값','Z등급'] },
+};
+
+/* ── 헤더 자동감지: 1~10행 중 가장 많은 텍스트 열이 있는 행을 헤더로 인식 ── */
+function _detectHeaderRow(ws) {
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+  let bestRow = 0, bestScore = 0;
+  const maxScan = Math.min(range.e.r, 9); // 최대 10행
+  for (let r = 0; r <= maxScan; r++) {
+    let textCols = 0;
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const cell = ws[XLSX.utils.encode_cell({r, c})];
+      if (cell && typeof cell.v === 'string' && cell.v.trim().length > 1) textCols++;
+    }
+    if (textCols > bestScore) { bestScore = textCols; bestRow = r; }
+  }
+  return bestRow;
+}
+
+/* ── 컬럼 매핑 진단 ── */
+function _diagnoseMapping(headers) {
+  const mapped = {};
+  const unmapped = [];
+  for (const [field, def] of Object.entries(_EXCEL_FIELD_MAP)) {
+    const found = def.keys.find(k => headers.includes(k));
+    if (found) mapped[field] = found;
+    else unmapped.push(def.label);
+  }
+  return { mapped, unmapped };
+}
+
 function parseExcelFile(file) {
   showLoading('엑셀 파일 파싱 중...');
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
       const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, { type: 'array' }); const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      if (!rows.length) { toast('데이터가 없습니다. 양식을 확인해주세요.', 'warn'); return; }
+      const wb = XLSX.read(data, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+
+      // ── 헤더 자동감지 ──
+      const headerRow = _detectHeaderRow(ws);
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '', range: headerRow });
+      if (!rows.length) { toast('데이터가 없습니다. 양식을 확인해주세요.', 'warn'); hideLoading(); return; }
+
+      // ── 컬럼 매핑 진단 ──
+      const headers = Object.keys(rows[0]);
+      const { mapped, unmapped } = _diagnoseMapping(headers);
+      console.log('📊 엑셀 컬럼 매핑 결과:', mapped);
+      if (unmapped.length > 0) console.warn('⚠ 미매핑 컬럼:', unmapped);
+
+      // 필수 필드(리스크 내용) 매핑 확인
+      if (!mapped.riskContent) {
+        hideLoading();
+        toast(`⚠ "리스크 내용" 컬럼을 찾을 수 없습니다.\n\n인식된 헤더: ${headers.slice(0,8).join(', ')}${headers.length>8?'...':''}\n\n지원 컬럼명: ${_EXCEL_FIELD_MAP.riskContent.keys.join(', ')}`, 'error', 8000);
+        return;
+      }
+
+      // 헤더 행이 1행이 아닌 경우 안내
+      if (headerRow > 0) {
+        toast(`ℹ 헤더를 ${headerRow+1}행에서 감지했습니다. (1~${headerRow}행은 건너뜀)`, 'info', 4000);
+      }
+
+      // ── 미매핑 컬럼 경고 표시 (모달 내) ──
+      const mappingWarning = unmapped.length > 0
+        ? `<div style="margin-bottom:12px;padding:10px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px">
+            <div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:4px">⚠ 미매핑 컬럼 ${unmapped.length}개</div>
+            <div style="font-size:11px;color:#A16207;line-height:1.6">${unmapped.join(', ')}</div>
+            <div style="font-size:10px;color:#A16207;margin-top:4px">해당 필드는 빈칸으로 처리됩니다. 업로드 후 Master에서 직접 입력할 수 있습니다.</div>
+          </div>`
+        : `<div style="margin-bottom:12px;padding:10px 14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px">
+            <div style="font-size:12px;font-weight:700;color:#059669">✅ 모든 컬럼이 정상 매핑되었습니다</div>
+          </div>`;
+
+      // 매핑 성공 현황
+      const mappingSummary = `<div style="margin-bottom:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">📋 컬럼 매핑 현황 (${Object.keys(mapped).length}/${Object.keys(_EXCEL_FIELD_MAP).length}개 인식)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">${Object.entries(_EXCEL_FIELD_MAP).map(([f,def])=>{
+          const found = mapped[f];
+          return `<span style="font-size:10px;padding:2px 7px;border-radius:4px;${found?'background:#ECFDF5;color:#059669':'background:#FEF2F2;color:#DC2626'}">${def.label}${found?' ✓':' ✕'}</span>`;
+        }).join('')}</div>
+      </div>`;
+
+      window._excelMappingHtml = mappingWarning + mappingSummary;
+
+      // ── 데이터 파싱 ──
       const parseErrors = [];
       emParsedRisks = rows.map((r, i) => {
-        const rowNum = i + 2;
-        const domain      = String(_col(r, ['영역','domain','Domain']) || '기타').trim();
-        const lawName     = String(_col(r, ['법규명','관련법규','LawName']) || '').trim();
-        const riskType    = String(_col(r, ['Risk 유형','리스크유형','RiskType']) || '').trim();
-        const riskContent = String(_col(r, ['Risk 내용','리스크내용','RiskContent','RiskTitle','Title']) || '').trim();
-        const clause      = String(_col(r, ['세부 조항','관련조항','Clause']) || '').trim();
-        const relatedOrg  = String(_col(r, ['Risk 발생가능 조직','관련조직','발생가능조직','RelatedOrg','Team']) || '').trim();
+        const rowNum = headerRow + i + 2;
+        const domain      = String(_col(r, _EXCEL_FIELD_MAP.domain.keys) || '기타').trim();
+        const lawName     = String(_col(r, _EXCEL_FIELD_MAP.lawName.keys) || '').trim();
+        const riskType    = String(_col(r, _EXCEL_FIELD_MAP.riskType.keys) || '').trim();
+        const riskContent = String(_col(r, _EXCEL_FIELD_MAP.riskContent.keys) || '').trim();
+        const clause      = String(_col(r, _EXCEL_FIELD_MAP.clause.keys) || '').trim();
+        const relatedOrg  = String(_col(r, _EXCEL_FIELD_MAP.relatedOrg.keys) || '').trim();
         if (!riskContent) { parseErrors.push(`${rowNum}행: Risk 내용 누락`); return null; }
-        const rawA = parseInt(_col(r, ['발생가능성(A)','2-1. 발생가능성','A','Likelihood','A_Likelihood','LikelihoodScore']));
-        const rawB = parseInt(_col(r, ['영향의 심각성(B)','2-2. 영향의심각성','B','Impact','B_Impact','ImpactScore']));
+        const rawA = parseInt(_col(r, _EXCEL_FIELD_MAP.rawA.keys));
+        const rawB = parseInt(_col(r, _EXCEL_FIELD_MAP.rawB.keys));
         const a_likelihood = (rawA >= 1 && rawA <= 5) ? rawA : null;
         const b_impact     = (rawB >= 1 && rawB <= 5) ? rawB : null;
-        const rawX = String(_col(r, ['고유Risk값','2-3. 고유Risk','X','XLevel']) || '').trim().toUpperCase();
-        const x_level = ['VL','L','M','H','VH'].includes(rawX) ? rawX : (a_likelihood && b_impact ? xLevelFromMatrix(a_likelihood, b_impact) : '');
-        const controlMeasure = String(_col(r, ['현재 통제수단','3-1. 현재통제수단','ControlMeasure','ImprovementTask']) || '').trim();
+        const rawXv = String(_col(r, _EXCEL_FIELD_MAP.rawX.keys) || '').trim().toUpperCase();
+        const x_level = ['VL','L','M','H','VH'].includes(rawXv) ? rawXv : (a_likelihood && b_impact ? xLevelFromMatrix(a_likelihood, b_impact) : '');
+        const controlMeasure = String(_col(r, _EXCEL_FIELD_MAP.control.keys) || '').trim();
         const controlMeasureStatus = controlMeasure ? '입력완료' : '미입력';
-        const rawY = String(_col(r, ['통제효과성(Y)','3-2. 통제효과성','Y','YLevel','Y_Level']) || '').trim().toUpperCase();
-        const y_level = ['VL','L','M','H','VH'].includes(rawY) ? rawY : '';
-        const rawZ = String(_col(r, ['잔여Risk','4-1. 잔여Risk','Z','ZLevel']) || '').trim().toUpperCase();
-        const z_level = ['VL','L','M','H','VH'].includes(rawZ) ? rawZ : (x_level && y_level ? zLevelFromMatrix(x_level, y_level) : '');
+        const rawYv = String(_col(r, _EXCEL_FIELD_MAP.rawY.keys) || '').trim().toUpperCase();
+        const y_level = ['VL','L','M','H','VH'].includes(rawYv) ? rawYv : '';
+        const rawZv = String(_col(r, _EXCEL_FIELD_MAP.rawZ.keys) || '').trim().toUpperCase();
+        const z_level = ['VL','L','M','H','VH'].includes(rawZv) ? rawZv : (x_level && y_level ? zLevelFromMatrix(x_level, y_level) : '');
         const team = relatedOrg.split('/')[0].split(',')[0].trim() || '미배정';
         return {
           id: 'R' + String(i + 1).padStart(3, '0'), year: parseInt(curYear),
@@ -5405,7 +5495,10 @@ function showExcelSelectStep(filename, count) {
   document.getElementById('em-confirm-btn').style.display = 'inline-flex';
   document.getElementById('em-title').textContent = '📋 리스크 선정';
   document.getElementById('em-sub').textContent = `${filename} · ${count}건 파싱 완료 — 위험도 순 정렬`;
-  document.getElementById('em-parse-info').innerHTML = `<strong>${filename}</strong>에서 <strong>${emParsedRisks.length}건</strong>의 리스크를 읽었습니다.`;
+  // 매핑 경고 + 파싱 정보 표시
+  const mappingHtml = window._excelMappingHtml || '';
+  document.getElementById('em-parse-info').innerHTML = mappingHtml + `<strong>${filename}</strong>에서 <strong>${emParsedRisks.length}건</strong>의 리스크를 읽었습니다.`;
+  window._excelMappingHtml = '';
   renderEmTable();
 }
 function renderEmTable() {
