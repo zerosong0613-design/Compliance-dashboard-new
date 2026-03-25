@@ -516,7 +516,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .btn.success{background:var(--green);color:#fff;pointer-events:none;opacity:.85}
 .dirty-dot::after{content:'';display:inline-block;width:8px;height:8px;background:var(--amber);border-radius:50%;margin-left:6px;vertical-align:middle;animation:fadeIn .3s}
 /* Desktop split view */
-.split-view{display:flex;gap:18px;height:calc(100vh - 130px)}
+.split-view{display:flex;gap:18px;height:calc(100vh - 280px);min-height:400px}
 @media(max-width:768px){.split-view{display:block}}
 .risk-panel{width:280px;flex-shrink:0;background:var(--surface);border-radius:14px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;display:flex;flex-direction:column}
 @media(max-width:768px){.risk-panel{width:100%;height:auto;margin-bottom:12px;max-height:45vh}}
@@ -529,7 +529,7 @@ body{font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic',sans-seri
 .r-item.on{background:var(--accent-l);border-left-color:var(--accent)}
 .r-item-id{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:3px}
 .r-item-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px;line-height:1.4}
-.form-panel{flex:1;background:var(--surface);border-radius:14px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;display:flex;flex-direction:column}
+.form-panel{flex:1;background:var(--surface);border-radius:14px;border:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:auto;display:flex;flex-direction:column;min-height:0}
 @media(max-width:768px){.form-panel{min-height:auto}}
 .form-hd{padding:18px 22px;border-bottom:1px solid var(--border);background:var(--light);flex-shrink:0}
 .form-hd-id{font-size:12px;color:var(--accent);font-weight:700;margin-bottom:4px}
@@ -1674,6 +1674,20 @@ async function _loadOfflineData(year, month) {
       }
     }
     base.status = base.submitStatus;
+    // advplan2 신규 필드 기본값 보장 (구 localStorage 데이터 호환)
+    if (!base.domain) base.domain = base.cat || '기타';
+    if (!base.riskContent) base.riskContent = base.title || '';
+    if (!base.relatedOrg) base.relatedOrg = base.team || '';
+    if (!base.lawName) base.lawName = '';
+    if (!base.relatedClause) base.relatedClause = '';
+    if (!base.riskType) base.riskType = '';
+    if (base.identifyOpinionType === undefined) base.identifyOpinionType = '';
+    if (base.identifyOpinionStatus === undefined) base.identifyOpinionStatus = '미제출';
+    if (base.identifyConfirmStatus === undefined) base.identifyConfirmStatus = 'pending';
+    if (base.controlMeasure === undefined) base.controlMeasure = '';
+    if (base.controlMeasureStatus === undefined) base.controlMeasureStatus = base.controlMeasure ? '입력완료' : '미입력';
+    if (base.improvePlanStatus === undefined) base.improvePlanStatus = '미제출';
+    if (!base.changeLog) base.changeLog = [];
     return base;
   });
 
@@ -1933,7 +1947,7 @@ const NAV_USER = [
   {id:'archive',icon:'📚',label:'아카이브'},
 ];
 const BNAV_ADMIN = [{id:'dash',icon:'▦',label:'대시보드'},{id:'monthly',icon:'⚖',label:'검토',badge:true},{id:'teams',icon:'👥',label:'팀현황'},{id:'master',icon:'📋',label:'Master'},{id:'archive',icon:'📚',label:'아카이브'}];
-const BNAV_USER  = [{id:'monthly',icon:'📝',label:'입력',badge:true},{id:'evalresult',icon:'📊',label:'평가·이력'},{id:'myteam',icon:'📈',label:'내 팀'},{id:'archive',icon:'📚',label:'아카이브'}];
+const BNAV_USER  = [{id:'identify-opinion',icon:'💬',label:'의견제출'},{id:'monthly',icon:'📝',label:'이행입력',badge:true},{id:'evalresult',icon:'📊',label:'이력'},{id:'myteam',icon:'📈',label:'내 팀'}];
 const PAGE_TITLES = {dash:'전사 대시보드',phasecontrol:'단계별 미션',phase1:'리스크 식별',phase2:'리스크 평가',phase3:'통제수준 진단',phase4:'잔여리스크 확정',phase5:'개선방안 도출·확정',phase6:'개선방안 이행',phase7:'개선조치 점검·보고',monthly_admin:'이행현황 검토',monthly:'이행현황 입력',evalresult:'평가결과·이력',eval:'이행 달성율 평가',teams:'팀 이행현황',master:'리스크 Master',myteam:'내 팀 이행현황',reports:'보고서 생성',archive:'아카이브',
   'identify-opinion':'리스크 식별 의견 제출','identify-confirm':'리스크 식별 의견 검토·확정','control-input':'통제수단 입력','control-eval':'통제효과성 평가','residual':'잔여리스크 확정','improve-submit':'개선방안 제출','improve-confirm':'개선방안 확정'};
 // 관리자가 monthly 탭 진입 시 제목 오버라이드
@@ -2333,34 +2347,52 @@ function _getActivePhase() {
          nav:'dash', count:()=>RISKS.filter(r=>['H','VH'].includes(r.x_level)).length, unit:'건 H·VH등급', color:'var(--red)'},
       ]},
     { id:'control', label:'통제수준 진단', shortLabel:'통제 진단',
-      nav:'master', icon:'🛡',
+      nav:'control-eval', icon:'🛡',
       badge:{text:'진행 중', bg:'#EFF6FF', color:'var(--accent)'},
-      desc:'선정된 리스크에 대해 통제효과성(Y: L/M/H/VH)을 평가합니다. Z(잔여리스크) = X × Y수치 로 자동 계산됩니다.',
+      desc:'팀에 통제수단 입력 요청 후, CP팀이 통제효과성(Y)을 평가하면 잔여리스크(Z)가 자동 계산됩니다.',
       cards:[
-        {icon:'🔍', title:'통제효과성(Y) 입력',
-         why:'선정 리스크의 통제 수준을 L/M/H/VH로 평가하여 잔여리스크(Z)를 산출합니다.',
-         nav:'master', count:()=>{const sel=RISKS.filter(r=>r.selected!==false);return sel.filter(r=>r.y_control!=null).length;}, unit_fn:()=>`/${RISKS.filter(r=>r.selected!==false).length}건 입력됨`, color:'var(--accent)'},
+        {icon:'📧', title:'통제수단 입력 요청 메일 발송',
+         why:'Phase 3 시작 시 각 팀 담당자에게 통제수단 입력 요청 메일을 발송합니다.',
+         nav:'phasecontrol', count:()=>{const sent=_loadPhaseStatus(curYear).control?.controlInputNotifySent;return sent?1:0;},
+         unit_fn:()=>_loadPhaseStatus(curYear).control?.controlInputNotifySent?'발송 완료':'미발송', color:'var(--accent)',
+         action:()=>sendControlInputNotify()},
+        {icon:'🔍', title:'팀 통제수단 입력 현황',
+         why:'각 팀 담당자가 현재 통제 활동을 입력합니다. (작년 내용 자동 채움)',
+         nav:'control-eval', count:()=>RISKS.filter(r=>r.controlMeasureStatus==='입력완료').length,
+         unit_fn:()=>`/${RISKS.filter(r=>r.x_level).length}건 입력 완료`, color:'var(--green)'},
+        {icon:'🛡', title:'CP팀 통제효과성(Y) 평가',
+         why:'팀 입력 내용을 검토하고 통제효과성(Y)을 평가합니다. Z가 자동 계산됩니다.',
+         nav:'control-eval', count:()=>RISKS.filter(r=>r.y_level).length,
+         unit_fn:()=>`/${RISKS.filter(r=>r.x_level).length}건 평가 완료`, color:'var(--accent)'},
       ]},
     { id:'residual', label:'잔여리스크 확정', shortLabel:'잔여리스크',
-      nav:'phase4', icon:'🎯',
+      nav:'residual', icon:'🎯',
       badge:{text:'확정', bg:'#FFFBEB', color:'#D97706'},
-      desc:'Z(잔여리스크) 내림차순으로 정렬하고, 관리 대상 리스크를 선정합니다. 사업팀에 확인 요청을 발송합니다.',
+      desc:'Z(잔여리스크) 내림차순으로 정렬하여 H·VH 등급 리스크를 관리 대상으로 선정하고 확정합니다.',
       cards:[
-        {icon:'📊', title:'Z 내림차순 정렬 및 선정',
-         why:'잔여리스크가 높은 순서대로 관리 대상을 확정합니다.',
-         nav:'phase4', count:()=>RISKS.filter(r=>r.z_selected).length, unit:'건 관리대상', color:'var(--red)'},
+        {icon:'📊', title:'Z 분포 확인 및 관리 대상 선정',
+         why:'Z(잔여리스크) 내림차순으로 정렬하여 H·VH 등급 리스크를 관리 대상으로 선정합니다.',
+         nav:'residual', count:()=>RISKS.filter(r=>r.z_selected).length, unit:'건 관리대상 선정', color:'var(--red)'},
+        {icon:'📧', title:'사업팀 확인 요청 발송',
+         why:'선정된 관리 대상 리스크를 사업팀에 공유하고 확인 요청 메일을 발송합니다.',
+         nav:'residual', count:()=>_loadPhaseStatus(curYear).residual?.residualConfirmSent?1:0,
+         unit_fn:()=>_loadPhaseStatus(curYear).residual?.residualConfirmSent?'발송 완료':'미발송', color:'var(--accent)'},
+        {icon:'✅', title:'최종 확정',
+         why:'관리 대상을 최종 확정하면 Phase 5(개선방안)가 활성화됩니다.',
+         nav:'residual', count:()=>_loadPhaseStatus(curYear).residual?.residualConfirmed?1:0,
+         unit_fn:()=>_loadPhaseStatus(curYear).residual?.residualConfirmed?'확정 완료':'미확정', color:'var(--green)'},
       ]},
     { id:'improve', label:'개선방안 도출·확정', shortLabel:'개선방안',
-      nav:'phase5', icon:'🔧',
+      nav:'improve-confirm', icon:'🔧',
       badge:{text:'개선', bg:'#EFF6FF', color:'var(--accent)'},
-      desc:'잔여리스크 관리 대상에 대해 팀 담당자가 개선방안을 제출하고, CP팀이 검토 후 확정합니다.',
+      desc:'잔여리스크 관리 대상에 대해 팀 담당자가 개선방안을 제출하고, CP팀이 검토 후 확정합니다. 확정된 건만 Phase 6 이행 대상이 됩니다.',
       cards:[
-        {icon:'📝', title:'개선방안 제출 현황',
-         why:'팀 담당자가 개선방안을 작성하여 제출합니다.',
-         nav:'phase5', count:()=>RISKS.filter(r=>r.z_selected&&r.improvePlanStatus==='제출완료').length, unit_fn:()=>`/${RISKS.filter(r=>r.z_selected).length}건 제출됨`, color:'var(--accent)'},
-        {icon:'✅', title:'CP팀 확정 현황',
-         why:'제출된 개선방안을 검토하고 확정합니다.',
-         nav:'phase5', count:()=>RISKS.filter(r=>r.z_selected&&r.improvePlanStatus==='확정').length, unit_fn:()=>`/${RISKS.filter(r=>r.z_selected).length}건 확정됨`, color:'var(--green)'},
+        {icon:'📝', title:'팀 개선방안 제출 현황',
+         why:'각 팀 담당자가 관리 대상 리스크에 대한 개선방안을 작성해 제출합니다.',
+         nav:'improve-confirm', count:()=>RISKS.filter(r=>r.z_selected&&r.improvePlanStatus!=='미제출').length, unit_fn:()=>`/${RISKS.filter(r=>r.z_selected).length}건 제출됨`, color:'var(--accent)'},
+        {icon:'✅', title:'CP팀 개선방안 확정',
+         why:'제출된 개선방안을 검토하고 확정합니다. 확정된 건만 Phase 6 이행 관리 대상이 됩니다.',
+         nav:'improve-confirm', count:()=>RISKS.filter(r=>r.z_selected&&r.improvePlanStatus==='확정').length, unit_fn:()=>`/${RISKS.filter(r=>r.z_selected).length}건 확정됨`, color:'var(--green)'},
       ]},
     { id:'implement', label:'개선방안 이행', shortLabel:'이행 관리',
       nav:'monthly', icon:'📋',
@@ -5356,11 +5388,19 @@ const LEVEL_COLOR = {
   VL: { text:'#22C55E', bg:'#F0FDF4', border:'#BBF7D0' },
 };
 const Y_CRITERIA = {
-  VH: 'KPI 모니터링 + 경영자 보고 + 감사 대상 + CP 사전검토 + 경영시스템 인증',
+  VH: 'KPI 통한 주기적 모니터링 + 경영자 보고 + 감사 대상 + CP부서 사전검토 + 경영시스템 인증 (ISO·KS·AEO 등)',
   H:  '법무·CP팀 이중검토 또는 별도 위원회 검토',
-  M:  '문서화된 절차 + 주기적 교육 + 투명성 통제체계 수립',
-  L:  '통제수단 없으나 담당 업무가 조직 내 할당',
-  VL: '해당 의무에 대한 통제수단 없음',
+  M:  '문서화된 절차 수립 + 주기적 교육 실시 + 투명성 통제체계 수립',
+  L:  '통제수단은 없으나 담당 업무가 조직 내 할당되어 있음',
+  VL: '해당 의무사항에 대한 통제수단이 없음',
+};
+// Y가 낮을수록 통제 미흡 → 잔여리스크 높아짐 (색상이 역전됨에 주의)
+const Y_LABELS = {
+  VH: { short:'매우 높음', color:'#22C55E', bg:'#F0FDF4', border:'#BBF7D0' },
+  H:  { short:'높음',     color:'#84CC16', bg:'#F7FEE7', border:'#D9F99D' },
+  M:  { short:'보통',     color:'#F59E0B', bg:'#FFFBEB', border:'#FDE68A' },
+  L:  { short:'낮음',     color:'#F97316', bg:'#FFF7ED', border:'#FED7AA' },
+  VL: { short:'매우 낮음', color:'#EF4444', bg:'#FEF2F2', border:'#FECACA' },
 };
 const A_LABELS = {
   5: { short:'확신',      color:'#EF4444', bg:'#FEF2F2' },
@@ -5825,17 +5865,15 @@ function _checkPhaseConditions(phaseId) {
     case 'identify': {
       const hasRisks = RISKS.length >= 1;
       const assignNotifySent = phaseStatus.identify?.assignNotifySent || false;
-      // 분모: RISKS.length 고정 (relatedOrg 유무 무관 — phase1.md 수정안)
-      const opinionSubmitted = RISKS.filter(r => r.identifyOpinionStatus === '제출완료').length;
-      const opinionDone = RISKS.length > 0 && (opinionSubmitted / RISKS.length) >= 0.8;
-      // 의견 있는 건 전수 처리 완료 — 데이터 자동 판정 (manual 아님)
+      const allSubmittedCount = RISKS.filter(r => r.identifyOpinionStatus === '제출완료').length;
+      const allTeamsSubmitted = RISKS.length > 0 && RISKS.every(r => r.identifyOpinionStatus === '제출완료');
       const withOpinion = RISKS.filter(r => r.identifyOpinionStatus === '제출완료' && r.identifyOpinionType !== '이의없음');
       const allReviewed = withOpinion.length === 0 || withOpinion.every(r => r.identifyConfirmStatus !== 'pending');
       return [
         { label: '리스크 1건 이상 등록 (엑셀 업로드)', met: hasRisks, detail: `${RISKS.length}건 등록` },
         { label: '배당 확인 메일 발송', met: assignNotifySent, detail: assignNotifySent ? '발송 완료' : '미발송', manual: true, key: 'assignNotifySent' },
-        { label: `팀 의견 수렴 80% 이상 (${opinionSubmitted}/${RISKS.length}건)`, met: opinionDone, detail: `${opinionSubmitted}건 제출` },
-        { label: '의견 있는 건 전수 검토 처리 완료', met: allReviewed, detail: allReviewed ? `${withOpinion.length}건 처리 완료` : `${withOpinion.filter(r=>r.identifyConfirmStatus==='pending').length}건 미처리` },
+        { label: `현업 의견 전수 제출 완료 (${allSubmittedCount}/${RISKS.length}건)`, met: allTeamsSubmitted, detail: allTeamsSubmitted ? '전수 제출 완료' : `${RISKS.length - allSubmittedCount}건 미제출` },
+        { label: '현업의견 전수 검토 처리 완료', met: allReviewed, detail: allReviewed ? `${withOpinion.length}건 처리 완료` : `${withOpinion.filter(r=>r.identifyConfirmStatus==='pending').length}건 미처리` },
       ];
     }
     case 'assess': {
@@ -5850,29 +5888,35 @@ function _checkPhaseConditions(phaseId) {
       ];
     }
     case 'control': {
-      const targetRisks = RISKS.filter(r => r.x_level && r.x_level !== '');
-      const inputted = targetRisks.filter(r => r.controlMeasureStatus === '입력완료');
-      const evaluated = targetRisks.filter(r => r.y_level);
+      const target = RISKS.filter(r => r.x_level && r.x_level !== '');
+      const inputted = target.filter(r => r.controlMeasureStatus === '입력완료').length;
+      const evaluated = target.filter(r => r.y_level && r.y_level !== '').length;
+      const inputOk = target.length > 0 && (inputted / target.length) >= 0.8;
+      const evalOk  = target.length > 0 && evaluated === target.length;
       return [
-        { label: '통제수단 입력 완료', met: inputted.length === targetRisks.length && targetRisks.length > 0, detail: `${inputted.length}/${targetRisks.length}건` },
-        { label: 'CP팀 통제효과성(Y) 평가 완료', met: evaluated.length === targetRisks.length && targetRisks.length > 0, detail: `${evaluated.length}/${targetRisks.length}건` },
+        { label: `팀 통제수단 입력 완료 (80% 이상 · ${inputted}/${target.length}건)`, met: inputOk, detail: `${inputted}/${target.length}건` },
+        { label: `CP팀 통제효과성(Y) 평가 완료 (전수 · ${evaluated}/${target.length}건)`, met: evalOk, detail: `${evaluated}/${target.length}건` },
       ];
     }
     case 'residual': {
-      const zSelected = RISKS.filter(r => r.z_selected);
-      const residualConfirmSent = phaseStatus.residual?.residualConfirmSent || false;
+      const zCount = RISKS.filter(r => r.z_level && r.z_level !== '').length;
+      const zSelected = RISKS.filter(r => r.z_selected).length;
+      const confirmSent = phaseStatus.residual?.residualConfirmSent || false;
+      const residualConfirmed = phaseStatus.residual?.residualConfirmed || false;
       return [
-        { label: 'Z 계산 완료 (X·Y 모두 입력됨)', met: RISKS.filter(r => r.z_level).length > 0, detail: `${RISKS.filter(r => r.z_level).length}건` },
-        { label: '잔여리스크 관리 대상 선정', met: zSelected.length > 0, detail: `${zSelected.length}건 선정` },
-        { label: '사업팀 확인 요청 발송', met: residualConfirmSent, detail: residualConfirmSent ? '발송 완료' : '미발송', manual: true, key: 'residualConfirmSent' },
+        { label: `Z(잔여리스크) 계산 완료 — ${zCount}건`, met: zCount > 0, detail: `${zCount}건` },
+        { label: `관리 대상 선정 — ${zSelected}건`, met: zSelected > 0, detail: `${zSelected}건` },
+        { label: '사업팀 확인 요청 발송', met: confirmSent, detail: confirmSent ? '발송 완료' : '미발송', manual: true, key: 'residualConfirmSent' },
+        { label: '최종 확정 완료', met: residualConfirmed, detail: residualConfirmed ? '확정 완료' : '미확정' },
       ];
     }
     case 'improve': {
       const targets = RISKS.filter(r => r.z_selected);
-      const confirmed = targets.filter(r => r.improvePlanStatus === '확정');
+      const submitted = targets.filter(r => r.improvePlanStatus !== '미제출').length;
+      const confirmed = targets.filter(r => r.improvePlanStatus === '확정').length;
       return [
-        { label: '전체 개선방안 제출 완료', met: targets.length > 0 && targets.filter(r => r.improvePlanStatus !== '미제출').length === targets.length, detail: `${targets.filter(r => r.improvePlanStatus !== '미제출').length}/${targets.length}건` },
-        { label: '전체 개선방안 CP팀 확정', met: confirmed.length === targets.length && targets.length > 0, detail: `${confirmed.length}/${targets.length}건` },
+        { label: `팀 개선방안 제출 완료 (${submitted}/${targets.length}건)`, met: targets.length > 0 && submitted === targets.length, detail: `${submitted}/${targets.length}건` },
+        { label: `CP팀 개선방안 전수 확정 (${confirmed}/${targets.length}건)`, met: targets.length > 0 && confirmed === targets.length, detail: `${confirmed}/${targets.length}건` },
       ];
     }
     case 'implement': {
@@ -6678,8 +6722,35 @@ async function sendAssignNotify() {
       _savePhaseStatus(curYear, 'identify', { assignNotifySent: true });
       toast('배당 확인 요청 메일이 발송되었습니다.', 'success');
     } catch(e) { toast('발송 실패: ' + e.message, 'error'); }
+  } else {
+    toast('FLOW_ASSIGN_NOTIFY_URL이 설정되지 않았습니다. CONFIG를 확인하세요.', 'error', 5000);
+    return;
   }
   renderPhaseDetail(0);
+}
+
+/* ── Phase 3: 통제수단 입력 요청 메일 발송 (phase3.md) ── */
+async function sendControlInputNotify() {
+  const teams = [...new Set(RISKS.map(r => r.team || (r.relatedOrg||'').split('/')[0]).filter(Boolean))];
+  const ok = await showConfirmModal({
+    title: '통제수단 입력 요청 메일 발송',
+    message: `${teams.length}개 팀에 통제수단 입력 요청 메일을 발송합니다.<br><br>발송 대상: <strong>${teams.join(', ')}</strong><br><br><span style="font-size:12px;color:var(--muted)">각 팀은 배당된 리스크의 현재 통제수단을 확인·수정하여 제출해야 합니다.</span>`,
+    confirmText: '📧 메일 발송',
+  });
+  if (!ok) return;
+  if (CONFIG.OFFLINE_MODE) {
+    _savePhaseStatus(curYear, 'control', { controlInputNotifySent: true });
+    toast(`✅ (오프라인) ${teams.length}개 팀에 통제수단 입력 요청 메일 발송 완료`, 'success', 5000);
+  } else {
+    try {
+      showLoading('메일 발송 중...');
+      await callFlow(CONFIG.FLOW_CONTROL_INPUT_URL, { year: curYear, teams, risks: RISKS.map(r => ({id:r.id,team:r.team,title:r.riskContent||r.title})) });
+      _savePhaseStatus(curYear, 'control', { controlInputNotifySent: true });
+      toast(`✅ ${teams.length}개 팀에 메일 발송 완료`, 'success');
+    } catch(e) { toast('메일 발송 실패: ' + e.message, 'error'); }
+    finally { hideLoading(); }
+  }
+  if (curPage === 'phase3') renderPhaseDetail(2);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -6754,131 +6825,10 @@ async function sendResidualConfirm() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   🔧  Phase 5: 개선방안 도출·확정 뷰
+   🔧  Phase 5: 개선방안 — 구버전 폐기, 신버전은 advplan2 블록에서 구현
 ═══════════════════════════════════════════════════════════ */
-let _improveTab = 'submit';
-function renderImproveView() {
-  const el = document.getElementById('improve-interactive');
-  if (!el) return;
-  const zSelected = RISKS.filter(r => r.z_selected);
-  const isAdmin = appRole === 'admin';
-
-  el.innerHTML = `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden">
-      <div style="display:flex;border-bottom:1px solid var(--border)">
-        <button id="imp-tab-submit" onclick="switchImproveTab('submit')" style="flex:1;padding:12px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;${_improveTab==='submit'?'background:var(--accent);color:#fff':'background:var(--surface);color:var(--muted)'}">📝 개선방안 제출</button>
-        ${isAdmin ? `<button id="imp-tab-confirm" onclick="switchImproveTab('confirm')" style="flex:1;padding:12px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;${_improveTab==='confirm'?'background:var(--accent);color:#fff':'background:var(--surface);color:var(--muted)'}">✅ CP팀 확정 (관리자)</button>` : ''}
-      </div>
-      <div id="imp-panel-submit" style="padding:20px;${_improveTab==='submit'?'':'display:none'}">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;min-height:300px">
-          <div>
-            <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">관리 대상 리스크 (${zSelected.length}건)</div>
-            <div id="imp-list">${zSelected.map((r, i) => `
-              <div class="r-item" onclick="selectImprove(${i})" style="cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
-                <div style="font-size:11px;color:var(--accent);font-weight:700">${r.id} · ${r.team}</div>
-                <div style="font-size:13px;font-weight:600;color:var(--text)">${_esc(r.title)}</div>
-                <span style="font-size:11px;font-weight:700;color:${r.improvePlanStatus==='확정'?'var(--green)':r.improvePlanStatus==='제출완료'?'var(--accent)':'var(--muted)'}">${r.improvePlanStatus||'미제출'}</span>
-              </div>`).join('')}
-          </div>
-          <div id="imp-form-area" style="padding:16px;background:var(--bg);border-radius:10px">
-            <div style="text-align:center;padding:60px 20px;color:var(--muted);font-size:13px">← 좌측에서 리스크를 선택하세요</div>
-          </div>
-        </div>
-      </div>
-      <div id="imp-panel-confirm" style="padding:20px;${_improveTab==='confirm'?'':'display:none'}">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;min-height:300px">
-          <div>
-            <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">제출완료 리스크</div>
-            <div id="imp-confirm-list">${zSelected.filter(r=>r.improvePlanStatus==='제출완료'||r.improvePlanStatus==='확정').map((r, i) => `
-              <div class="r-item" onclick="selectImproveConfirm(${RISKS.indexOf(r)})" style="cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
-                <div style="font-size:11px;color:var(--accent);font-weight:700">${r.id} · ${r.team}</div>
-                <div style="font-size:13px;font-weight:600;color:var(--text)">${_esc(r.title)}</div>
-                <span style="font-size:11px;font-weight:700;color:${r.improvePlanStatus==='확정'?'var(--green)':'var(--accent)'}">${r.improvePlanStatus}</span>
-              </div>`).join('')}
-          </div>
-          <div id="imp-confirm-form-area" style="padding:16px;background:var(--bg);border-radius:10px">
-            <div style="text-align:center;padding:60px 20px;color:var(--muted);font-size:13px">← 좌측에서 리스크를 선택하세요</div>
-          </div>
-        </div>
-      </div>
-    </div>`;
-}
-function switchImproveTab(tab) {
-  _improveTab = tab;
-  const ps = document.getElementById('imp-panel-submit');
-  const pc = document.getElementById('imp-panel-confirm');
-  const bs = document.getElementById('imp-tab-submit');
-  const bc = document.getElementById('imp-tab-confirm');
-  if (ps) ps.style.display = tab === 'submit' ? 'block' : 'none';
-  if (pc) pc.style.display = tab === 'confirm' ? 'block' : 'none';
-  if (bs) { bs.style.background = tab === 'submit' ? 'var(--accent)' : 'var(--surface)'; bs.style.color = tab === 'submit' ? '#fff' : 'var(--muted)'; }
-  if (bc) { bc.style.background = tab === 'confirm' ? 'var(--accent)' : 'var(--surface)'; bc.style.color = tab === 'confirm' ? '#fff' : 'var(--muted)'; }
-}
-function selectImprove(idx) {
-  const zSelected = RISKS.filter(r => r.z_selected);
-  const r = zSelected[idx]; if (!r) return;
-  const form = document.getElementById('imp-form-area'); if (!form) return;
-  const isConfirmed = r.improvePlanStatus === '확정';
-  form.innerHTML = `
-    <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:12px">${_esc(r.title)}</div>
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      ${levelBadgeHtml(r.x_level)}
-      <span style="font-size:11px;color:var(--muted)">→</span>
-      ${levelBadgeHtml(r.z_level)}
-    </div>
-    ${isConfirmed ? `<div style="padding:10px;background:#ECFDF5;border:1px solid #86EFAC;border-radius:8px;font-size:13px;color:var(--green);font-weight:700;margin-bottom:12px">✅ 확정됨</div>
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px">개선방안</div>
-      <div style="font-size:13px;color:var(--text);line-height:1.7;padding:10px;background:#fff;border-radius:8px;border:1px solid var(--border);margin-bottom:12px">${_esc(r.improvePlan)}</div>
-      ${r.improvePlanComment ? `<div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px">CP팀 의견</div><div style="font-size:13px;color:var(--text);line-height:1.7;padding:10px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE">${_esc(r.improvePlanComment)}</div>` : ''}
-    ` : `
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">개선방안 작성</div>
-      <textarea id="imp-plan-text" style="width:100%;height:120px;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;outline:none" placeholder="10자 이상 작성하세요">${_esc(r.improvePlan||'')}</textarea>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn btn-ghost" onclick="saveImproveDraft(${RISKS.indexOf(r)})">임시저장</button>
-        <button class="btn btn-primary" onclick="submitImprovePlan(${RISKS.indexOf(r)})">제출</button>
-      </div>
-    `}`;
-}
-function saveImproveDraft(riskIdx) {
-  const r = RISKS[riskIdx]; if (!r) return;
-  r.improvePlan = document.getElementById('imp-plan-text')?.value || '';
-  if (CONFIG.OFFLINE_MODE) _lsSave(curYear, curMonth, r.id, { ...r });
-  toast('임시저장되었습니다.', 'info');
-}
-function submitImprovePlan(riskIdx) {
-  const r = RISKS[riskIdx]; if (!r) return;
-  const plan = document.getElementById('imp-plan-text')?.value?.trim() || '';
-  if (plan.length < 10) { toast('개선방안은 10자 이상 작성해주세요.', 'warn'); return; }
-  r.improvePlan = plan;
-  r.improvePlanStatus = '제출완료';
-  if (CONFIG.OFFLINE_MODE) _lsSave(curYear, curMonth, r.id, { ...r });
-  toast('개선방안이 제출되었습니다.', 'success');
-  renderImproveView();
-}
-function selectImproveConfirm(riskIdx) {
-  const r = RISKS[riskIdx]; if (!r) return;
-  const form = document.getElementById('imp-confirm-form-area'); if (!form) return;
-  const isConfirmed = r.improvePlanStatus === '확정';
-  form.innerHTML = `
-    <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:12px">${_esc(r.title)}</div>
-    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px">제출된 개선방안</div>
-    <div style="font-size:13px;color:var(--text);line-height:1.7;padding:10px;background:#fff;border-radius:8px;border:1px solid var(--border);margin-bottom:12px">${_esc(r.improvePlan)}</div>
-    ${isConfirmed ? `<div style="padding:10px;background:#ECFDF5;border:1px solid #86EFAC;border-radius:8px;font-size:13px;color:var(--green);font-weight:700">✅ 확정 완료</div>
-      ${r.improvePlanComment ? `<div style="font-size:12px;font-weight:700;color:var(--muted);margin-top:10px;margin-bottom:4px">검토의견</div><div style="font-size:13px;color:var(--text);padding:10px;background:#EFF6FF;border-radius:8px">${_esc(r.improvePlanComment)}</div>` : ''}
-    ` : `
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">검토 의견 (선택사항)</div>
-      <textarea id="imp-confirm-comment" style="width:100%;height:80px;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;outline:none" placeholder="검토 의견을 입력하세요">${_esc(r.improvePlanComment||'')}</textarea>
-      <button class="btn btn-primary" style="margin-top:10px;width:100%" onclick="confirmImprovePlan(${riskIdx})">✅ 개선방안 확정</button>
-    `}`;
-}
-function confirmImprovePlan(riskIdx) {
-  const r = RISKS[riskIdx]; if (!r) return;
-  r.improvePlanStatus = '확정';
-  r.improvePlanComment = document.getElementById('imp-confirm-comment')?.value || '';
-  if (CONFIG.OFFLINE_MODE) _lsSave(curYear, curMonth, r.id, { ...r });
-  toast('개선방안이 확정되었습니다.', 'success');
-  renderImproveView();
-}
+/* 구버전 함수 stub (호환성) */
+function renderImproveView() { /* 폐기 — improve-interactive div 제거됨 */ }
 
 /* ── 개선 과제 퀵 에딧 모달 (Selection 페이지에서 사용) ── */
 function openTaskQuickEdit(riskId) {
@@ -6947,99 +6897,13 @@ function saveTaskQuickEdit(riskId) {
     _lsSave(curYear, curMonth, r.id, { ...r, task });
   }
   document.getElementById('task-quick-modal')?.remove();
-  renderSelection();
+  if (curPage === 'master') applyMaster();
   if (curPage === 'phasecontrol') renderPhaseControl();
   if (/^phase[1-7]$/.test(curPage)) renderPhaseDetail(parseInt(curPage.charAt(5)) - 1);
   toast(task ? `[${riskId}] 개선 과제가 저장되었습니다.` : `[${riskId}] 개선 과제가 비워졌습니다.`, 'success');
 }
 
-/* ── Selection 페이지: Phase 3 기간에 개선 과제 미입력 표시 ── */
-const _origRenderSelection = renderSelection;
-renderSelection = function() {
-  _origRenderSelection();
-
-  const rm = _getRealMonth();
-  // Phase 3 (3~4월) 기간에만 표시
-  if (rm < 3 || rm > 4) return;
-
-  const selected = RISKS.filter(r => r.selected !== false);
-  const withTask = selected.filter(r => r.task && r.task.trim() !== '');
-  const noTask = selected.filter(r => !r.task || r.task.trim() === '');
-
-  // 테이블 행에 미입력 표시 추가
-  const tbody = document.getElementById('sel-tbody');
-  if (!tbody) return;
-
-  tbody.querySelectorAll('tr').forEach(tr => {
-    const titleTd = tr.querySelectorAll('td')[2];
-    if (!titleTd) return;
-    const titleText = titleTd.textContent.trim();
-    const risk = RISKS.find(r => r.title === titleText);
-    if (!risk) return;
-
-    const isSelected = risk.selected !== false;
-    const hasTask = risk.task && risk.task.trim() !== '';
-
-    // 리스크명 셀 클릭 → 개선과제 퀵에딧 모달
-    titleTd.style.cursor = 'pointer';
-    titleTd.style.color = 'var(--accent)';
-    titleTd.title = '클릭하여 개선 과제 입력';
-    titleTd.onclick = (e) => { e.stopPropagation(); openTaskQuickEdit(risk.id); };
-
-    // 마지막 열(위험도) 뒤에 개선과제 상태 열 추가
-    const existingBadge = tr.querySelector('.task-status-cell');
-    if (existingBadge) existingBadge.remove();
-
-    const td = document.createElement('td');
-    td.className = 'task-status-cell';
-    td.style.cssText = 'text-align:center;font-size:11px;font-weight:700';
-    if (!isSelected) {
-      td.innerHTML = '<span style="color:var(--muted)">—</span>';
-    } else if (hasTask) {
-      td.innerHTML = `<span style="color:var(--green);cursor:pointer" onclick="event.stopPropagation();openTaskQuickEdit('${risk.id}')" title="클릭하여 수정">입력됨</span>`;
-    } else {
-      td.innerHTML = `<span style="padding:2px 8px;border-radius:99px;background:#FEF2F2;color:#DC2626;cursor:pointer" onclick="event.stopPropagation();openTaskQuickEdit('${risk.id}')" title="클릭하여 개선 과제 입력">미입력</span>`;
-    }
-    tr.appendChild(td);
-  });
-
-  // 테이블 헤더에 열 추가
-  const thead = tbody.closest('table')?.querySelector('thead tr');
-  if (thead && !thead.querySelector('.task-header-cell')) {
-    const th = document.createElement('th');
-    th.className = 'task-header-cell';
-    th.style.cssText = 'text-align:center;white-space:nowrap';
-    th.textContent = '개선과제';
-    thead.appendChild(th);
-  }
-
-  // 상단 요약 배너 추가
-  const selView = document.getElementById('view-selection');
-  if (selView && !selView.querySelector('.phase3-task-banner')) {
-    const banner = document.createElement('div');
-    banner.className = 'phase3-task-banner';
-    banner.style.cssText = 'display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:12px;margin-bottom:16px;flex-wrap:wrap;' +
-      (noTask.length > 0
-        ? 'background:#FFFBEB;border:1px solid #FDE68A'
-        : 'background:#F0FDF4;border:1px solid #BBF7D0');
-    banner.innerHTML = noTask.length > 0
-      ? `<span style="font-size:18px">🛡</span>
-         <div style="flex:1">
-           <div style="font-size:13px;font-weight:700;color:#92400E">Phase 3 · 통제수준 진단 — 개선 과제 입력 현황</div>
-           <div style="font-size:12px;color:#A16207;margin-top:2px">선정 리스크 중 <strong>${noTask.length}건</strong> 미입력 · Master에서 "개선 과제"를 기록하세요</div>
-         </div>
-         <div style="display:flex;align-items:baseline;gap:4px">
-           <span style="font-size:22px;font-weight:900;color:#D97706">${withTask.length}</span>
-           <span style="font-size:12px;color:#A16207;font-weight:700">/${selected.length}건</span>
-         </div>
-         <button onclick="navigateTo('master')" style="padding:7px 16px;border:1.5px solid #FDE68A;border-radius:8px;background:#fff;color:#92400E;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">Master 이동</button>`
-      : `<span style="font-size:18px">✅</span>
-         <span style="font-size:13px;font-weight:700;color:#059669">모든 선정 리스크(${selected.length}건)에 개선 과제가 입력되었습니다</span>`;
-    // 자동선정 카드 다음에 삽입
-    const autoCard = selView.querySelector('.card');
-    if (autoCard) autoCard.after(banner);
-  }
-};
+/* ── Selection monkey-patch 삭제됨 (view-selection 제거로 불필요) ── */
 
 /* ── Master 수정 모달: Phase 3 기간에 "개선 과제" 필드 강조 ── */
 const _origOpenRiskEditModal = openRiskEditModal;
@@ -7534,27 +7398,34 @@ function selectIdentifyOpinion(idx) {
   const myRisks = RISKS.filter(r => (r.relatedOrg||r.team||'').includes(appTeam));
   const r = myRisks[idx]; if (!r) return;
   _identifyOpinionIdx = idx;
-  const form = document.getElementById('identify-opinion-form'); if (!form) return;
-  const isSubmitted = r.identifyOpinionStatus === '제출완료';
-  form.innerHTML = `
-    <div style="padding:20px">
-      <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px">${r.id} · ${_esc(r.domain||r.cat)}</div>
-      <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:10px">${_esc(r.riskContent||r.title)}</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:4px">법규명: ${_esc(r.lawName||'-')} · 조항: ${_esc(r.relatedClause||'-')}</div>
-      <div style="display:flex;gap:6px;margin-bottom:14px">${levelBadgeHtml(r.x_level)}</div>
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">의견 유형</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="io-type-chips">
-        ${['이의없음','추가요청','수정요청','삭제요청'].map(t => `<button type="button" class="edit-ab-chip${r.identifyOpinionType===t?' on':''}" onclick="selectIOType('${t}',this)" style="padding:8px 14px;border:1.5px solid ${r.identifyOpinionType===t?'var(--accent)':'var(--border)'};border-radius:8px;background:${r.identifyOpinionType===t?'var(--accent-l)':'#fff'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:${r.identifyOpinionType===t?'var(--accent)':'var(--muted)'}">${t}</button>`).join('')}
-      </div>
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px">의견 내용</div>
-      <textarea id="io-content" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:90px;resize:vertical" ${isSubmitted?'disabled':''}>${_esc(r.identifyOpinion||'')}</textarea>
-      ${r.identifyConfirmStatus!=='pending'&&r.identifyConfirmComment?`<div style="margin-top:10px;padding:10px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE"><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:3px">CP팀 처리: ${r.identifyConfirmStatus}</div><div style="font-size:12px;color:var(--text)">${_esc(r.identifyConfirmComment)}</div></div>`:''}
-      <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
-        <button class="btn btn-ghost" onclick="saveIdentifyOpinion('${r.id}',true)">임시저장</button>
-        <button class="btn btn-primary" onclick="saveIdentifyOpinion('${r.id}',false)" ${isSubmitted?'disabled':''}>제출하기</button>
-      </div>
-    </div>`;
   window._ioType = r.identifyOpinionType || '';
+  const isSubmitted = r.identifyOpinionStatus === '제출완료';
+  const bodyHtml = `
+    <div style="display:flex;gap:6px;margin-bottom:14px">${levelBadgeHtml(r.x_level)}<span style="font-size:12px;color:var(--muted)">법규: ${_esc(r.lawName||'-')}</span></div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">의견 유형</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="io-type-chips">
+      ${['이의없음','추가요청','수정요청','삭제요청'].map(t => `<button type="button" class="edit-ab-chip${r.identifyOpinionType===t?' on':''}" ${isSubmitted?'disabled':''} onclick="selectIOType('${t}',this)" style="padding:8px 14px;border:1.5px solid ${r.identifyOpinionType===t?'var(--accent)':'var(--border)'};border-radius:8px;background:${r.identifyOpinionType===t?'var(--accent-l)':'#fff'};font-size:12px;font-weight:600;cursor:${isSubmitted?'not-allowed':'pointer'};font-family:inherit;color:${r.identifyOpinionType===t?'var(--accent)':'var(--muted)'};${isSubmitted?'opacity:.5;pointer-events:none':''}">${t}</button>`).join('')}
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px">의견 내용</div>
+    <textarea id="io-content" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:90px;resize:vertical" ${isSubmitted?'disabled':''}>${_esc(r.identifyOpinion||'')}</textarea>
+    ${r.identifyConfirmStatus!=='pending'&&r.identifyConfirmComment?`<div style="margin-top:10px;padding:10px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE"><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:3px">CP팀 처리: ${r.identifyConfirmStatus==='accepted'?'수용':'기각'}</div><div style="font-size:12px;color:var(--text)">${_esc(r.identifyConfirmComment)}</div></div>`:''}`;
+
+  const footerHtml = `
+    <button class="btn btn-ghost" onclick="saveIdentifyOpinion('${r.id}',true)" ${isSubmitted?'disabled':''}>임시저장</button>
+    <button class="btn btn-primary" onclick="saveIdentifyOpinion('${r.id}',false)" ${isSubmitted?'disabled':''}>제출하기</button>`;
+
+  if (isMobile()) {
+    openSheet(r.id + ' · ' + _esc(r.domain||r.cat), _esc(r.riskContent||r.title), bodyHtml, footerHtml);
+  } else {
+    const form = document.getElementById('identify-opinion-form'); if (!form) return;
+    form.innerHTML = `
+      <div class="form-hd">
+        <div class="form-hd-id">${r.id} · ${_esc(r.domain||r.cat)}</div>
+        <div class="form-hd-title">${_esc(r.riskContent||r.title)}</div>
+      </div>
+      <div class="form-body">${bodyHtml}</div>
+      <div class="form-footer">${footerHtml}</div>`;
+  }
 }
 function selectIOType(type, el) {
   window._ioType = type;
@@ -7571,6 +7442,10 @@ function saveIdentifyOpinion(riskId, isDraft) {
   r.identifyOpinionStatus = isDraft ? '임시저장' : '제출완료';
   r.identifyOpinionAt = isDraft ? '' : new Date().toISOString();
   if (CONFIG.OFFLINE_MODE) _lsSave(curYear, curMonth, r.id, { ...r });
+  // BUG-4: 정식 제출 시 CP팀 알림 Flow 호출
+  if (!isDraft && !CONFIG.OFFLINE_MODE && CONFIG.FLOW_IDENTIFY_OPINION_URL) {
+    callFlow(CONFIG.FLOW_IDENTIFY_OPINION_URL, { year:parseInt(curYear), riskId:r.id, team:r.team, opinionType:r.identifyOpinionType }).catch(e => console.warn('의견 제출 알림 발송 실패:', e));
+  }
   toast(isDraft ? '임시저장 완료' : `[${riskId}] 의견이 제출되었습니다.`, isDraft ? 'info' : 'success');
   renderIdentifyOpinionView();
 }
@@ -7600,10 +7475,11 @@ function renderIdentifyConfirmView() {
     <td style="text-align:center;font-size:12px;padding:6px">${d.total}</td>
     <td style="text-align:center;font-size:12px;color:var(--green);padding:6px">${d.noIssue}</td>
     <td style="text-align:center;font-size:12px;color:var(--accent);padding:6px">${d.hasOpinion}</td>
-    <td style="text-align:center;font-size:12px;color:${d.notSubmit>0?'var(--red)':'var(--muted)'};padding:6px">${d.notSubmit}</td>
+    <td style="text-align:center;font-size:12px;padding:6px">${d.notSubmit>0?`<span style="color:var(--red);font-weight:700">${d.notSubmit}</span>`:`<span style="color:var(--green)">✓</span>`}</td>
   </tr>`).join('');
 
-  const canConfirm = pending.length === 0 && allSubmitted.length > 0;
+  // BUG-1 수정: 미제출 건도 체크해야 함
+  const canConfirm = pending.length === 0 && allSubmitted.length > 0 && notSubmitted === 0;
 
   el.innerHTML = `
     <div style="margin-bottom:16px">
@@ -7619,22 +7495,17 @@ function renderIdentifyConfirmView() {
       </div>
       <div style="font-size:12px;color:var(--muted);margin-top:10px">전체 의견 처리 현황: 의견있음 <strong>${withOpinion.length}건</strong> 중 수용 ${accepted}건 · 기각 ${rejected}건 · <strong style="color:${pending.length>0?'var(--red)':'var(--green)'}">미처리 ${pending.length}건</strong></div>
     </div>
-    <!-- split-view: 의견 목록 + 검토 폼 -->
+    <!-- split-view: 의견 목록 + 검토 폼 (BUG-6: 필터 탭 추가) -->
     <div class="split-view">
-      <div class="risk-panel"><div class="panel-hd"><div class="panel-title">의견 있는 리스크 (${withOpinion.length}건)</div><div class="panel-sub">미처리 우선 정렬</div></div>
-        <div class="panel-list">${[...withOpinion].sort((a,b) => (a.identifyConfirmStatus==='pending'?0:1) - (b.identifyConfirmStatus==='pending'?0:1)).map(r => `
-          <div class="r-item" onclick="selectIdentifyConfirm('${r.id}')" style="cursor:pointer;padding:10px 12px;border:1px solid ${r.identifyConfirmStatus==='pending'?'var(--amber)':'var(--border)'};border-radius:8px;margin-bottom:6px">
-            <div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--accent);font-weight:700">${r.id}</span><span style="font-size:11px;color:var(--muted)">${_esc(r.team)}</span></div>
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-top:3px">${_esc((r.riskContent||r.title||'').substring(0,40))}${(r.riskContent||r.title||'').length>40?'…':''}</div>
-            <div style="display:flex;gap:6px;margin-top:4px">
-              <span style="font-size:11px;font-weight:700;color:${{추가요청:'var(--accent)',수정요청:'var(--amber)',삭제요청:'var(--red)'}[r.identifyOpinionType]||'var(--muted)'}">${r.identifyOpinionType}</span>
-              <span style="font-size:11px;font-weight:700;color:${r.identifyConfirmStatus==='pending'?'var(--amber)':'var(--green)'}">${r.identifyConfirmStatus==='pending'?'미처리':r.identifyConfirmStatus==='accepted'?'수용':'기각'}</span>
-            </div>
-          </div>`).join('')}
-          ${withOpinion.length===0?'<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">의견 있는 건이 없습니다</div>':''}
+      <div class="risk-panel"><div class="panel-hd"><div class="panel-title">제출 리스크</div></div>
+        <div style="display:flex;gap:6px;padding:0 12px 8px;flex-wrap:wrap">
+          <button class="f-btn on" onclick="_filterIdentifyList('all',this)">전체 제출 (${allSubmitted.length})</button>
+          <button class="f-btn" onclick="_filterIdentifyList('opinion',this)">의견있음 (${withOpinion.length})</button>
+          <button class="f-btn" onclick="_filterIdentifyList('noissue',this)">이의없음 (${allSubmitted.length - withOpinion.length})</button>
         </div>
+        <div class="panel-list" id="ic-list-container">${_renderIdentifyListItems(allSubmitted)}</div>
       </div>
-      <div class="form-panel" id="identify-confirm-form"><div class="empty-panel"><div class="empty-icon">✅</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측 목록에서 의견을 선택하면 검토 폼이 열립니다</div></div></div>
+      <div class="form-panel" id="identify-confirm-form"><div class="empty-panel"><div class="empty-icon">✅</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측 목록에서 리스크를 선택하면 검토 폼이 열립니다</div></div></div>
     </div>
     <!-- 하단: 전체 확정 섹션 -->
     <div class="card" style="margin-top:16px">
@@ -7646,11 +7517,11 @@ function renderIdentifyConfirmView() {
         <div>
           ${canConfirm
             ? `<button class="btn btn-primary" style="padding:12px 24px" onclick="confirmPhase1Complete()">✅ 리스크 식별 완료 확정</button>`
-            : `<button class="btn btn-ghost" disabled style="padding:12px 24px;opacity:.5">미처리 ${pending.length}건 남음</button>`
+            : `<button class="btn btn-ghost" disabled style="padding:12px 24px;opacity:.5">${notSubmitted > 0 ? `미제출 ${notSubmitted}건 남음` : `미처리 ${pending.length}건 남음`}</button>`
           }
         </div>
       </div>
-      ${!canConfirm && pending.length > 0 ? `<div style="font-size:12px;color:var(--amber);margin-top:8px">⚠ 모든 의견을 처리해야 Phase 1 완료 확정이 가능합니다.</div>` : ''}
+      ${!canConfirm ? `<div style="font-size:12px;color:var(--amber);margin-top:8px">⚠ ${notSubmitted > 0 ? `현업 의견 미제출 ${notSubmitted}건이 있습니다.` : `미처리 ${pending.length}건을 처리해야`} Phase 1 완료 확정이 가능합니다.</div>` : ''}
     </div>`;
 }
 function confirmPhase1Complete() {
@@ -7666,32 +7537,47 @@ function confirmPhase1Complete() {
 }
 function selectIdentifyConfirm(riskId) {
   const r = RISKS.find(x => x.id === riskId); if (!r) return;
-  const form = document.getElementById('identify-confirm-form'); if (!form) return;
   const done = r.identifyConfirmStatus !== 'pending';
-  form.innerHTML = `
-    <div style="padding:20px">
-      <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px">${r.id} · ${_esc(r.team)}</div>
-      <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">${_esc(r.riskContent||r.title)}</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">법규명: ${_esc(r.lawName||'-')} · 조항: ${_esc(r.relatedClause||'-')}</div>
-      <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <div style="font-size:12px;font-weight:700;color:var(--muted)">팀 의견</div>
-          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:${{추가요청:'#EFF6FF',수정요청:'#FFFBEB',삭제요청:'#FEF2F2'}[r.identifyOpinionType]||'#F1F5F9'};color:${{추가요청:'var(--accent)',수정요청:'var(--amber)',삭제요청:'var(--red)'}[r.identifyOpinionType]||'var(--muted)'}">${r.identifyOpinionType}</span>
-        </div>
-        <div style="font-size:13px;color:var(--text);line-height:1.7">${_esc(r.identifyOpinion||'(내용 없음)')}</div>
+  const typeBg = {추가요청:'#EFF6FF',수정요청:'#FFFBEB',삭제요청:'#FEF2F2'}[r.identifyOpinionType]||'#F1F5F9';
+  const typeColor = {추가요청:'var(--accent)',수정요청:'var(--amber)',삭제요청:'var(--red)'}[r.identifyOpinionType]||'var(--muted)';
+  const masterBtn = {추가요청:`<button onclick="navigateTo('master')" class="btn btn-ghost" style="font-size:12px">➕ Master에서 추가</button>`,수정요청:`<button onclick="navigateTo('master')" class="btn btn-ghost" style="font-size:12px">✏ Master에서 수정</button>`,삭제요청:`<button onclick="navigateTo('master')" class="btn btn-ghost" style="font-size:12px;border-color:var(--red);color:var(--red)">🗑 Master에서 삭제 확인</button>`}[r.identifyOpinionType]||'';
+
+  const bodyHtml = `
+    <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted)">팀 의견</div>
+        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:${typeBg};color:${typeColor}">${r.identifyOpinionType||'-'}</span>
       </div>
-      ${done?`<div style="padding:10px;background:${r.identifyConfirmStatus==='accepted'?'#ECFDF5':'#FEF2F2'};border:1px solid ${r.identifyConfirmStatus==='accepted'?'#86EFAC':'#FECACA'};border-radius:8px;font-size:13px;color:${r.identifyConfirmStatus==='accepted'?'var(--green)':'var(--red)'};font-weight:700;margin-bottom:12px">처리 완료: ${r.identifyConfirmStatus==='accepted'?'수용':'기각'}</div>`:''}
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px">처리 의견</div>
-      <textarea id="ic-comment" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:72px;resize:vertical" ${done?'disabled':''}>${_esc(r.identifyConfirmComment||'')}</textarea>
-      ${!done?`
-      ${r.identifyOpinionType==='추가요청'?'<div style="font-size:11px;color:var(--accent);margin-top:8px">ℹ 수용 시 리스크 Master에서 직접 추가해주세요.</div>':''}
-      ${r.identifyOpinionType==='수정요청'?'<div style="font-size:11px;color:var(--amber);margin-top:8px">ℹ 수용 시 리스크 Master에서 해당 건을 수정해주세요.</div>':''}
-      ${r.identifyOpinionType==='삭제요청'?'<div style="font-size:11px;color:var(--red);margin-top:8px">⚠ 수용 시 해당 리스크에 삭제 요청 플래그가 설정됩니다.</div>':''}
-      <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
-        <button class="btn btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="confirmIdentifyOpinion('${r.id}','rejected')">기각</button>
-        <button class="btn btn-primary" onclick="confirmIdentifyOpinion('${r.id}','accepted')">수용</button>
-      </div>`:''}
-    </div>`;
+      <div style="font-size:13px;color:var(--text);line-height:1.7">${_esc(r.identifyOpinion||'(내용 없음)')}</div>
+    </div>
+    ${done?`<div style="padding:10px;background:${r.identifyConfirmStatus==='accepted'?'#ECFDF5':'#FEF2F2'};border:1px solid ${r.identifyConfirmStatus==='accepted'?'#86EFAC':'#FECACA'};border-radius:8px;font-size:13px;color:${r.identifyConfirmStatus==='accepted'?'var(--green)':'var(--red)'};font-weight:700;margin-bottom:12px">처리 완료: ${r.identifyConfirmStatus==='accepted'?'수용':'기각'}</div>
+      ${r.identifyConfirmStatus==='accepted'&&masterBtn?`<div style="margin-bottom:12px">${masterBtn}</div>`:''}
+      <div style="display:flex;justify-content:flex-end"><button class="btn btn-ghost" style="font-size:12px" onclick="reopenIdentifyConfirm('${r.id}')">↩ 처리 취소 (재검토)</button></div>`:''}
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;margin-top:${done?'14px':'0'}">처리 의견</div>
+    <textarea id="ic-comment" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:72px;resize:vertical" ${done?'disabled':''}>${_esc(r.identifyConfirmComment||'')}</textarea>
+    ${!done?`
+    ${r.identifyOpinionType==='추가요청'?'<div style="font-size:11px;color:var(--accent);margin-top:8px">ℹ 수용 시 리스크 Master에서 직접 추가해주세요.</div>':''}
+    ${r.identifyOpinionType==='수정요청'?'<div style="font-size:11px;color:var(--amber);margin-top:8px">ℹ 수용 시 리스크 Master에서 해당 건을 수정해주세요.</div>':''}
+    ${r.identifyOpinionType==='삭제요청'?'<div style="font-size:11px;color:var(--red);margin-top:8px">⚠ 수용 시 해당 리스크에 삭제 요청 플래그가 설정됩니다.</div>':''}
+    `:''}`;
+
+  const footerHtml = !done ? `
+    <button class="btn btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="confirmIdentifyOpinion('${r.id}','rejected')">기각</button>
+    <button class="btn btn-primary" onclick="confirmIdentifyOpinion('${r.id}','accepted')">수용</button>` : '';
+
+  if (isMobile()) {
+    openSheet(r.id + ' · ' + _esc(r.team), _esc(r.riskContent||r.title), bodyHtml, footerHtml);
+  } else {
+    const form = document.getElementById('identify-confirm-form'); if (!form) return;
+    form.innerHTML = `
+      <div class="form-hd">
+        <div class="form-hd-id">${r.id} · ${_esc(r.team)}</div>
+        <div class="form-hd-title">${_esc(r.riskContent||r.title)}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">법규명: ${_esc(r.lawName||'-')} · 조항: ${_esc(r.relatedClause||'-')}</div>
+      </div>
+      <div class="form-body">${bodyHtml}</div>
+      ${footerHtml ? `<div class="form-footer">${footerHtml}</div>` : ''}`;
+  }
 }
 function confirmIdentifyOpinion(riskId, status) {
   const r = RISKS.find(x => x.id === riskId); if (!r) return;
@@ -7714,107 +7600,236 @@ function confirmIdentifyOpinion(riskId, status) {
 
   if (CONFIG.OFFLINE_MODE) _lsSave(curYear, curMonth, r.id, { ...r });
   renderIdentifyConfirmView();
+  // 수용 처리 후 바로 해당 건 폼 다시 열기 (Master 이동 버튼 표시)
+  selectIdentifyConfirm(riskId);
 }
 
-/* ── 3. Phase 3: 통제수단 입력 (팀 담당자) ── */
+/* BUG-5: 처리 완료 건 재처리 */
+function reopenIdentifyConfirm(riskId) {
+  const r = RISKS.find(x => x.id === riskId); if (!r) return;
+  r.identifyConfirmStatus = 'pending';
+  r.identifyConfirmComment = '';
+  if (CONFIG.OFFLINE_MODE) _lsSave(curYear, curMonth, r.id, { ...r });
+  toast(`[${riskId}] 처리가 취소되어 재검토 상태로 전환되었습니다.`, 'info');
+  renderIdentifyConfirmView();
+}
+
+/* BUG-6: 필터 탭 헬퍼 */
+let _icFilterMode = 'all';
+function _filterIdentifyList(mode, btn) {
+  _icFilterMode = mode;
+  const container = document.getElementById('ic-list-container'); if (!container) return;
+  document.querySelectorAll('#identify-confirm-content .f-btn').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  const allSubmitted = RISKS.filter(r => r.identifyOpinionStatus === '제출완료');
+  let list;
+  if (mode === 'opinion') list = allSubmitted.filter(r => r.identifyOpinionType && r.identifyOpinionType !== '이의없음');
+  else if (mode === 'noissue') list = allSubmitted.filter(r => r.identifyOpinionType === '이의없음');
+  else list = allSubmitted;
+  container.innerHTML = _renderIdentifyListItems(list);
+}
+function _renderIdentifyListItems(list) {
+  if (!list.length) return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">해당 항목이 없습니다</div>';
+  return [...list].sort((a,b) => (a.identifyConfirmStatus==='pending'?0:1)-(b.identifyConfirmStatus==='pending'?0:1)).map(r => {
+    const typeColor = {추가요청:'var(--accent)',수정요청:'var(--amber)',삭제요청:'var(--red)',이의없음:'var(--green)'}[r.identifyOpinionType]||'var(--muted)';
+    const stText = r.identifyOpinionType==='이의없음'?'이의없음':r.identifyConfirmStatus==='pending'?'미처리':r.identifyConfirmStatus==='accepted'?'수용':'기각';
+    const stColor = r.identifyOpinionType==='이의없음'?'var(--green)':r.identifyConfirmStatus==='pending'?'var(--amber)':'var(--green)';
+    return `<div class="r-item" onclick="selectIdentifyConfirm('${r.id}')" style="cursor:pointer;padding:10px 12px;border:1px solid ${r.identifyConfirmStatus==='pending'&&r.identifyOpinionType!=='이의없음'?'var(--amber)':'var(--border)'};border-radius:8px;margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--accent);font-weight:700">${r.id}</span><span style="font-size:11px;color:var(--muted)">${_esc(r.team)}</span></div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-top:3px">${_esc((r.riskContent||r.title||'').substring(0,40))}${(r.riskContent||r.title||'').length>40?'…':''}</div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <span style="font-size:11px;font-weight:700;color:${typeColor}">${r.identifyOpinionType||'-'}</span>
+        <span style="font-size:11px;font-weight:700;color:${stColor}">${stText}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* IMPROVE-4: _checkPhaseConditions 전수 제출 조건은 identify 블록에서 직접 처리 */
+
+/* ── 3. Phase 3: 통제수단 확인·입력 (팀 담당자) — phase3.md 전면 개선 ── */
 function renderControlInputView() {
   const el = document.getElementById('control-input-content'); if (!el) return;
   const myRisks = RISKS.filter(r => r.x_level && (r.relatedOrg||r.team||'').includes(appTeam));
-  myRisks.sort((a,b) => (LEVEL_ORDER[b.x_level]||0) - (LEVEL_ORDER[a.x_level]||0));
-  const inputted = myRisks.filter(r => r.controlMeasureStatus === '입력완료').length;
+  myRisks.sort((a,b) => {
+    const aDone = a.controlMeasureStatus==='입력완료'?1:0, bDone = b.controlMeasureStatus==='입력완료'?1:0;
+    if (aDone!==bDone) return aDone-bDone;
+    return (LEVEL_ORDER[b.x_level]||0)-(LEVEL_ORDER[a.x_level]||0);
+  });
+  const inputted = myRisks.filter(r => r.controlMeasureStatus==='입력완료').length;
+  const drafts   = myRisks.filter(r => r.controlMeasureStatus==='임시저장').length;
+  const noInput  = myRisks.length - inputted - drafts;
+  const pct      = myRisks.length ? Math.round(inputted/myRisks.length*100) : 0;
   el.innerHTML = `
     <div style="margin-bottom:16px">
-      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">🔍 통제수단 입력</div>
-      <div style="font-size:13px;color:var(--muted)">각 리스크에 대한 현재 통제 활동을 입력하세요. <strong style="color:var(--accent)">${inputted}/${myRisks.length}건 입력 완료</strong></div>
+      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">🔍 통제수단 확인·입력</div>
+      <div style="padding:12px 16px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;font-size:13px;color:#1D4ED8;line-height:1.7;margin-bottom:12px">
+        📋 CP팀에서 리스크별 통제수단을 확인 요청했습니다.<br>
+        작년 내용이 있는 경우 <strong>검토 후 그대로 유지하거나 수정</strong>해서 제출해주세요.<br>
+        신규 리스크는 현재 통제 활동을 구체적으로 작성해주세요.
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="flex:1;height:8px;background:var(--border);border-radius:4px"><div style="height:100%;border-radius:4px;background:var(--green);width:${pct}%;transition:width .4s"></div></div>
+      <span style="font-size:12px;font-weight:700;white-space:nowrap">
+        <span style="color:var(--green)">${inputted}건 완료</span>
+        ${drafts>0?` · <span style="color:var(--amber)">${drafts}건 임시저장</span>`:''}
+        ${noInput>0?` · <span style="color:var(--red)">${noInput}건 미입력</span>`:''}
+        / 전체 ${myRisks.length}건
+      </span>
     </div>
     <div class="split-view">
       <div class="risk-panel"><div class="panel-hd"><div class="panel-title">내 팀 리스크 (${myRisks.length}건)</div></div>
-        <div class="panel-list">${myRisks.map((r,i) => `
-          <div class="r-item" onclick="selectControlInput('${r.id}')" style="cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+        <div class="panel-list">${myRisks.map(r => {
+          const sc = r.controlMeasureStatus==='입력완료'?{c:'var(--green)',t:'✓ 입력완료'}:r.controlMeasureStatus==='임시저장'?{c:'var(--amber)',t:'◎ 임시저장'}:{c:'var(--red)',t:'✕ 미입력'};
+          return `<div class="r-item" onclick="selectControlInput('${r.id}')" style="cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
             <div style="display:flex;align-items:center;gap:6px">${levelBadgeHtml(r.x_level)}<span style="font-size:11px;color:var(--muted)">${_esc(r.domain||r.cat)}</span></div>
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-top:3px">${_esc(r.riskContent||r.title)}</div>
-            <span style="font-size:11px;font-weight:700;color:${r.controlMeasureStatus==='입력완료'?'var(--green)':'var(--muted)'}">${r.controlMeasureStatus||'미입력'}</span>
-          </div>`).join('')}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(r.riskContent||r.title)}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+              <span style="font-size:11px;font-weight:700;color:${sc.c}">${sc.t}</span>
+              ${r.controlMeasure?'<span style="font-size:10px;color:var(--muted)">내용 있음</span>':'<span style="font-size:10px;color:var(--red);font-weight:700">신규 작성 필요</span>'}
+            </div>
+          </div>`;}).join('')}</div>
       </div>
-      <div class="form-panel" id="control-input-form"><div class="empty-panel"><div class="empty-icon">🔍</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측 목록에서 리스크를 선택하면 통제수단 입력 폼이 열립니다</div></div></div>
+      <div class="form-panel" id="control-input-form"><div class="empty-panel"><div class="empty-icon">🔍</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측에서 리스크를 선택하면<br>통제수단 입력 폼이 열립니다</div></div></div>
     </div>`;
 }
 function selectControlInput(riskId) {
   const r = RISKS.find(x => x.id === riskId); if (!r) return;
   const form = document.getElementById('control-input-form'); if (!form) return;
+  const isSubmitted = r.controlMeasureStatus === '입력완료';
+  const hasPrevious = r.controlMeasure && r.controlMeasure.trim() !== '';
+  const yCriteriaHtml = `<div style="margin-top:12px;padding:12px;background:#F8FAFC;border-radius:8px;border:1px solid var(--border)">
+    <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:8px">💡 통제효과성(Y) 기준 참고 — CP팀이 이 내용을 기반으로 Y를 평가합니다</div>
+    ${Object.entries(Y_CRITERIA).map(([lv,desc])=>{const lb=Y_LABELS[lv];return `<div style="display:flex;gap:8px;margin-bottom:5px;align-items:flex-start"><span style="flex-shrink:0;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:800;background:${lb.bg};color:${lb.color};border:1px solid ${lb.border}">${lv} ${lb.short}</span><span style="font-size:11px;color:var(--muted);line-height:1.5">${desc}</span></div>`;}).join('')}
+  </div>`;
   form.innerHTML = `
     <div style="padding:20px">
       <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px">${r.id} · ${_esc(r.domain||r.cat)}</div>
-      <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">${_esc(r.riskContent||r.title)}</div>
-      <div style="display:flex;gap:6px;margin-bottom:14px">${levelBadgeHtml(r.x_level)}<span style="font-size:12px;color:var(--muted)">법규명: ${_esc(r.lawName||'-')}</span></div>
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px">현재 통제수단 *</div>
-      <textarea id="ci-measure" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:120px;resize:vertical" placeholder="현재 시행 중인 통제 활동을 구체적으로 작성하세요. (예: 월 1회 점검 실시, 분기별 교육 이수, 절차서 v2.0 준수 등)">${_esc(r.controlMeasure||'')}</textarea>
-      <details style="margin-top:10px;font-size:12px;color:var(--muted)"><summary style="cursor:pointer;font-weight:700">Y 통제효과성 기준 참고</summary>
-        <div style="padding:8px;background:var(--bg);border-radius:8px;margin-top:6px;line-height:1.8">${Object.entries(Y_CRITERIA).map(([k,v])=>`<div><strong>${k}</strong>: ${v}</div>`).join('')}</div>
-      </details>
-      <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
-        <button class="btn btn-ghost" onclick="saveControlInput('${r.id}',true)">임시저장</button>
-        <button class="btn btn-primary" onclick="saveControlInput('${r.id}',false)">제출하기</button>
+      <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">${_esc(r.riskContent||r.title)}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+        ${levelBadgeHtml(r.x_level,'X '+r.x_level)}
+        <span style="font-size:11px;color:var(--muted)">A=${r.a_likelihood||'?'} × B=${r.b_impact||'?'}</span>
+        <span style="font-size:11px;color:var(--muted)">|</span>
+        <span style="font-size:11px;color:var(--muted)">법규: ${_esc(r.lawName||'-')}</span>
+        ${r.relatedClause?`<span style="font-size:11px;color:var(--muted)">조항: ${_esc(r.relatedClause)}</span>`:''}
       </div>
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">현재 통제수단 <span style="font-weight:400;color:var(--muted);font-size:11px">(구체적으로 작성할수록 Y 평가 결과가 정확합니다)</span></div>
+      ${hasPrevious && !isSubmitted ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:10px 14px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE"><span style="font-size:14px">📋</span><span style="font-size:12px;color:#1D4ED8">작년 통제수단 내용이 있습니다. 변경이 없으면 그대로 제출하거나 수정해주세요.</span></div>`:''}
+      ${hasPrevious && !isSubmitted ? `<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text)"><input type="checkbox" id="ci-unchanged" onchange="toggleControlUnchanged('${r.id}',this.checked)" style="width:16px;height:16px;cursor:pointer"> 작년 통제수단 그대로 유지 (변경 없음)</label>`:''}
+      <textarea id="ci-measure" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:120px;resize:vertical;${isSubmitted?'opacity:.7;cursor:not-allowed;background:#F8FAFC':''}" placeholder="예: 월 1회 점검 실시, 분기별 교육 이수율 95% 유지, 절차서 v2.1 준수, CP부서 사전 검토 필수 등" ${isSubmitted?'readonly':''}>${_esc(r.controlMeasure||'')}</textarea>
+      ${isSubmitted
+        ? `<div style="margin-top:10px;display:flex;align-items:center;gap:8px"><span style="padding:3px 10px;border-radius:99px;background:#ECFDF5;color:var(--green);font-size:12px;font-weight:700">✓ 제출 완료</span><button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;margin-left:auto" onclick="reopenControlInput('${r.id}')">수정 요청</button></div>`
+        : `<div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end"><button class="btn btn-ghost" onclick="saveControlInput('${r.id}',true)">임시저장</button><button class="btn btn-primary" onclick="saveControlInput('${r.id}',false)">제출하기</button></div>`}
+      ${yCriteriaHtml}
     </div>`;
+}
+function toggleControlUnchanged(riskId, checked) {
+  const textarea = document.getElementById('ci-measure');
+  if (textarea) textarea.disabled = checked;
+}
+function reopenControlInput(riskId) {
+  const r = RISKS.find(x => x.id === riskId); if (!r) return;
+  r.controlMeasureStatus = '임시저장';
+  if (CONFIG.OFFLINE_MODE) _lsSave(curYear, curMonth, r.id, { ...r });
+  toast('수정 모드로 전환되었습니다.', 'info');
+  selectControlInput(riskId);
 }
 function saveControlInput(riskId, isDraft) {
   const r = RISKS.find(x => x.id === riskId); if (!r) return;
-  const measure = document.getElementById('ci-measure')?.value.trim() || '';
-  if (!isDraft && measure.length < 20) { toast('통제수단은 20자 이상 작성해주세요.', 'warn'); return; }
+  const unchanged = document.getElementById('ci-unchanged')?.checked;
+  const measure = unchanged ? (r.controlMeasure||'') : (document.getElementById('ci-measure')?.value.trim()||'');
+  if (!isDraft && !unchanged && measure.length < 10) { toast('통제수단은 10자 이상 작성해주세요.', 'warn'); return; }
   r.controlMeasure = measure;
   r.controlMeasureStatus = (!isDraft && measure) ? '입력완료' : (measure ? '임시저장' : '미입력');
   if (CONFIG.OFFLINE_MODE) _lsSave(curYear, curMonth, r.id, { ...r });
-  toast(isDraft ? '임시저장 완료' : `[${riskId}] 통제수단이 제출되었습니다.`, isDraft ? 'info' : 'success');
+  toast(isDraft ? '임시저장 완료' : `[${riskId}] 통제수단이 제출되었습니다.${unchanged?' (작년 내용 유지)':''}`, isDraft?'info':'success');
   renderControlInputView();
 }
 
-/* ── 4. Phase 3: 통제효과성 평가 (관리자) ── */
+/* ── 4. Phase 3: 통제효과성 평가 (CP팀 관리자) — phase3.md 전면 개선 ── */
 function renderControlEvalView() {
   const el = document.getElementById('control-eval-content'); if (!el) return;
-  const targets = RISKS.filter(r => r.x_level && r.controlMeasureStatus === '입력완료');
-  targets.sort((a,b) => { const aD=a.y_level?1:0, bD=b.y_level?1:0; return aD-bD || (LEVEL_ORDER[b.x_level]||0)-(LEVEL_ORDER[a.x_level]||0); });
-  const evaluated = targets.filter(r => r.y_level).length;
+  const allTargets = RISKS.filter(r => r.x_level && r.x_level !== '');
+  allTargets.sort((a,b) => { const aE=a.y_level?1:0, bE=b.y_level?1:0; if(aE!==bE) return aE-bE; return (LEVEL_ORDER[b.x_level]||0)-(LEVEL_ORDER[a.x_level]||0); });
+  const evaluated = allTargets.filter(r => r.y_level).length;
+  const pct = allTargets.length ? Math.round(evaluated/allTargets.length*100) : 0;
+
+  // 팀별 현황
+  const teamStats = {};
+  allTargets.forEach(r => {
+    const t = r.team || (r.relatedOrg||'').split('/')[0] || '기타';
+    if (!teamStats[t]) teamStats[t] = { total:0, done:0, draft:0, none:0, yEval:0 };
+    teamStats[t].total++;
+    if (r.controlMeasureStatus==='입력완료') teamStats[t].done++; else if (r.controlMeasureStatus==='임시저장') teamStats[t].draft++; else teamStats[t].none++;
+    if (r.y_level) teamStats[t].yEval++;
+  });
+  const teamRows = Object.entries(teamStats).map(([t,s])=>`<tr><td style="font-weight:600;padding:6px 10px">${_esc(t)}</td><td style="text-align:center">${s.total}</td><td style="text-align:center;color:var(--green);font-weight:700">${s.done}</td><td style="text-align:center;color:var(--amber);font-weight:700">${s.draft||'-'}</td><td style="text-align:center;color:var(--red);font-weight:700">${s.none||'-'}</td><td style="text-align:center;color:var(--accent);font-weight:700">${s.yEval}</td></tr>`).join('');
+
   el.innerHTML = `
     <div style="margin-bottom:16px">
       <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">🛡 통제효과성 평가 (Y)</div>
-      <div style="font-size:13px;color:var(--muted)">팀이 입력한 통제수단을 검토하고 Y 효과성을 평가합니다. <strong style="color:var(--accent)">${evaluated}/${targets.length}건 평가 완료</strong></div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px">팀이 입력한 통제수단을 검토하고 Y(효과성)를 평가하면 Z(잔여리스크)가 자동 계산됩니다. <strong style="color:var(--accent)">${evaluated}/${allTargets.length}건 평가 완료</strong></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title" style="margin-bottom:10px">📊 팀별 입력 현황</div>
+      <div class="overflow-x"><table class="tbl" style="font-size:12px"><thead><tr><th>팀명</th><th style="text-align:center">전체</th><th style="text-align:center;color:var(--green)">통제수단 입력</th><th style="text-align:center;color:var(--amber)">임시저장</th><th style="text-align:center;color:var(--red)">미입력</th><th style="text-align:center;color:var(--accent)">Y 평가 완료</th></tr></thead><tbody>${teamRows}</tbody></table></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div style="flex:1;height:8px;background:var(--border);border-radius:4px"><div style="height:100%;border-radius:4px;background:var(--accent);width:${pct}%;transition:width .4s"></div></div>
+      <span style="font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap">Y 평가 ${pct}% 완료</span>
     </div>
     <div class="split-view">
-      <div class="risk-panel"><div class="panel-hd"><div class="panel-title">통제수단 입력 완료 (${targets.length}건)</div></div>
-        <div class="panel-list">${targets.map(r => `
-          <div class="r-item" onclick="selectControlEval('${r.id}')" style="cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
-            <div style="display:flex;align-items:center;gap:6px">${levelBadgeHtml(r.x_level)}<span style="font-size:11px;color:var(--muted)">${_esc(r.team)}</span></div>
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-top:3px">${_esc(r.riskContent||r.title)}</div>
-            <span style="font-size:11px;font-weight:700;color:${r.y_level?'var(--green)':'var(--muted)'}">${r.y_level?'Y: '+r.y_level:'미평가'}</span>
-          </div>`).join('')}</div>
+      <div class="risk-panel"><div class="panel-hd"><div class="panel-title">전체 리스크 (${allTargets.length}건)</div></div>
+        <div class="panel-list">${allTargets.map(r => {
+          const is = r.controlMeasureStatus==='입력완료'?{c:'var(--green)',t:'통제 입력완료'}:r.controlMeasureStatus==='임시저장'?{c:'var(--amber)',t:'임시저장'}:{c:'var(--red)',t:'통제수단 미입력'};
+          return `<div class="r-item" onclick="selectControlEval('${r.id}')" style="cursor:pointer;padding:10px 12px;border:1px solid ${r.y_level?'var(--border)':'var(--amber)'};border-radius:8px;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:6px">${levelBadgeHtml(r.x_level)}<span style="font-size:11px;color:var(--muted)">${_esc(r.team||r.relatedOrg||'-')}</span></div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(r.riskContent||r.title)}</div>
+            <div style="display:flex;gap:8px;margin-top:4px;align-items:center">
+              <span style="font-size:10px;color:${is.c};font-weight:700">${is.t}</span>
+              ${r.y_level?`<span style="font-size:11px;font-weight:800;color:var(--green)">Y: ${r.y_level} → Z: ${r.z_level||'?'}</span>`:'<span style="font-size:11px;color:var(--red);font-weight:700">Y 미평가</span>'}
+            </div>
+          </div>`;}).join('')}</div>
       </div>
-      <div class="form-panel" id="control-eval-form"><div class="empty-panel"><div class="empty-icon">🛡</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측 목록에서 리스크를 선택하면 Y 평가 폼이 열립니다</div></div></div>
+      <div class="form-panel" id="control-eval-form"><div class="empty-panel"><div class="empty-icon">🛡</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측에서 리스크를 선택하면<br>Y 평가 폼이 열립니다</div></div></div>
     </div>`;
 }
 function selectControlEval(riskId) {
   const r = RISKS.find(x => x.id === riskId); if (!r) return;
   const form = document.getElementById('control-eval-form'); if (!form) return;
   window._ceY = r.y_level || '';
+  const hasNoControl = !r.controlMeasure || r.controlMeasure.trim() === '';
+  const yChipsHtml = ['VL','L','M','H','VH'].map(lv => {
+    const lb = Y_LABELS[lv]; const desc = Y_CRITERIA[lv]||''; const isOn = window._ceY===lv;
+    const shortDesc = desc.length>30 ? desc.slice(0,30)+'…' : desc;
+    return `<button type="button" onclick="selectCEY('${lv}',this,'${r.id}')" style="padding:10px 14px;border:1.5px solid ${isOn?lb.color:'var(--border)'};border-radius:10px;background:${isOn?lb.bg:'#fff'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:${isOn?lb.color:'var(--muted)'};text-align:left;flex:1;min-width:120px"><div style="font-weight:800">${lv} — ${lb.short}</div><div style="font-size:10px;font-weight:400;margin-top:2px;line-height:1.4;color:${isOn?lb.color:'var(--muted)'};opacity:.85">${shortDesc}</div></button>`;
+  }).join('');
   form.innerHTML = `
     <div style="padding:20px">
-      <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px">${r.id} · ${_esc(r.team)}</div>
+      <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px">${r.id} · ${_esc(r.team||r.relatedOrg||'-')}</div>
       <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">${_esc(r.riskContent||r.title)}</div>
-      <div style="display:flex;gap:6px;margin-bottom:14px">${levelBadgeHtml(r.x_level)}</div>
-      <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:14px">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px">팀 제출 통제수단</div>
-        <div style="font-size:13px;color:var(--text);line-height:1.7">${_esc(r.controlMeasure||'(없음)')}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+        ${levelBadgeHtml(r.x_level,'X '+r.x_level)}
+        <span style="font-size:11px;color:var(--muted)">A=${r.a_likelihood||'?'} × B=${r.b_impact||'?'}</span>
+        <span style="font-size:11px;color:var(--muted)">|</span>
+        <span style="font-size:11px;color:var(--muted)">${_esc(r.lawName||'-')}</span>
       </div>
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">Y 효과성 평가</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="ce-y-chips">
-        ${['VL','L','M','H','VH'].map(lv => `<button type="button" class="edit-ab-chip${window._ceY===lv?' on':''}" onclick="selectCEY('${lv}',this,'${r.id}')" style="padding:8px 14px;border:1.5px solid ${window._ceY===lv?'var(--accent)':'var(--border)'};border-radius:8px;background:${window._ceY===lv?'var(--accent-l)':'#fff'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:${window._ceY===lv?'var(--accent)':'var(--muted)'}" title="${Y_CRITERIA[lv]||''}">${lv}</button>`).join('')}
+      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">팀 제출 통제수단</div>
+      <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid ${hasNoControl?'#FECACA':'var(--border)'};margin-bottom:16px">
+        ${hasNoControl
+          ? '<span style="color:var(--red);font-size:13px;font-weight:600">⚠ 통제수단 미입력 — Y 평가 시 VL (통제없음) 선택 권장</span>'
+          : `<div style="font-size:13px;color:var(--text);line-height:1.8">${_esc(r.controlMeasure)}</div>`}
       </div>
-      <div id="ce-z-preview" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--light);display:flex;align-items:center;gap:12px;margin-bottom:14px">
-        <span style="font-size:12px;font-weight:700;color:var(--muted)">Z(잔여리스크) =</span>
-        <span id="ce-z-badge">${r.z_level ? levelBadgeHtml(r.z_level) : '—'}</span>
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">Y — 통제효과성 평가</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">${yChipsHtml}</div>
+      <div style="padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--light);display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <span style="font-size:12px;font-weight:700;color:var(--muted)">Z (잔여리스크) =</span>
+        <span id="ce-z-badge">${r.z_level ? levelBadgeHtml(r.z_level) : '<span style="color:var(--muted)">Y 선택 후 자동 계산</span>'}</span>
+        ${r.z_level ? `<span style="font-size:11px;color:var(--muted)">${r.z_selected?'→ 관리 대상':'→ 관리 대상 아님'}</span>` : ''}
       </div>
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px">CP팀 평가 의견</div>
-      <textarea id="ce-comment" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:72px;resize:vertical">${_esc(r.y_evalComment||'')}</textarea>
+      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px">CP팀 평가 의견 (선택)</div>
+      <textarea id="ce-comment" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:72px;resize:vertical" placeholder="평가 근거나 특이사항을 입력하세요">${_esc(r.y_evalComment||'')}</textarea>
       <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
         <button class="btn btn-primary" onclick="saveControlEval('${r.id}')">저장</button>
       </div>
@@ -7822,13 +7837,20 @@ function selectControlEval(riskId) {
 }
 function selectCEY(lv, el, riskId) {
   window._ceY = lv;
-  document.querySelectorAll('#ce-y-chips .edit-ab-chip').forEach(b => { b.classList.remove('on'); b.style.borderColor='var(--border)'; b.style.background='#fff'; b.style.color='var(--muted)'; });
-  el.classList.add('on'); el.style.borderColor='var(--accent)'; el.style.background='var(--accent-l)'; el.style.color='var(--accent)';
+  // 모든 버튼 초기화 → 선택 버튼 하이라이트
+  const container = el.parentElement;
+  container.querySelectorAll('button').forEach(b => {
+    const bLv = b.textContent.trim().split(' ')[0];
+    const lb = Y_LABELS[bLv]; if (!lb) return;
+    b.style.borderColor = 'var(--border)'; b.style.background = '#fff'; b.style.color = 'var(--muted)';
+  });
+  const lb = Y_LABELS[lv];
+  if (lb) { el.style.borderColor = lb.color; el.style.background = lb.bg; el.style.color = lb.color; }
   const r = RISKS.find(x => x.id === riskId);
   if (r && r.x_level) {
     const zl = zLevelFromMatrix(r.x_level, lv);
     const zBadge = document.getElementById('ce-z-badge');
-    if (zBadge) zBadge.innerHTML = zl ? levelBadgeHtml(zl) : '—';
+    if (zBadge) zBadge.innerHTML = zl ? levelBadgeHtml(zl) + `<span style="font-size:11px;color:var(--muted);margin-left:8px">${['H','VH'].includes(zl)?'→ 관리 대상':'→ 관리 대상 아님'}</span>` : '—';
   }
 }
 function saveControlEval(riskId) {
@@ -7843,53 +7865,102 @@ function saveControlEval(riskId) {
   renderControlEvalView();
 }
 
-/* ── 5. Phase 4: 잔여리스크 확정 (관리자 독립 뷰) ── */
+/* ── 5. Phase 4: 잔여리스크 확정 (관리자 독립 뷰) — phase4.md 전면 개선 ── */
+
+/* Z 매트릭스 기준 참고 패널 */
+function _residualMatrixGuideHtml() {
+  const rows = [
+    ['VH(통제 매우높음)','L','VL','VL','VL','VL'],
+    ['H(통제 높음)','M','L','VL','VL','VL'],
+    ['M(통제 보통)','H','M','L','VL','VL'],
+    ['L(통제 낮음)','VH','H','M','L','VL'],
+    ['VL(통제 없음)','VH','H','M','L','VL'],
+  ];
+  const cs = lv => { const c=LEVEL_COLOR[lv]||{}; return `padding:5px 8px;text-align:center;font-size:11px;font-weight:800;background:${c.bg||'#fff'};color:${c.text||'#666'};border-radius:4px`; };
+  return `<details style="margin-bottom:16px"><summary style="cursor:pointer;padding:10px 16px;background:var(--accent-l);border-radius:10px;font-size:13px;font-weight:700;color:var(--accent);list-style:none;display:flex;align-items:center;gap:8px">📊 잔여리스크(Z) 계산 기준 보기 — X(고유) × Y(통제) → Z</summary>
+    <div style="margin-top:8px;padding:16px;background:var(--bg);border-radius:10px;border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">잔여리스크 산정 기준 (Z = X × Y)</div>
+      <div style="overflow-x:auto;margin-bottom:16px">
+        <table style="border-collapse:separate;border-spacing:3px;font-size:11px"><thead><tr>
+          <th style="padding:5px 8px;background:#F1F5F9;border-radius:4px;font-size:11px;color:var(--muted);white-space:nowrap">통제효과성(Y)<br>↓ / 고유리스크(X) →</th>
+          ${['VH','H','M','L','VL'].map(x=>`<th style="padding:5px 8px;text-align:center;font-size:11px;font-weight:800;background:${LEVEL_COLOR[x]?.bg||'#fff'};color:${LEVEL_COLOR[x]?.text||'#666'};border-radius:4px">${x}</th>`).join('')}
+        </tr></thead><tbody>${rows.map(row=>`<tr><td style="padding:5px 8px;font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap;background:#F8FAFC;border-radius:4px">${row[0]}</td>${row.slice(1).map(lv=>`<td style="${cs(lv)}">${lv}</td>`).join('')}</tr>`).join('')}</tbody></table>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">통제효과성(Y) 기준</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${Object.entries(Y_CRITERIA).map(([lv,desc])=>{const lb=Y_LABELS[lv]||{bg:'#fff',color:'#666',border:'#ddd',short:lv};return `<div style="display:flex;gap:6px;align-items:flex-start;padding:6px 8px;background:${lb.bg};border-radius:6px;border:1px solid ${lb.border||'var(--border)'}"><span style="flex-shrink:0;font-size:11px;font-weight:800;color:${lb.color}">${lv} ${lb.short}</span><span style="font-size:10px;color:${lb.color};opacity:.85;line-height:1.4">${desc}</span></div>`;}).join('')}</div>
+      <div style="margin-top:12px;padding:10px 14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;font-size:12px;color:#DC2626"><strong>관리 대상 선정 기준:</strong> Z = H 또는 VH인 리스크를 우선 관리 대상으로 선정합니다. M 이하는 개선방안 불필요 (모니터링만 수행).</div>
+    </div></details>`;
+}
+
 function renderResidualViewNew() {
   const el = document.getElementById('residual-content'); if (!el) return;
   const all = RISKS.filter(r => r.z_level);
   const sorted = [...all].sort((a,b) => (LEVEL_ORDER[b.z_level]||0) - (LEVEL_ORDER[a.z_level]||0));
-  const zSelectedCount = RISKS.filter(r => r.z_selected).length;
-  const zCalcDone = all.length;
-  let _residualFilter = 'all';
+  const zSelected = RISKS.filter(r => r.z_selected).length;
+  const ps = _loadPhaseStatus(curYear);
+  const isConfirmed = !!ps.residual?.residualConfirmed;
+  const isSent = !!ps.residual?.residualConfirmSent;
+  const zDist = { VH:0, H:0, M:0, L:0, VL:0 };
+  all.forEach(r => { if (zDist[r.z_level] !== undefined) zDist[r.z_level]++; });
+
   el.innerHTML = `
     <div style="margin-bottom:16px">
-      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">🎯 잔여리스크 확정</div>
-      <div style="font-size:13px;color:var(--muted)">Z 레벨 기준으로 관리 대상을 선정합니다.</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="font-size:22px;font-weight:800;color:var(--text)">🎯 잔여리스크 확정</div>
+        ${isConfirmed ? '<span style="padding:4px 14px;border-radius:99px;background:#ECFDF5;color:var(--green);font-size:13px;font-weight:800;border:1px solid #86EFAC">✅ 확정 완료</span>' : '<span style="padding:4px 14px;border-radius:99px;background:#FFFBEB;color:#D97706;font-size:13px;font-weight:700;border:1px solid #FDE68A">미확정</span>'}
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">Z(잔여리스크) = X(고유리스크) × Y(통제효과성) 매트릭스 결과 기준으로 관리 대상을 선정하고 확정합니다.</div>
     </div>
-    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-      <div class="kpi-card" style="flex:1;min-width:120px;padding:14px"><div class="kpi-num" style="font-size:24px">${RISKS.length}</div><div class="kpi-label">전체</div></div>
-      <div class="kpi-card" style="flex:1;min-width:120px;padding:14px"><div class="kpi-num" style="font-size:24px">${zCalcDone}</div><div class="kpi-label">Z 계산 완료</div></div>
-      <div class="kpi-card" style="flex:1;min-width:120px;padding:14px"><div class="kpi-num" style="font-size:24px;color:var(--red)">${zSelectedCount}</div><div class="kpi-label">관리대상 (H·VH)</div></div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <div class="kpi-card" style="flex:1;min-width:90px;padding:12px;text-align:center"><div class="kpi-num" style="font-size:22px">${RISKS.length}</div><div class="kpi-label">전체</div></div>
+      <div class="kpi-card" style="flex:1;min-width:90px;padding:12px;text-align:center"><div class="kpi-num" style="font-size:22px">${all.length}</div><div class="kpi-label">Z 계산</div></div>
+      ${['VH','H','M','L','VL'].map(lv => { const c=LEVEL_COLOR[lv]||{}; return `<div class="kpi-card" style="flex:1;min-width:70px;padding:10px;text-align:center;background:${c.bg||'#fff'}"><div style="font-size:18px;font-weight:900;color:${c.text||'#666'}">${zDist[lv]||0}</div><div style="font-size:10px;font-weight:700;color:${c.text||'#666'}">Z=${lv}</div></div>`; }).join('')}
+      <div class="kpi-card" style="flex:1;min-width:90px;padding:12px;text-align:center;background:#FEF2F2"><div class="kpi-num" style="font-size:22px;color:var(--red)">${zSelected}</div><div class="kpi-label">관리 대상</div></div>
     </div>
-    <div class="card" style="margin-bottom:16px">
+    ${_residualMatrixGuideHtml()}
+    <div class="card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-        <div class="card-title">잔여리스크 목록</div>
+        <div class="card-title">잔여리스크 목록 (Z 내림차순)</div>
         <div style="margin-left:auto;display:flex;gap:8px">
-          <button class="btn btn-ghost" style="font-size:12px" onclick="autoSelectResidualNew()">H·VH 자동 선정</button>
-          <button class="btn btn-ghost" style="font-size:12px" onclick="resetResidualSelectionNew()">초기화</button>
+          <button class="btn btn-ghost" style="font-size:12px" onclick="autoSelectResidualNew()" ${isConfirmed?'disabled':''}>⚡ H·VH 자동 선정</button>
+          <button class="btn btn-ghost" style="font-size:12px" onclick="resetResidualSelectionNew()" ${isConfirmed?'disabled':''}>초기화</button>
         </div>
       </div>
-      <div style="display:flex;gap:6px;margin-bottom:12px">
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
         ${['전체','VH','H','M','L·VL'].map(f => `<button class="f-btn${f==='전체'?' on':''}" onclick="filterResidual('${f}',this)">${f}</button>`).join('')}
       </div>
       <div class="overflow-x">
-        <table class="tbl"><thead><tr><th style="width:40px;text-align:center">선정</th><th style="width:32px;text-align:center">순위</th><th>영역</th><th>법규명</th><th>리스크 내용</th><th>관련 조직</th><th style="text-align:center">X</th><th style="text-align:center">Y</th><th style="text-align:center">Z</th></tr></thead>
-        <tbody id="residual-new-tbody">${sorted.map((r,i) => `<tr data-zlevel="${r.z_level}">
-          <td style="text-align:center"><input type="checkbox" ${r.z_selected?'checked':''} onchange="toggleResidualNew('${r.id}',this.checked)"></td>
-          <td style="text-align:center;font-size:12px;font-weight:800;color:var(--muted)">${i+1}</td>
-          <td><span class="cat-tag">${_esc(r.domain||r.cat)}</span></td>
-          <td style="font-size:11px;max-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(r.lawName||'-')}</td>
-          <td style="font-size:12px;font-weight:600;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(r.riskContent||r.title)}</td>
-          <td style="font-size:11px;color:var(--muted)">${_esc(r.relatedOrg||r.team)}</td>
-          <td style="text-align:center">${levelBadgeHtml(r.x_level)}</td>
-          <td style="text-align:center">${r.y_level?levelBadgeHtml(r.y_level):'—'}</td>
-          <td style="text-align:center">${levelBadgeHtml(r.z_level)}</td>
-        </tr>`).join('')}</tbody></table>
+        <table class="tbl"><thead><tr>
+          <th style="width:40px;text-align:center">선정</th><th style="width:32px;text-align:center">순위</th>
+          <th style="width:70px">영역</th><th style="width:90px">법규명</th><th>리스크 내용</th><th style="width:80px">관련 조직</th>
+          <th style="text-align:center;width:50px">A</th><th style="text-align:center;width:50px">B</th>
+          <th style="text-align:center;width:65px">X(고유)</th><th style="text-align:center;width:65px">Y(통제)</th><th style="text-align:center;width:65px">Z(잔여)</th>
+        </tr></thead>
+        <tbody id="residual-new-tbody">${sorted.map((r,i) => {
+          const rowBg = r.z_level==='VH'?'background:#FEF9F9':r.z_level==='H'?'background:#FFFCF5':'';
+          return `<tr data-zlevel="${r.z_level}" style="${rowBg}">
+            <td style="text-align:center"><input type="checkbox" ${r.z_selected?'checked':''} onchange="toggleResidualNew('${r.id}',this.checked)" ${isConfirmed?'disabled':''}></td>
+            <td style="text-align:center;font-size:12px;font-weight:800;color:var(--muted)">${i+1}</td>
+            <td><span class="cat-tag">${_esc(r.domain||r.cat)}</span></td>
+            <td style="font-size:11px;max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${_esc(r.lawName||'-')}">${_esc(r.lawName||'-')}</td>
+            <td style="font-size:12px;font-weight:600;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${_esc(r.riskContent||r.title)}">${_esc((r.riskContent||r.title||'').slice(0,40))}</td>
+            <td style="font-size:11px;color:var(--muted)">${_esc(r.relatedOrg||r.team)}</td>
+            <td style="text-align:center;font-size:12px;font-weight:700;color:var(--muted)">${r.a_likelihood||'—'}</td>
+            <td style="text-align:center;font-size:12px;font-weight:700;color:var(--muted)">${r.b_impact||'—'}</td>
+            <td style="text-align:center">${levelBadgeHtml(r.x_level)}</td>
+            <td style="text-align:center">${r.y_level?levelBadgeHtml(r.y_level):'—'}</td>
+            <td style="text-align:center">${levelBadgeHtml(r.z_level)}</td>
+          </tr>`; }).join('')}</tbody></table>
       </div>
-      <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end">
-        <button class="btn btn-ghost" onclick="saveResidualSelection()">💾 선정 저장</button>
-        <button class="btn btn-primary" onclick="sendResidualConfirm()">📧 사업팀 확인 요청 발송</button>
-        <button class="btn btn-primary" style="background:var(--green);border-color:var(--green)" onclick="confirmResidualFinal()">✅ 최종 확정</button>
+      <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;flex-wrap:wrap">
+        ${!isConfirmed ? `
+          <button class="btn btn-ghost" onclick="saveResidualSelectionNew()">💾 선정 저장</button>
+          <button class="btn btn-primary" onclick="sendResidualConfirm()" style="${isSent?'opacity:.6':''}">📧 사업팀 확인 요청 발송${isSent?' (완료)':''}</button>
+          <button class="btn btn-primary" style="background:var(--green);border-color:var(--green)" onclick="confirmResidualFinal()">✅ 최종 확정</button>
+        ` : `<div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:13px;font-weight:700;color:var(--green)">✅ Phase 4 완료 · 관리 대상 ${zSelected}건 확정됨</span>
+          <button class="btn btn-ghost" style="font-size:12px" onclick="reopenResidual()">수정 (재오픈)</button>
+        </div>`}
       </div>
     </div>`;
 }
@@ -7914,89 +7985,149 @@ function filterResidual(f, btn) {
     else tr.style.display = zl === f ? '' : 'none';
   });
 }
-function confirmResidualFinal() {
-  const count = RISKS.filter(r=>r.z_selected).length;
-  if (count === 0) { toast('관리 대상을 1건 이상 선정해주세요.', 'warn'); return; }
-  RISKS.filter(r=>r.z_selected).forEach(r => r.z_confirmedAt = new Date().toISOString());
+function saveResidualSelectionNew() {
   if (CONFIG.OFFLINE_MODE) RISKS.forEach(r => _lsSave(curYear, curMonth, r.id, { ...r }));
-  toast(`✅ 잔여리스크 ${count}건 최종 확정 완료`, 'success');
+  toast(`선정 저장 완료 — ${RISKS.filter(r=>r.z_selected).length}건 관리 대상`, 'success');
+}
+async function confirmResidualFinal() {
+  const count = RISKS.filter(r => r.z_selected).length;
+  if (count === 0) { toast('관리 대상을 1건 이상 선정해주세요.', 'warn'); return; }
+  const ps = _loadPhaseStatus(curYear);
+  if (!ps.residual?.residualConfirmSent) {
+    const proceed = await showConfirmModal({ title:'사업팀 확인 요청 미발송', message:'사업팀 확인 요청 메일이 아직 발송되지 않았습니다.<br>발송 없이 최종 확정하시겠습니까?', confirmText:'확정 진행', danger:true });
+    if (!proceed) return;
+  }
+  const ok = await showConfirmModal({ title:'잔여리스크 최종 확정', message:`잔여리스크 관리 대상 <strong>${count}건</strong>을 최종 확정합니다.<br>확정 후 Phase 5(개선방안 도출·확정)로 진행됩니다.<br><br><span style="font-size:12px;color:var(--muted)">확정 후에도 관리자는 수정할 수 있습니다.</span>`, confirmText:'✅ 최종 확정' });
+  if (!ok) return;
+  RISKS.filter(r => r.z_selected).forEach(r => r.z_confirmedAt = new Date().toISOString());
+  _savePhaseStatus(curYear, 'residual', { residualConfirmed: true });
+  if (CONFIG.OFFLINE_MODE) RISKS.forEach(r => _lsSave(curYear, curMonth, r.id, { ...r }));
+  toast(`✅ 잔여리스크 ${count}건 최종 확정 완료. Phase 5가 활성화되었습니다.`, 'success', 5000);
+  renderResidualViewNew();
+}
+async function reopenResidual() {
+  const ok = await showConfirmModal({ title:'잔여리스크 확정 취소', message:'최종 확정을 취소하고 재선정 모드로 돌아갑니다.<br>Phase 5가 잠깁니다.', confirmText:'재오픈', danger:true });
+  if (!ok) return;
+  _savePhaseStatus(curYear, 'residual', { residualConfirmed: false });
+  toast('잔여리스크 확정이 취소되었습니다.', 'info');
+  renderResidualViewNew();
 }
 
-/* ── 6. Phase 5: 개선방안 제출 (팀 담당자) ── */
+/* ── 6. Phase 5: 개선방안 제출 (팀 담당자) — phase5.md 전면 개선 ── */
 function renderImproveSubmitView() {
   const el = document.getElementById('improve-submit-content'); if (!el) return;
   const myTargets = RISKS.filter(r => r.z_selected && (r.relatedOrg||r.team||'').includes(appTeam));
+  myTargets.sort((a,b) => (LEVEL_ORDER[b.z_level]||0) - (LEVEL_ORDER[a.z_level]||0));
   const submitted = myTargets.filter(r => r.improvePlanStatus !== '미제출').length;
+  const confirmed = myTargets.filter(r => r.improvePlanStatus === '확정').length;
+  const rejected  = myTargets.filter(r => r.improvePlanStatus === '반려').length;
+  const pct = myTargets.length ? Math.round(submitted/myTargets.length*100) : 0;
   el.innerHTML = `
     <div style="margin-bottom:16px">
       <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">📝 개선방안 제출</div>
-      <div style="font-size:13px;color:var(--muted)">잔여리스크 관리 대상에 대한 개선방안을 작성하세요. <strong style="color:var(--accent)">${submitted}/${myTargets.length}건 제출</strong></div>
+      <div style="padding:12px 16px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;font-size:13px;color:#1D4ED8;margin-bottom:12px">
+        📋 Phase 4에서 확정된 관리 대상 리스크에 개선방안을 작성해 제출해주세요.<br>
+        제출 후 CP팀 검토를 거쳐 확정되면 Phase 6(이행 관리)에서 이행 내역을 입력하게 됩니다.
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="flex:1;height:8px;background:var(--border);border-radius:4px"><div style="height:100%;border-radius:4px;background:var(--accent);width:${pct}%;transition:width .4s"></div></div>
+      <span style="font-size:12px;font-weight:700;white-space:nowrap">${submitted}/${myTargets.length}건 제출${confirmed>0?` · <span style="color:var(--green)">${confirmed}건 확정</span>`:''}${rejected>0?` · <span style="color:var(--red)">${rejected}건 반려</span>`:''}</span>
     </div>
     <div class="split-view">
-      <div class="risk-panel"><div class="panel-hd"><div class="panel-title">관리 대상 리스크 (${myTargets.length}건)</div></div>
-        <div class="panel-list">${myTargets.map(r => `
-          <div class="r-item" onclick="selectImproveSubmit('${r.id}')" style="cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+      <div class="risk-panel"><div class="panel-hd"><div class="panel-title">내 팀 관리 대상 (${myTargets.length}건)</div></div>
+        <div class="panel-list">${myTargets.map(r => {
+          const stColor = r.improvePlanStatus==='확정'?'var(--green)':r.improvePlanStatus==='제출완료'?'var(--accent)':r.improvePlanStatus==='반려'?'var(--red)':r.improvePlanStatus==='임시저장'?'var(--amber)':'var(--muted)';
+          return `<div class="r-item" onclick="selectImproveSubmitItem('${r.id}')" style="cursor:pointer;padding:10px 12px;border:1px solid ${r.improvePlanStatus==='반려'?'var(--red)':'var(--border)'};border-radius:8px;margin-bottom:6px">
             <div style="display:flex;align-items:center;gap:6px">${levelBadgeHtml(r.z_level)}<span style="font-size:11px;color:var(--muted)">${_esc(r.domain||r.cat)}</span></div>
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-top:3px">${_esc(r.riskContent||r.title)}</div>
-            <span style="font-size:11px;font-weight:700;color:${r.improvePlanStatus==='확정'?'var(--green)':r.improvePlanStatus==='제출완료'?'var(--accent)':'var(--muted)'}">${r.improvePlanStatus||'미제출'}</span>
-          </div>`).join('')}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(r.riskContent||r.title)}</div>
+            <span style="font-size:11px;font-weight:700;color:${stColor}">${r.improvePlanStatus||'미제출'}</span>
+            ${r.improvePlanStatus==='반려'&&r.improvePlanComment?`<div style="font-size:10px;color:var(--red);margin-top:3px">CP팀: ${_esc(r.improvePlanComment.slice(0,30))}…</div>`:''}
+          </div>`;}).join('')}</div>
       </div>
-      <div class="form-panel" id="improve-submit-form"><div class="empty-panel"><div class="empty-icon">📝</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측 목록에서 리스크를 선택하면 개선방안 입력 폼이 열립니다</div></div></div>
+      <div class="form-panel" id="improve-submit-form"><div class="empty-panel"><div class="empty-icon">📝</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측 목록에서 리스크를 선택하면<br>개선방안 입력 폼이 열립니다</div></div></div>
     </div>`;
 }
-function selectImproveSubmit(riskId) {
+function selectImproveSubmitItem(riskId) {
   const r = RISKS.find(x => x.id === riskId); if (!r) return;
   const form = document.getElementById('improve-submit-form'); if (!form) return;
   const isConfirmed = r.improvePlanStatus === '확정';
+  const isRejected  = r.improvePlanStatus === '반려';
+  const canEdit     = !isConfirmed;
   form.innerHTML = `
     <div style="padding:20px">
-      <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px">${r.id}</div>
+      <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px">${r.id} · ${_esc(r.domain||r.cat)}</div>
       <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">${_esc(r.riskContent||r.title)}</div>
-      <div style="display:flex;gap:6px;margin-bottom:14px">${levelBadgeHtml(r.x_level)}<span style="font-size:11px;color:var(--muted)">→</span>${levelBadgeHtml(r.z_level)}</div>
-      ${r.controlMeasure?`<div style="padding:10px;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:3px">현재 통제수단</div><div style="font-size:12px;color:var(--text)">${_esc(r.controlMeasure)}</div></div>`:''}
-      ${isConfirmed?`<div style="padding:10px;background:#ECFDF5;border:1px solid #86EFAC;border-radius:8px;font-size:13px;color:var(--green);font-weight:700;margin-bottom:12px">✅ 확정됨</div>`:''}
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px">개선방안 *</div>
-      <textarea id="is-plan" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:100px;resize:vertical" ${isConfirmed?'disabled':''}>${_esc(r.improvePlan||'')}</textarea>
-      ${r.improvePlanComment?`<div style="margin-top:10px;padding:10px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE"><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:3px">CP팀 의견</div><div style="font-size:12px;color:var(--text)">${_esc(r.improvePlanComment)}</div></div>`:''}
-      ${!isConfirmed?`<div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
-        <button class="btn btn-ghost" onclick="saveImproveSubmit('${r.id}',true)">임시저장</button>
-        <button class="btn btn-primary" onclick="saveImproveSubmit('${r.id}',false)">제출하기</button>
+      <div style="display:flex;gap:8px;margin-bottom:14px;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+        ${levelBadgeHtml(r.x_level,'X '+r.x_level)}<span style="color:var(--muted);font-size:13px">→</span>${levelBadgeHtml(r.z_level,'Z '+r.z_level)}
+        <span style="font-size:11px;color:var(--muted)">법규: ${_esc(r.lawName||'-')}</span>
+      </div>
+      ${r.controlMeasure?`<div style="padding:10px;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px">📋 현재 통제수단 (참고)</div><div style="font-size:12px;color:var(--text);line-height:1.6">${_esc(r.controlMeasure)}</div></div>`:''}
+      ${isRejected?`<div style="padding:10px 14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:4px">↩ 반려 — 재작성 후 재제출해주세요</div><div style="font-size:12px;color:#991B1B">CP팀 의견: ${_esc(r.improvePlanComment||'')}</div></div>`:''}
+      ${isConfirmed?`<div style="padding:10px;background:#ECFDF5;border:1px solid #86EFAC;border-radius:8px;margin-bottom:12px"><div style="font-size:13px;font-weight:700;color:var(--green)">✅ CP팀 확정 완료</div>${r.improvePlanComment?`<div style="font-size:11px;color:#059669;margin-top:4px">CP팀 의견: ${_esc(r.improvePlanComment)}</div>`:''}</div>`:''}
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">개선방안 * <span style="font-weight:400;color:var(--muted);font-size:11px">(구체적인 조치 내용을 작성하세요)</span></div>
+      <textarea id="is-plan-${r.id}" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:120px;resize:vertical;${isConfirmed?'opacity:.7;cursor:not-allowed':''}" placeholder="예: 월 1회 점검 프로세스 도입, 전담 담당자 지정, 분기별 교육 의무화 등" ${isConfirmed?'readonly':''}>${_esc(r.improvePlan||'')}</textarea>
+      ${canEdit?`<div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="saveImprovePlanNew('${r.id}',true)">임시저장</button>
+        <button class="btn btn-primary" onclick="saveImprovePlanNew('${r.id}',false)">제출하기</button>
       </div>`:''}
     </div>`;
 }
-function saveImproveSubmit(riskId, isDraft) {
+function saveImprovePlanNew(riskId, isDraft) {
   const r = RISKS.find(x => x.id === riskId); if (!r) return;
-  const plan = document.getElementById('is-plan')?.value.trim() || '';
+  const plan = document.getElementById(`is-plan-${riskId}`)?.value?.trim() || '';
   if (!isDraft && plan.length < 10) { toast('개선방안은 10자 이상 작성해주세요.', 'warn'); return; }
   r.improvePlan = plan;
-  r.improvePlanStatus = isDraft ? '임시저장' : '제출완료';
+  r.improvePlanStatus = isDraft ? (plan ? '임시저장' : '미제출') : '제출완료';
   r.improvePlanAt = isDraft ? '' : new Date().toISOString();
   if (CONFIG.OFFLINE_MODE) _lsSave(curYear, curMonth, r.id, { ...r });
-  toast(isDraft ? '임시저장 완료' : `[${riskId}] 개선방안이 제출되었습니다.`, isDraft ? 'info' : 'success');
+  toast(isDraft ? '임시저장 완료' : `[${riskId}] 개선방안이 제출되었습니다.`, isDraft?'info':'success');
   renderImproveSubmitView();
+  selectImproveSubmitItem(riskId);
 }
 
-/* ── 7. Phase 5: 개선방안 확정 (관리자) ── */
+/* ── 7. Phase 5: 개선방안 확정 (CP팀 관리자) — phase5.md 전면 개선 ── */
 function renderImproveConfirmView() {
   const el = document.getElementById('improve-confirm-content'); if (!el) return;
   const targets = RISKS.filter(r => r.z_selected);
-  const submittedList = targets.filter(r => r.improvePlanStatus === '제출완료' || r.improvePlanStatus === '확정');
-  const confirmed = targets.filter(r => r.improvePlanStatus === '확정').length;
+  const submittedList = targets.filter(r => r.improvePlanStatus==='제출완료'||r.improvePlanStatus==='확정');
+  const confirmed = targets.filter(r => r.improvePlanStatus==='확정').length;
+  const rejected  = targets.filter(r => r.improvePlanStatus==='반려').length;
+  const pending   = submittedList.filter(r => r.improvePlanStatus==='제출완료').length;
+  const allDone   = targets.length > 0 && confirmed === targets.length;
+  const ps = _loadPhaseStatus(curYear);
+  const phaseComplete = !!ps.improve?.completed;
   el.innerHTML = `
     <div style="margin-bottom:16px">
-      <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">🔧 개선방안 확정</div>
-      <div style="font-size:13px;color:var(--muted)">전체 대상 ${targets.length}건 / 제출완료 ${submittedList.length}건 / <strong style="color:var(--green)">확정 ${confirmed}건</strong></div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="font-size:22px;font-weight:800;color:var(--text)">🔧 개선방안 확정</div>
+        ${phaseComplete?'<span style="padding:4px 14px;border-radius:99px;background:#ECFDF5;color:var(--green);font-size:13px;font-weight:800">✅ Phase 5 완료</span>':''}
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-top:6px">전체 대상 ${targets.length}건 / <span style="color:var(--accent)">제출완료 ${pending}건</span> / <span style="color:var(--green)">확정 ${confirmed}건</span>${rejected>0?` / <span style="color:var(--red)">반려 ${rejected}건</span>`:''}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div style="flex:1;height:8px;background:var(--border);border-radius:4px"><div style="height:100%;border-radius:4px;background:var(--green);width:${targets.length?Math.round(confirmed/targets.length*100):0}%;transition:width .4s"></div></div>
+      <span style="font-size:12px;font-weight:700;color:var(--green);white-space:nowrap">${confirmed}/${targets.length}건 확정</span>
     </div>
     <div class="split-view">
-      <div class="risk-panel"><div class="panel-hd"><div class="panel-title">제출완료 목록 (${submittedList.length}건)</div></div>
-        <div class="panel-list">${submittedList.map(r => `
-          <div class="r-item" onclick="selectImproveConfirmItem('${r.id}')" style="cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+      <div class="risk-panel"><div class="panel-hd"><div class="panel-title">제출 목록 (${submittedList.length}건)${pending>0?` <span style="font-size:11px;color:var(--accent);font-weight:700;margin-left:4px">${pending}건 검토 대기</span>`:''}</div></div>
+        <div class="panel-list">${submittedList.length===0?'<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">아직 제출된 개선방안이 없습니다</div>':submittedList.map(r => {
+          const stColor = r.improvePlanStatus==='확정'?'var(--green)':'var(--accent)';
+          return `<div class="r-item" onclick="selectImproveConfirmItem('${r.id}')" style="cursor:pointer;padding:10px 12px;border:1px solid ${r.improvePlanStatus==='제출완료'?'var(--amber)':'var(--border)'};border-radius:8px;margin-bottom:6px">
             <div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--accent);font-weight:700">${r.id}</span><span style="font-size:11px;color:var(--muted)">${_esc(r.team)}</span>${levelBadgeHtml(r.z_level)}</div>
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-top:3px">${_esc(r.riskContent||r.title)}</div>
-            <span style="font-size:11px;font-weight:700;color:${r.improvePlanStatus==='확정'?'var(--green)':'var(--accent)'}">${r.improvePlanStatus}</span>
-          </div>`).join('')}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(r.riskContent||r.title)}</div>
+            <span style="font-size:11px;font-weight:700;color:${stColor}">${r.improvePlanStatus}</span>
+          </div>`;}).join('')}</div>
       </div>
-      <div class="form-panel" id="improve-confirm-form"><div class="empty-panel"><div class="empty-icon">🔧</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측 목록에서 리스크를 선택하면 확정 폼이 열립니다</div></div></div>
+      <div class="form-panel" id="improve-confirm-form"><div class="empty-panel"><div class="empty-icon">🔧</div><div class="empty-title">리스크를 선택하세요</div><div class="empty-desc">좌측에서 리스크를 선택하면<br>검토·확정 폼이 열립니다</div></div></div>
+    </div>
+    <div style="margin-top:20px;padding:20px;background:${allDone?'#F0FDF4':'var(--bg)'};border:1px solid ${allDone?'#86EFAC':'var(--border)'};border-radius:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">Phase 5 완료 확정</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">전체 관리 대상 개선방안을 확정하면 Phase 6(개선방안 이행)으로 진행됩니다. Phase 6에서는 확정된 개선방안만 이행 관리 대상이 됩니다.</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:700">${confirmed}/${targets.length}건 확정 완료 ${allDone?'✅':`(${targets.length-confirmed}건 남음)`}</span>
+        ${!phaseComplete?`<button class="btn btn-primary" style="margin-left:auto;${!allDone?'opacity:.5;cursor:not-allowed':''}" ${!allDone?'disabled':''} onclick="completePhase5()">✅ Phase 5 완료 확정</button>`:`<span style="margin-left:auto;color:var(--green);font-size:13px;font-weight:700">✅ 완료 확정됨 · Phase 6 진행 중</span>`}
+      </div>
     </div>`;
 }
 function selectImproveConfirmItem(riskId) {
@@ -8007,28 +8138,39 @@ function selectImproveConfirmItem(riskId) {
     <div style="padding:20px">
       <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px">${r.id} · ${_esc(r.team)}</div>
       <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">${_esc(r.riskContent||r.title)}</div>
-      <div style="display:flex;gap:6px;margin-bottom:14px">${levelBadgeHtml(r.x_level)}<span style="font-size:11px;color:var(--muted)">→</span>${levelBadgeHtml(r.z_level)}</div>
-      <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:14px">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px">팀 제출 개선방안</div>
-        <div style="font-size:13px;color:var(--text);line-height:1.7">${_esc(r.improvePlan||'(없음)')}</div>
-      </div>
-      ${done?`<div style="padding:10px;background:#ECFDF5;border:1px solid #86EFAC;border-radius:8px;font-size:13px;color:var(--green);font-weight:700;margin-bottom:12px">✅ 확정 완료</div>`:''}
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px">CP팀 검토 의견</div>
-      <textarea id="ic-plan-comment" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:72px;resize:vertical" ${done?'disabled':''}>${_esc(r.improvePlanComment||'')}</textarea>
-      ${!done?`<div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
-        <button class="btn btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="confirmImprovePlan('${r.id}','반려')">반려 (재제출 요구)</button>
-        <button class="btn btn-primary" onclick="confirmImprovePlan('${r.id}','확정')">✅ 확정</button>
-      </div>`:''}
+      <div style="display:flex;gap:8px;margin-bottom:14px">${levelBadgeHtml(r.x_level,'X '+r.x_level)}<span style="color:var(--muted)">→</span>${levelBadgeHtml(r.z_level,'Z '+r.z_level)}</div>
+      ${r.controlMeasure?`<div style="padding:10px;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px">현재 통제수단</div><div style="font-size:12px;color:var(--text);line-height:1.6">${_esc(r.controlMeasure)}</div></div>`:''}
+      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px">팀 제출 개선방안</div>
+      <div style="padding:12px;background:#fff;border-radius:8px;border:1px solid var(--border);margin-bottom:14px;font-size:13px;color:var(--text);line-height:1.8">${_esc(r.improvePlan||'(없음)')}</div>
+      ${done?`<div style="padding:10px;background:#ECFDF5;border:1px solid #86EFAC;border-radius:8px;font-size:13px;color:var(--green);font-weight:700;margin-bottom:12px">✅ 확정 완료</div>${r.improvePlanComment?`<div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px">검토 의견</div><div style="padding:10px;background:#EFF6FF;border-radius:8px;font-size:13px;color:var(--text)">${_esc(r.improvePlanComment)}</div>`:''}`:''}
+      ${!done?`
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px">CP팀 검토 의견 (선택)</div>
+        <textarea id="ic-plan-comment-${r.id}" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:72px;resize:vertical" placeholder="검토 의견을 입력하세요">${_esc(r.improvePlanComment||'')}</textarea>
+        <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
+          <button class="btn btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="confirmImprovePlanNew('${r.id}','반려')">↩ 반려 (재제출 요구)</button>
+          <button class="btn btn-primary" onclick="confirmImprovePlanNew('${r.id}','확정')">✅ 개선방안 확정</button>
+        </div>`:''}
     </div>`;
 }
-function confirmImprovePlan(riskId, status) {
+function confirmImprovePlanNew(riskId, status) {
   const r = RISKS.find(x => x.id === riskId); if (!r) return;
+  r.improvePlanComment = document.getElementById(`ic-plan-comment-${riskId}`)?.value.trim() || '';
+  if (status === '반려' && !r.improvePlanComment) { toast('반려 시 검토 의견을 입력해주세요.', 'warn'); return; }
   r.improvePlanStatus = status;
-  r.improvePlanComment = document.getElementById('ic-plan-comment')?.value.trim() || '';
   if (CONFIG.OFFLINE_MODE) _lsSave(curYear, curMonth, r.id, { ...r });
-  toast(`[${riskId}] 개선방안 ${status} 처리 완료`, status === '확정' ? 'success' : 'warn');
+  toast(status==='확정'?`[${riskId}] 개선방안이 확정되었습니다.`:`[${riskId}] 개선방안이 반려되었습니다. 팀에서 재제출이 필요합니다.`, status==='확정'?'success':'warn', 4000);
   renderImproveConfirmView();
 }
+async function completePhase5() {
+  const targets = RISKS.filter(r => r.z_selected);
+  const confirmed = targets.filter(r => r.improvePlanStatus==='확정').length;
+  if (confirmed < targets.length) { toast('전체 관리 대상 개선방안을 먼저 확정해주세요.', 'warn'); return; }
+  if (typeof confirmPhaseComplete === 'function') await confirmPhaseComplete('improve');
+  toast(`✅ Phase 5 완료! ${confirmed}건 개선방안이 확정되었습니다. Phase 6(이행 관리)이 활성화됩니다.`, 'success', 5000);
+  renderImproveConfirmView();
+}
+/* Phase 6 이행 관리 대상 필터 */
+function _getPhase6Targets() { return RISKS.filter(r => r.z_selected && r.improvePlanStatus === '확정'); }
 
 /* ═══════════════════════════════════════════════════════════
    📦  advplan2 — 아카이브/스냅샷 시스템
