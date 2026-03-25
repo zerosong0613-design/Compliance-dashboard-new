@@ -917,7 +917,7 @@ body.modal-open{overflow:hidden!important}
             <button class="f-btn" onclick="masterFilter('구매팀',this)">구매팀</button>
             <button class="f-btn" onclick="masterFilter('품질팀',this)">품질팀</button>
           </div>
-          <div class="table-card"><div class="overflow-x"><table class="tbl"><thead><tr><th>ID</th><th>영역</th><th>법규명</th><th>리스크 내용</th><th>관련 조직</th><th>A</th><th>B</th><th>X</th><th>Y</th><th>Z</th><th></th></tr></thead><tbody id="master-tbody"></tbody></table></div></div>
+          <div class="table-card"><div class="overflow-x"><table class="tbl"><thead><tr><th>ID</th><th>영역</th><th>법규명</th><th>리스크 내용</th><th>관련 조직</th><th>A</th><th>B</th><th>X</th><th>통제수단</th><th>Y</th><th>Z</th><th></th></tr></thead><tbody id="master-tbody"></tbody></table></div></div>
         </div>
         <!-- 패널 2: A·B 평가 -->
         <div id="master-panel-assess" style="display:none">
@@ -4271,6 +4271,7 @@ function renderMaster(data) {
       <td style="text-align:center;font-weight:700;font-size:12px">${r.a_likelihood||'-'}</td>
       <td style="text-align:center;font-weight:700;font-size:12px">${r.b_impact||'-'}</td>
       <td>${levelBadgeHtml(r.x_level)}</td>
+      <td style="font-size:11px;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${r.controlMeasure?'var(--text)':'var(--muted)'}" title="${_esc(r.controlMeasure||'')}">${r.controlMeasure ? _esc(r.controlMeasure.substring(0,20))+(r.controlMeasure.length>20?'…':'') : '—'}</td>
       <td>${r.y_level ? levelBadgeHtml(r.y_level) : '<span style="color:var(--muted)">—</span>'}</td>
       <td>${r.z_level ? levelBadgeHtml(r.z_level) : '<span style="color:var(--muted)">—</span>'}</td>
       <td><button class="act-btn" onclick="openRiskEditModal('${r.id}')">수정</button></td>
