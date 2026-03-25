@@ -1924,12 +1924,13 @@ const NAV_ADMIN = [
     {id:'phase6',label:'6. 개선방안 이행'},
     {id:'phase7',label:'7. 점검·보고'},
   ]},
-  {sec:'위험평가 작업'},
+  {sec:'위험평가 작업', collapsible:true, secId:'eval-work'},
   {id:'master',           icon:'📋', label:'① 리스크 등록·관리'},
   {id:'identify-confirm', icon:'✅', label:'① 식별 의견 검토·확정'},
   {id:'control-eval',     icon:'🛡', label:'③ 통제효과성 평가'},
   {id:'residual',         icon:'🎯', label:'④ 잔여리스크 확정'},
   {id:'improve-confirm',  icon:'🔧', label:'⑤ 개선방안 확정'},
+  {secEnd:'eval-work'},
   {sec:'이행 관리'},
   {id:'monthly',icon:'⚖',label:'이행현황 검토',badge:0},{id:'teams',icon:'👥',label:'팀 이행현황'},
   {sec:'보고서·정보'},
@@ -2051,7 +2052,19 @@ function buildNav() {
 
   // ── 사이드바 ──
   document.getElementById('sidebar-nav').innerHTML = nav.map(n => {
-    if (n.sec) return `<div class="sb-section">${n.sec}</div>`;
+    if (n.secEnd) return `</div>`;
+    if (n.sec) {
+      if (n.collapsible) {
+        const ps = typeof _loadPhaseStatus==='function' ? _loadPhaseStatus(curYear) : {};
+        const p5Done = !!ps?.improve?.completed;
+        const isCollapsed = p5Done ? (localStorage.getItem('sb_sec_'+n.secId)!=='open') : (localStorage.getItem('sb_sec_'+n.secId)==='closed');
+        return `<div class="sb-section" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding-right:12px" onclick="toggleSbSection('${n.secId}')">
+          <span>${n.sec}</span>
+          <span id="sb-sec-arrow-${n.secId}" style="font-size:9px;color:#4A6280;transition:transform .2s;${isCollapsed?'':'transform:rotate(90deg)'}">▶</span>
+        </div><div id="sb-sec-body-${n.secId}" style="overflow:hidden;transition:max-height .25s ease;max-height:${isCollapsed?'0':'400px'}">`;
+      }
+      return `<div class="sb-section">${n.sec}</div>`;
+    }
     if (n.sub) {
       const subHtml = n.sub.map(s =>
         `<button class="sb-sub-btn" data-id="${s.id}" onclick="navigateTo('${s.id}')">
@@ -2074,7 +2087,19 @@ function buildNav() {
 
   // ── 모바일 드로어 ──
   document.getElementById('drawer-nav').innerHTML = nav.map(n => {
-    if (n.sec) return `<div class="dr-section">${n.sec}</div>`;
+    if (n.secEnd) return `</div>`;
+    if (n.sec) {
+      if (n.collapsible) {
+        const ps2 = typeof _loadPhaseStatus==='function' ? _loadPhaseStatus(curYear) : {};
+        const p5d = !!ps2?.improve?.completed;
+        const isColl = p5d ? (localStorage.getItem('sb_sec_'+n.secId)!=='open') : (localStorage.getItem('sb_sec_'+n.secId)==='closed');
+        return `<div class="dr-section" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding-right:12px" onclick="toggleSbSection('${n.secId}')">
+          <span>${n.sec}</span>
+          <span id="dr-sec-arrow-${n.secId}" style="font-size:9px;transition:transform .2s;${isColl?'':'transform:rotate(90deg)'}">▶</span>
+        </div><div id="dr-sec-body-${n.secId}" style="overflow:hidden;transition:max-height .25s ease;max-height:${isColl?'0':'400px'}">`;
+      }
+      return `<div class="dr-section">${n.sec}</div>`;
+    }
     if (n.sub) {
       const subHtml = n.sub.map(s =>
         `<button class="dr-sub-btn" data-id="${s.id}" onclick="closeDrawer();navigateTo('${s.id}')">
@@ -2241,6 +2266,18 @@ function navigateTo(id) {
 }
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+function toggleSbSection(secId) {
+  ['sb','dr'].forEach(prefix => {
+    const body = document.getElementById(`${prefix}-sec-body-${secId}`);
+    const arrow = document.getElementById(`${prefix}-sec-arrow-${secId}`);
+    if (!body) return;
+    const isOpen = body.style.maxHeight !== '0px' && body.style.maxHeight !== '0';
+    body.style.maxHeight = isOpen ? '0' : '400px';
+    if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(90deg)';
+  });
+  const cur = localStorage.getItem('sb_sec_'+secId);
+  localStorage.setItem('sb_sec_'+secId, cur==='closed'||!cur? 'open':'closed');
+}
 
 async function setYear(y) {
   const pc = document.getElementById('sel-year'); const mob = document.getElementById('sel-year-mob');
@@ -3049,8 +3086,12 @@ function showHeatmapDrilldown(a_val, b_val) {
 ═══════════════════════════════════════════════════════════ */
 let selMonthly = null;
 function renderMonthly() {
-  // 현업: 내 팀 전체 리스크 (평가완료 포함 — 수정/추가제출 가능)
-  const base = appRole === 'admin' ? RISKS : RISKS.filter(r => r.team === appTeam);
+  // Phase 5 완료 시: 확정 개선방안이 있는 리스크만 이행 대상
+  const phase5Done = !!(_loadPhaseStatus(curYear)?.improve?.completed);
+  const phase6Targets = RISKS.filter(r => r.z_selected && r.improvePlanStatus === '확정');
+  const base = appRole === 'admin'
+    ? (phase5Done && phase6Targets.length > 0 ? phase6Targets : RISKS)
+    : (phase5Done && phase6Targets.length > 0 ? phase6Targets.filter(r => r.team === appTeam) : RISKS.filter(r => r.team === appTeam));
   document.getElementById('monthly-psub').textContent = `${curYear}년 ${curMonth}월 · ${appRole === 'admin' ? '전체' : appTeam}`;
   const panelTitle = document.getElementById('monthly-panel-title');
   if (panelTitle) panelTitle.textContent = appRole === 'admin' ? '리스크 검토 목록' : '이번달 점검 리스크';
@@ -3076,7 +3117,7 @@ function renderMonthly() {
             <span style="font-size:20px">📝</span>
             <div style="flex:1">
               <div style="font-size:15px;font-weight:800;color:var(--text)">월간 이행현황 입력</div>
-              <div style="font-size:12px;color:var(--muted);margin-top:2px">${curYear}년 ${curMonth}월 · ${appTeam} · 제출 ${submitted}/${total}건</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">${curYear}년 ${curMonth}월 · ${appTeam}${phase5Done?' · 확정 개선방안 '+total+'건 이행 중':''} · 제출 ${submitted}/${total}건</div>
             </div>
             <span style="font-size:12px;font-weight:800;padding:4px 12px;border-radius:99px;background:${dday<=5?'#FEF2F2;color:#DC2626':'#EFF6FF;color:var(--accent)'}">마감 D-${dday}</span>
           </div>
@@ -3146,6 +3187,15 @@ function renderMonthly() {
     }
   }
 
+  if (!base.length) {
+    document.getElementById('monthly-list').innerHTML = `
+      <div style="text-align:center;padding:48px 20px;color:var(--muted)">
+        <div style="font-size:36px;margin-bottom:12px">📋</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:6px">이행 대상 리스크 없음</div>
+        <div style="font-size:12px;line-height:1.7">Phase 5(개선방안 확정)가 완료된 후<br>이행 대상 리스크가 이 목록에 표시됩니다.</div>
+      </div>`;
+    return;
+  }
   document.getElementById('monthly-list').innerHTML = displayList.map((r, i) => {
     const origIdx = base.indexOf(r);
     return `
@@ -8030,13 +8080,15 @@ function renderResidualViewNew() {
       </div>
       <div class="overflow-x">
         <table class="tbl"><thead><tr>
-          <th style="width:40px;text-align:center">선정</th><th style="width:32px;text-align:center">순위</th>
+          <th style="width:50px;text-align:center">${isConfirmed?'관리대상':'선정'}</th><th style="width:32px;text-align:center">순위</th>
           <th style="width:70px">영역</th><th style="width:90px">법규명</th><th>리스크 내용</th><th style="width:80px">관련 조직</th>
           <th style="text-align:center;width:50px">A</th><th style="text-align:center;width:50px">B</th>
           <th style="text-align:center;width:65px">X(고유)</th><th style="text-align:center;width:65px">Y(통제)</th><th style="text-align:center;width:65px">Z(잔여)</th>
         </tr></thead>
         <tbody id="residual-new-tbody">${sorted.map((r,i) => {
-          const rowBg = r.z_level==='VH'?'background:#FEF9F9':r.z_level==='H'?'background:#FFFCF5':'';
+          const rowBg = isConfirmed
+            ? (r.z_selected ? (r.z_level==='VH'?'background:#FEE2E2':r.z_level==='H'?'background:#FEF3C7':'background:#F0FDF4') : 'background:#F8FAFC;opacity:.55')
+            : (r.z_level==='VH'?'background:#FEF9F9':r.z_level==='H'?'background:#FFFCF5':'');
           return `<tr data-zlevel="${r.z_level}" style="${rowBg}">
             <td style="text-align:center"><input type="checkbox" ${r.z_selected?'checked':''} onchange="toggleResidualNew('${r.id}',this.checked)" ${isConfirmed?'disabled':''}></td>
             <td style="text-align:center;font-size:12px;font-weight:800;color:var(--muted)">${i+1}</td>
@@ -8056,9 +8108,13 @@ function renderResidualViewNew() {
           <button class="btn btn-ghost" onclick="saveResidualSelectionNew()">💾 선정 저장</button>
           <button class="btn btn-primary" onclick="sendResidualConfirm()" style="${isSent?'opacity:.6':''}">📧 사업팀 확인 요청 발송${isSent?' (완료)':''}</button>
           <button class="btn btn-primary" style="background:var(--green);border-color:var(--green)" onclick="confirmResidualFinal()">✅ 최종 확정</button>
-        ` : `<div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:13px;font-weight:700;color:var(--green)">✅ Phase 4 완료 · 관리 대상 ${zSelected}건 확정됨</span>
-          <button class="btn btn-ghost" style="font-size:12px" onclick="reopenResidual()">수정 (재오픈)</button>
+        ` : `<div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+            <span style="font-size:13px;font-weight:700;color:var(--green)">✅ Phase 4 완료 · 관리 대상 ${zSelected}건 확정됨</span>
+            <button class="btn btn-ghost" style="font-size:12px" onclick="reopenResidual()">수정 (재오픈)</button>
+            <button class="btn btn-ghost" style="font-size:12px" onclick="toggleResidualSummary()">📋 확정 목록 보기</button>
+          </div>
+          <div id="residual-confirmed-summary" style="display:none"></div>
         </div>`}
       </div>
     </div>`;
@@ -8103,6 +8159,24 @@ async function confirmResidualFinal() {
   if (CONFIG.OFFLINE_MODE) RISKS.forEach(r => _lsSave(curYear, curMonth, r.id, { ...r }));
   toast(`✅ 잔여리스크 ${count}건 최종 확정 완료. Phase 5가 활성화되었습니다.`, 'success', 5000);
   renderResidualViewNew();
+}
+function toggleResidualSummary() {
+  const el = document.getElementById('residual-confirmed-summary');
+  if (!el) return;
+  if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+  const targets = RISKS.filter(r => r.z_selected);
+  el.innerHTML = `
+    <div style="padding:16px;background:#FEF9F9;border:1px solid #FECACA;border-radius:12px">
+      <div style="font-size:13px;font-weight:800;color:var(--red);margin-bottom:10px">🎯 관리대상 리스크 ${targets.length}건</div>
+      ${targets.map(r => `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+          <span style="font-size:11px;color:var(--accent);font-weight:700;flex-shrink:0">${r.id}</span>
+          ${levelBadgeHtml(r.z_level)}
+          <span style="font-size:12px;font-weight:600;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(r.riskContent||r.title)}</span>
+          <span style="font-size:11px;color:var(--muted);flex-shrink:0">${_esc(r.team)}</span>
+        </div>`).join('')}
+    </div>`;
+  el.style.display = 'block';
 }
 async function reopenResidual() {
   const ok = await showConfirmModal({ title:'잔여리스크 확정 취소', message:'최종 확정을 취소하고 재선정 모드로 돌아갑니다.<br>Phase 5가 잠깁니다.', confirmText:'재오픈', danger:true });
@@ -8267,6 +8341,16 @@ async function completePhase5() {
   if (typeof confirmPhaseComplete === 'function') await confirmPhaseComplete('improve');
   toast(`✅ Phase 5 완료! ${confirmed}건 개선방안이 확정되었습니다. Phase 6(이행 관리)이 활성화됩니다.`, 'success', 5000);
   renderImproveConfirmView();
+  // 위험평가 작업 섹션 자동 접기
+  setTimeout(() => {
+    localStorage.setItem('sb_sec_eval-work', 'closed');
+    ['sb','dr'].forEach(p => {
+      const b = document.getElementById(`${p}-sec-body-eval-work`);
+      const a = document.getElementById(`${p}-sec-arrow-eval-work`);
+      if (b) b.style.maxHeight = '0';
+      if (a) a.style.transform = '';
+    });
+  }, 500);
 }
 /* Phase 6 이행 관리 대상 필터 */
 function _getPhase6Targets() { return RISKS.filter(r => r.z_selected && r.improvePlanStatus === '확정'); }
