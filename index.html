@@ -1074,6 +1074,10 @@ body.modal-open{overflow:hidden!important}
 
       <!-- ═ ARCHIVE ═ -->
       <div class="view" id="view-archive">
+        <!-- 현업 전용 자료실 (JS로 렌더링) -->
+        <div id="archive-user-view" style="display:none"></div>
+        <!-- 관리자용 아카이브 (원본 HTML) -->
+        <div id="archive-admin-view">
         <div style="margin-bottom:20px">
           <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">📚 아카이브</div>
           <div style="font-size:13px;color:var(--muted)">과거 자료 보관 · 법령 인사이트 · Copilot 에이전트</div>
@@ -1157,6 +1161,7 @@ body.modal-open{overflow:hidden!important}
             </div>
           </div>
         </div>
+        </div><!-- /archive-admin-view -->
       </div>
 
       <!-- ═ EVAL RESULT (User) ═ -->
@@ -2645,13 +2650,17 @@ let _archiveYearFilter = '전체';
 let _lawCategoryFilter = '전체';
 
 function initArchive() {
-  const thisYear = String(new Date().getFullYear());
+  const adminView = document.getElementById('archive-admin-view');
+  const userView = document.getElementById('archive-user-view');
   if (appRole === 'user') {
-    // 현업 전용: 연도별 자료 다운로드 화면
+    if (adminView) adminView.style.display = 'none';
+    if (userView) userView.style.display = 'block';
     _renderUserArchive();
     return;
   }
   // Admin 모드: 기존 아카이브
+  if (adminView) adminView.style.display = '';
+  if (userView) userView.style.display = 'none';
   const bottomGrid = document.getElementById('archive-bottom-grid');
   if (bottomGrid) bottomGrid.style.display = '';
   renderArchiveFiles();
@@ -2659,7 +2668,7 @@ function initArchive() {
   initCopilotAgent();
 }
 function _renderUserArchive() {
-  const el = document.getElementById('view-archive');
+  const el = document.getElementById('archive-user-view');
   if (!el) return;
   const team = appTeam || '';
   const thisYear = new Date().getFullYear();
