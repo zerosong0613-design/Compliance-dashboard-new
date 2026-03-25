@@ -4458,6 +4458,16 @@ function openRiskEditModal(id) {
           <span style="font-size:12px;font-weight:700;color:var(--muted)">X(고유리스크) =</span>
           <span id="edit-x-badge">${r.x_level ? levelBadgeHtml(r.x_level) : '—'}</span>
         </div>
+        <div style="border:1px solid #BFDBFE;border-radius:10px;padding:14px;background:#F8FBFF">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <label style="font-size:12px;font-weight:700;color:#1D4ED8">🔍 통제수단 <span style="font-weight:400;color:var(--muted)">(Phase 3 · 팀 담당자 입력)</span></label>
+            ${r.controlMeasureStatus==='입력완료'
+              ?`<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:#ECFDF5;color:var(--green)">✓ 입력됨</span>`
+              :`<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:#FEF9EE;color:var(--amber)">미입력</span>`}
+          </div>
+          <textarea id="edit-risk-control" style="width:100%;padding:10px 12px;border:1px solid #BFDBFE;border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:80px;resize:vertical;background:#fff" placeholder="예: 월 1회 점검 실시, 분기별 교육 이수율 95% 유지, 절차서 v2.1 준수" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='#BFDBFE'">${r.controlMeasure||''}</textarea>
+          <div style="font-size:11px;color:var(--muted);margin-top:5px">현재 운영 중인 예방·점검 활동을 작성하세요. Y(통제효과성) 평가의 근거가 됩니다.</div>
+        </div>
         <div>
           <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">통제효과성 Y</label>
           <div style="display:flex;gap:6px;flex-wrap:wrap" id="edit-y-chips">
@@ -4475,8 +4485,8 @@ function openRiskEditModal(id) {
             onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
         </div>
         <div>
-          <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">개선 과제</label>
-          <textarea id="edit-risk-task" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:72px;resize:vertical"
+          <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">📋 개선과제 <span style="font-weight:400;color:var(--muted)">(Phase 4 확정 후 · CP팀 기입)</span></label>
+          <textarea id="edit-risk-task" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;height:72px;resize:vertical" placeholder="Z(잔여리스크) 확정 후 도출된 개선 목표를 입력하세요"
             onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">${r.task||''}</textarea>
         </div>
         <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--light);border-radius:8px">
@@ -4543,6 +4553,8 @@ async function confirmEditRisk(riskId) {
   const cat        = document.getElementById('edit-risk-cat')?.value;
   const owner      = document.getElementById('edit-risk-owner')?.value.trim() || '-';
   const task       = document.getElementById('edit-risk-task')?.value.trim() || '';
+  const controlMeasure = document.getElementById('edit-risk-control')?.value.trim() || '';
+  const controlMeasureStatus = controlMeasure ? '입력완료' : (r.controlMeasureStatus || '미입력');
   const selected   = document.getElementById('edit-risk-selected')?.checked !== false;
   if (!title) { toast('리스크명을 입력해주세요.', 'warn'); return; }
   if (title.length < 4) { toast('리스크명은 4자 이상 입력해주세요.', 'warn'); return; }
@@ -4563,6 +4575,7 @@ async function confirmEditRisk(riskId) {
     }
     Object.assign(r, { title, riskContent: title, team, cat, domain: cat, score, owner, task, selected,
       a_likelihood, b_impact, x_level: x_level_val,
+      controlMeasure, controlMeasureStatus,
       y_level: y_level_val, z_level: z_level_val,
       z_selected: ['H','VH'].includes(z_level_val) });
     if (CONFIG.OFFLINE_MODE) {
@@ -6864,7 +6877,7 @@ function openTaskQuickEdit(riskId) {
       </div>
       <div style="margin-bottom:16px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-          <label style="font-size:12px;font-weight:700;color:var(--text)">개선 과제 (통제수단)</label>
+          <label style="font-size:12px;font-weight:700;color:var(--text)">📋 개선과제 <span style="font-size:11px;color:var(--muted);font-weight:400">(Phase 4 · CP팀 기입)</span></label>
           <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:${hasTask?'#ECFDF5':'#FEF2F2'};color:${hasTask?'#059669':'#DC2626'}">${hasTask?'입력됨':'필수 입력'}</span>
         </div>
         <textarea id="tq-task-input" style="width:100%;padding:12px;border:1.5px solid ${hasTask?'var(--border)':'#3B82F6'};border-radius:10px;font-size:13px;font-family:inherit;outline:none;height:100px;resize:vertical;${hasTask?'':'box-shadow:0 0 0 3px rgba(59,130,246,.12)'}"
@@ -6923,13 +6936,13 @@ openRiskEditModal = function(id) {
     const hasTask = r.task && r.task.trim() !== '';
     const badgeColor = hasTask ? 'background:#ECFDF5;color:#059669' : 'background:#FEF2F2;color:#DC2626';
     const badgeText = hasTask ? '입력됨' : '필수 입력';
-    labelEl.innerHTML = `개선 과제 (통제수단) <span class="phase-task-badge" style="${badgeColor}">${badgeText}</span>`;
+    labelEl.innerHTML = `📋 개선과제 <span style="font-size:11px;color:var(--muted);font-weight:400">(Phase 4)</span> <span class="phase-task-badge" style="${badgeColor}">${badgeText}</span>`;
 
     // textarea 아래 힌트 추가
     if (!taskTextarea.parentElement.querySelector('.phase-task-hint')) {
       const hint = document.createElement('div');
       hint.className = 'phase-task-hint';
-      hint.innerHTML = `<strong>Phase 3 · 통제수준 진단 중</strong><br>이 리스크에 대해 현재 시행 중인 통제수단(예방 활동, 점검 절차 등)을 기록하세요.<br>모든 선정 리스크의 개선 과제가 입력되어야 단계 완료가 가능합니다.`;
+      hint.innerHTML = `<strong>Phase 4 · 잔여리스크 확정 후</strong><br>Z(잔여리스크)가 확정된 이후, 관리 대상 리스크에 대한 구체적인 개선 목표와 조치 계획을 기입하세요.`;
       taskTextarea.parentElement.appendChild(hint);
     }
 
